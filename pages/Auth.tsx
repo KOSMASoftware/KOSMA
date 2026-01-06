@@ -70,7 +70,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
     
     try {
       // Direct Supabase call to allow password passing (bypassing the simplified Context for now)
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -83,7 +83,16 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
       });
 
       if (error) throw error;
-      setStep('success');
+
+      // Logic: If Supabase requires email confirmation, 'session' is null.
+      // If Auto-Confirm is ON, 'session' is populated.
+      if (data.session) {
+          navigate('/dashboard');
+      } else {
+          // Standard flow: Email sent, show success screen
+          setStep('success');
+      }
+
     } catch (err: any) {
       console.error(err);
       setAuthError(err.message || "Registration failed");
@@ -148,7 +157,8 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
 
         {(emailError || authError) && (
           <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
-            <X className="w-4 h-4" /> {emailError || authError}
+            <X className="w-4 h-4 flex-shrink-0" /> 
+            <span>{emailError || authError}</span>
           </div>
         )}
 
@@ -253,7 +263,8 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
 
         {authError && (
           <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
-            <X className="w-4 h-4" /> {authError}
+            <X className="w-4 h-4 flex-shrink-0" /> 
+            <span>{authError}</span>
           </div>
         )}
 
@@ -280,7 +291,6 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
           <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 text-sm text-blue-800 max-w-sm mx-auto mb-8">
              <p>
                Please click the link in the email to activate your account. 
-               The email will be sent via <strong>Elastic Email</strong> (if configured in Supabase).
              </p>
           </div>
 
