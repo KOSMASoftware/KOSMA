@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Check, X, Loader2, Mail, Shield, User, Briefcase, Zap, GraduationCap, Clock, UserX, AlertTriangle } from 'lucide-react';
+import { Check, X, Loader2, Mail, Shield, User, Briefcase, Zap, GraduationCap, Clock, UserX, AlertTriangle, Database, Terminal } from 'lucide-react';
 
 // --- COMPONENTS ---
 
@@ -76,13 +76,21 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
     } catch (err: any) {
        console.error("Login Error Full:", err);
        
+       // Robust error message extraction
+       let msg = "";
+       if (typeof err === 'string') msg = err;
+       else if (err?.message) msg = err.message;
+       else msg = JSON.stringify(err);
+
        // Handle specific Supabase errors for better UX
-       if (err.message && err.message.includes("Email not confirmed")) {
+       if (msg.includes("Email not confirmed")) {
            setAuthError("Email not verified. Please check your inbox or disable verification in Supabase Auth settings.");
-       } else if (err.message && (err.message.includes("Invalid login credentials") || err.message.includes("invalid_grant"))) {
+       } else if (msg.includes("Invalid login credentials") || msg.includes("invalid_grant")) {
            setAuthError("Wrong email or password.");
+       } else if (msg.includes("Database error querying schema") || msg.includes("schema cache") || msg.includes("PGRST")) {
+           setAuthError("SCHEMA_ERROR");
        } else {
-           setAuthError(err.message || "Login failed.");
+           setAuthError(msg || "Login failed.");
        }
     }
   };
@@ -135,14 +143,45 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
             />
             </div>
 
-            {(emailError || authError) && (
-            <div className={`p-4 text-sm rounded-lg flex items-start gap-3 ${authError.includes('verified') ? 'bg-orange-50 text-orange-800' : 'bg-red-50 text-red-600'}`}>
-                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" /> 
-                <div className="flex flex-col gap-1">
-                    <span className="font-bold">Login Failed</span>
-                    <span>{emailError || authError}</span>
+            {authError === 'SCHEMA_ERROR' ? (
+                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
+                    <div className="flex items-center gap-2 font-bold mb-2 text-amber-800">
+                         <Database className="w-4 h-4" />
+                         Database Schema Sync Required
+                    </div>
+                    <p className="mb-2 text-xs leading-relaxed">
+                        Your Supabase API cache is out of sync. Please run this command.
+                    </p>
+                    <div className="bg-white p-3 rounded border border-amber-200 font-mono text-xs select-all mb-3 text-gray-600 relative group">
+                        NOTIFY pgrst, 'reload config';
+                        <div className="absolute right-2 top-2 hidden group-hover:block text-[10px] text-gray-400">SQL</div>
+                    </div>
+                     <div className="mb-3 p-2 bg-blue-50 text-blue-800 text-[10px] rounded border border-blue-100">
+                        <strong>Note:</strong> If the SQL Editor returns "Success. No rows returned", that means it <u>WORKED</u>! Come back here and click "Log In" again.
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            type="button" 
+                            onClick={() => {
+                                navigator.clipboard.writeText("NOTIFY pgrst, 'reload config';");
+                                alert("Copied to clipboard! Paste this in your Supabase SQL Editor.");
+                            }}
+                            className="flex items-center gap-1 text-xs font-bold text-amber-700 hover:text-amber-900 transition-colors"
+                        >
+                            <Terminal className="w-3 h-3" />
+                            Copy SQL Command
+                        </button>
+                        <span className="text-xs text-amber-600/70">Run in Supabase SQL Editor</span>
+                    </div>
+                 </div>
+            ) : (emailError || authError) && (
+                <div className={`p-4 text-sm rounded-lg flex items-start gap-3 ${authError.includes('verified') ? 'bg-orange-50 text-orange-800' : 'bg-red-50 text-red-600'}`}>
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" /> 
+                    <div className="flex flex-col gap-1">
+                        <span className="font-bold">Login Failed</span>
+                        <span>{emailError || authError}</span>
+                    </div>
                 </div>
-            </div>
             )}
 
             <button

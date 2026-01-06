@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { mockApi } from '../services/mockService';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, Project } from '../types';
 import { Check, Loader2, Download, CreditCard, User as UserIcon, HelpCircle, FileText, Settings, AlertTriangle, Receipt, Phone, LayoutDashboard } from 'lucide-react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
+import { mockApi } from '../services/mockService';
 
 // --- SHARED COMPONENTS ---
 
@@ -60,9 +60,11 @@ const useCustomerData = (user: User) => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // HYBRID APPROACH: Try Real DB first
-                let usedMock = false;
-                
+                // If we are in 'Prototype Bypass Mode' (User ID starts with mock), skip DB and load mocks directly
+                if (user.id.startsWith('mock-bypass-')) {
+                    throw new Error('PROTOTYPE_MODE'); 
+                }
+
                 // 1. Licenses
                 let realLicenses: License[] = [];
                 const { data: licData, error: licError } = await supabase
@@ -70,7 +72,9 @@ const useCustomerData = (user: User) => {
                     .select('*')
                     .eq('user_id', user.id);
 
-                if (!licError && licData && licData.length > 0) {
+                if (licError) throw licError;
+
+                if (licData && licData.length > 0) {
                      realLicenses = licData.map((l: any) => ({
                         id: l.id,
                         userId: l.user_id,
@@ -93,7 +97,9 @@ const useCustomerData = (user: User) => {
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false });
 
-                 if (!invError && invData) {
+                 if (invError) throw invError;
+
+                 if (invData) {
                     realInvoices = invData.map((i: any) => ({
                         id: i.id,
                         date: i.created_at || i.date, 
@@ -110,7 +116,9 @@ const useCustomerData = (user: User) => {
                     .select('*')
                     .eq('user_id', user.id);
                 
-                if (!projError && projData) {
+                if (projError) throw projError;
+                
+                if (projData) {
                     realProjects = projData.map((p: any) => ({
                         id: p.id,
                         name: p.project_name || p.name, 
@@ -118,33 +126,30 @@ const useCustomerData = (user: User) => {
                     }));
                 }
 
-                // DECISION: If Real Data is empty, try Mock Data (Fallback)
-                if (realLicenses.length === 0) {
-                     console.log("Real DB empty or failed. Loading Mock Data...");
-                     const mockLicense = await mockApi.getLicense(user.id);
-                     if (mockLicense) realLicenses = [mockLicense];
-                     
-                     const mockDetails = await mockApi.getUserDetails(user.id);
-                     if (realInvoices.length === 0) realInvoices = mockDetails.invoices;
-                     if (realProjects.length === 0) realProjects = mockDetails.projects;
-                     usedMock = true;
-                }
-
                 setLicenses(realLicenses);
                 setInvoices(realInvoices);
                 setProjects(realProjects);
-                
-                if (usedMock && licError) {
-                   // Only log error if we actually had to fallback due to error, otherwise it's just "empty DB"
-                   console.warn("Using mock data due to DB error or emptiness");
-                }
 
             } catch (err: any) {
-                console.error('Error fetching customer data:', err);
-                // Last resort fallback
-                const mockLicense = await mockApi.getLicense(user.id);
-                if (mockLicense) setLicenses([mockLicense]);
-                setError(null); // Don't show error to user if we successfully loaded mock
+                // PROTOTYPE FALLBACK: If DB fails (schema error, network), load Mock Data
+                const isSchemaError = err.message?.includes('schema') || err.message === 'PROTOTYPE_MODE' || err.code === 'PGRST000';
+                
+                if (isSchemaError) {
+                    console.warn('Dashboard: DB Error or Mock Mode detected. Loading fallback data for prototype.');
+                    // Use a default user ID from mock service to get meaningful data
+                    const fallbackId = 'u1'; 
+                    const mockLic = await mockApi.getLicense(fallbackId);
+                    const mockDetails = await mockApi.getUserDetails(fallbackId);
+                    
+                    if (mockLic) setLicenses([mockLic]);
+                    if (mockDetails) {
+                        setInvoices(mockDetails.invoices);
+                        setProjects(mockDetails.projects);
+                    }
+                } else {
+                    console.error('Error fetching customer data:', err);
+                    setError(err.message || 'Failed to load data from Supabase');
+                }
             } finally {
                 setLoading(false);
             }
@@ -165,12 +170,18 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
     if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
 
     const activeLicense = licenses.find(l => l.status === SubscriptionStatus.ACTIVE);
+    const isMockUser = user.id.startsWith('mock-');
 
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="text-center mb-10">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.name}</h1>
                 <p className="text-gray-500">Manage your KOSMA licenses and billing.</p>
+                {isMockUser && (
+                    <span className="inline-block mt-2 px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">
+                        PROTOTYPE MODE (Offline Data)
+                    </span>
+                )}
             </div>
             
             <DashboardTabs />
@@ -181,6 +192,7 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
                     <div>
                         <p className="font-bold">Error loading data</p>
                         <p className="text-sm">{error}</p>
+                        <p className="text-xs mt-1">Check database connection or RLS policies.</p>
                     </div>
                 </div>
             )}

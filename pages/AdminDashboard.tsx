@@ -2,9 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Routes, Route, useNavigate, useSearchParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { mockApi } from '../services/mockService';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
-import { License, SubscriptionStatus, User, PlanTier, Project, Invoice } from '../types';
+import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
 import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight } from 'lucide-react';
 
@@ -83,40 +82,35 @@ const useAdminData = () => {
         const fetchAll = async () => {
             setLoading(true);
             try {
-                // STRATEGY: MERGE REAL & MOCK DATA
-                // This ensures the Admin sees the Demo Users (for presentation) 
-                // AND the Real Users (for technical verification) simultaneously.
+                // STRICT MODE: ONLY REAL DATA FROM SUPABASE
+                // If tables are empty or RLS blocks access, this will return empty arrays.
 
-                // 1. Get Mock Data (Baseline)
-                const mockData = await mockApi.getAdminData();
-                let combinedUsers = [...mockData.users];
-                let combinedLicenses = [...mockData.licenses];
-                let combinedRevenue = mockData.stats.revenue;
+                const { data: profiles, error: pError } = await supabase.from('profiles').select('*');
+                const { data: licData, error: lError } = await supabase.from('licenses').select('*');
+                const { data: invData, error: iError } = await supabase.from('invoices').select('amount, status');
 
-                // 2. Fetch Real Data from Supabase
-                const { data: profiles } = await supabase.from('profiles').select('*');
-                const { data: licData } = await supabase.from('licenses').select('*');
-                const { data: invData } = await supabase.from('invoices').select('amount, status');
+                if (pError) console.error("Admin Profiles Error:", pError);
+                if (lError) console.error("Admin Licenses Error:", lError);
 
-                // 3. Merge Real Data if available
+                let realUsers: User[] = [];
+                let realLicenses: License[] = [];
+                let realRevenue = 0;
+
+                // 1. Process Users
                 if (profiles && profiles.length > 0) {
-                    const realUsers: User[] = profiles.map((p: any) => ({
+                    realUsers = profiles.map((p: any) => ({
                         id: p.id,
                         email: p.email || 'N/A', 
-                        name: p.full_name || 'Real User', 
-                        role: p.role === 'admin' ? 'admin' : 'customer',
+                        name: p.full_name || 'User', 
+                        role: p.role === 'admin' ? UserRole.ADMIN : UserRole.CUSTOMER,
                         registeredAt: p.created_at || new Date().toISOString(),
                         stripeCustomerId: p.stripe_customer_id
                     }));
-
-                    // Filter out any real users that might conflict with mock IDs (unlikely but safe)
-                    // and add them to the list
-                    const uniqueRealUsers = realUsers.filter(r => !combinedUsers.find(m => m.id === r.id));
-                    combinedUsers = [...combinedUsers, ...uniqueRealUsers];
                 }
 
+                // 2. Process Licenses
                 if (licData && licData.length > 0) {
-                    const realLicenses: License[] = licData.map((l: any) => ({
+                    realLicenses = licData.map((l: any) => ({
                         id: l.id,
                         userId: l.user_id,
                         productName: l.product_name,
@@ -128,38 +122,30 @@ const useAdminData = () => {
                         billingProjectName: l.billing_project_name,
                         stripeSubscriptionId: l.stripe_subscription_id
                     }));
-                     
-                    const uniqueRealLicenses = realLicenses.filter(r => !combinedLicenses.find(m => m.id === r.id));
-                    combinedLicenses = [...combinedLicenses, ...uniqueRealLicenses];
                 }
 
+                // 3. Process Revenue
                 if (invData && invData.length > 0) {
-                     const realRevenue = invData
+                     realRevenue = invData
                         .filter((i: any) => i.status === 'paid')
                         .reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
-                     combinedRevenue += realRevenue;
                 }
 
-                // 4. Recalculate Stats based on Combined Data
-                const active = combinedLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
-                const inactive = combinedLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE).length;
+                // 4. Stats
+                const active = realLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
+                const inactive = realLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE).length;
 
-                setUsers(combinedUsers);
-                setLicenses(combinedLicenses);
+                setUsers(realUsers);
+                setLicenses(realLicenses);
                 setStats({
-                    totalUsers: combinedUsers.length,
+                    totalUsers: realUsers.length,
                     activeLicenses: active,
                     inactiveLicenses: inactive,
-                    revenue: combinedRevenue
+                    revenue: realRevenue
                 });
 
             } catch (err) {
-                console.error("Admin Data Fetch Error:", err);
-                // Fallback to pure mock if something explodes
-                const mockData = await mockApi.getAdminData();
-                setUsers(mockData.users);
-                setLicenses(mockData.licenses);
-                setStats(mockData.stats);
+                console.error("Admin Data Critical Error:", err);
             } finally {
                 setLoading(false);
             }
@@ -405,6 +391,11 @@ const UsersManagement: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
+          {processedRows.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+               No users found in database.
+            </div>
+          ) : (
           <table className="w-full text-sm text-left">
             <thead className="bg-white text-gray-500 font-medium border-b border-gray-200">
               <tr>
@@ -460,6 +451,7 @@ const UsersManagement: React.FC = () => {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -654,7 +646,6 @@ const MarketingInsights: React.FC = () => {
             monthCounts[key] = (monthCounts[key] || 0) + 1;
         });
 
-        // Fill missing months roughly for demo, then sort
         const sortedKeys = Object.keys(monthCounts).sort();
         let cumulative = 0;
         return sortedKeys.map(key => {
