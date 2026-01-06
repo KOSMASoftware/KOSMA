@@ -116,6 +116,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
+    // Check if session exists before updating
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error("Auth session missing! Please request a new reset link.");
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
   };
