@@ -54,6 +54,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initSession = async () => {
       try {
+        // Manually handle HashRouter fragment tokens if needed
+        const hash = window.location.hash;
+        if (hash.includes('access_token=')) {
+          // Extract tokens from the combined hash string
+          const params = new URLSearchParams(hash.split('#').pop() || '');
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+          }
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await fetchProfile(session);
@@ -68,13 +84,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth Event:", event);
       if (session) {
-        if (event === 'PASSWORD_RECOVERY') {
-          // Keep loading false but ensure we have the session info for the update page
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
           setUser(constructUser(session.user, null));
-        } else {
-          await fetchProfile(session);
+          if (event !== 'PASSWORD_RECOVERY') await fetchProfile(session);
         }
       } else {
         setUser(null);
@@ -122,9 +135,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updatePassword = async (password: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      throw new Error("Auth session missing! Please request a new reset link.");
+      throw new Error("Sitzung abgelaufen oder ungültig. Bitte fordere einen neuen Link an.");
     }
-
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
   };
