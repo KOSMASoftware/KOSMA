@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  isRecovering: boolean; // New: track if we are in a password recovery flow
+  isRecovering: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, name: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       name: dbProfile?.full_name || sessionUser.user_metadata?.full_name || 'User',
       role: dbProfile?.role === 'admin' ? UserRole.ADMIN : UserRole.CUSTOMER,
       registeredAt: sessionUser.created_at || new Date().toISOString(),
-      stripeCustomerId: dbProfile?.stripe_customer_id || null
+      stripeCustomerId: dbProfile?.stripe_customer_id || undefined
     };
   };
 
@@ -56,7 +56,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    // Initial session check
     const initSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -72,14 +71,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initSession();
 
-    // Listen for auth changes, especially PASSWORD_RECOVERY
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth Event:", event);
-      
       if (event === 'PASSWORD_RECOVERY') {
         setIsRecovering(true);
       }
-
       if (session) {
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await fetchProfile(session);
@@ -120,11 +115,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    // Force session check before updating
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error("Sitzung abgelaufen oder nicht gefunden. Bitte fordern Sie einen neuen Link an.");
-    }
+    if (!session) throw new Error("Keine aktive Sitzung gefunden.");
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
     setIsRecovering(false);
@@ -141,18 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
-      isLoading, 
-      isRecovering,
-      login, 
-      signup, 
-      resetPassword, 
-      updatePassword, 
-      resendVerification, 
-      logout 
-    }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, isRecovering, login, signup, resetPassword, updatePassword, resendVerification, logout }}>
       {children}
     </AuthContext.Provider>
   );
