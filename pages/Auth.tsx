@@ -2,13 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Loader2, Mail, AlertTriangle, Check } from 'lucide-react';
+import { Loader2, Mail, AlertTriangle, Check, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {
   const { login, signup, resetPassword, updatePassword, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [step, setStep] = useState<'form' | 'success' | 'done'>('form');
   const [email, setEmail] = useState('');
@@ -38,7 +38,6 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             return;
           }
 
-          // Search everywhere in the URL for tokens
           const url = window.location.href;
           const accessToken = url.match(/[#&? ]access_token=([^&]+)/)?.[1];
           const refreshToken = url.match(/[#&? ]refresh_token=([^&]+)/)?.[1];
@@ -54,7 +53,6 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             }
           }
 
-          // Last resort: Wait 2 seconds for Supabase to auto-detect
           setTimeout(async () => {
             const { data: { session: finalCheck } } = await supabase.auth.getSession();
             if (!finalCheck) {
@@ -84,6 +82,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
     
     try {
       if (isResetMode) {
+        if (!email) throw new Error("E-Mail Adresse erforderlich.");
         await resetPassword(email);
         setStep('success');
       } else if (mode === 'update-password') {
@@ -108,11 +107,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   if (step === 'success') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white p-4 text-center">
-        <div className="max-w-md w-full">
+        <div className="max-w-md w-full animate-in fade-in zoom-in-95">
           <Mail className="w-16 h-16 text-brand-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold mb-4">Link versendet</h2>
-          <p className="text-gray-500 mb-8">Überprüfen Sie Ihr Postfach.</p>
-          <Link to="/login" className="text-brand-500 font-bold hover:underline">Zum Login</Link>
+          <h2 className="text-2xl font-bold mb-4">E-Mail gesendet</h2>
+          <p className="text-gray-500 mb-8">Wir haben einen Link an <strong>{email}</strong> geschickt.</p>
+          <button onClick={() => { setStep('form'); setSearchParams({}); }} className="text-brand-500 font-bold hover:underline flex items-center gap-2 mx-auto">
+             <ArrowLeft className="w-4 h-4" /> Zurück zum Login
+          </button>
         </div>
       </div>
     );
@@ -121,11 +122,11 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   if (step === 'done') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white p-4 text-center">
-        <div className="max-w-md w-full">
+        <div className="max-w-md w-full animate-in fade-in zoom-in-95">
           <Check className="w-16 h-16 text-green-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold mb-4">Fertig!</h2>
-          <p className="text-gray-500 mb-8">Ihr Passwort wurde erfolgreich geändert.</p>
-          <button onClick={() => navigate('/login')} className="w-full h-14 bg-brand-500 text-white rounded font-bold">Anmelden</button>
+          <h2 className="text-2xl font-bold mb-4">Passwort geändert!</h2>
+          <p className="text-gray-500 mb-8">Sie können sich jetzt mit Ihrem neuen Passwort anmelden.</p>
+          <button onClick={() => navigate('/login')} className="w-full h-14 bg-brand-500 text-white rounded-lg font-bold">Jetzt Anmelden</button>
         </div>
       </div>
     );
@@ -136,64 +137,98 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <Link to="/" className="text-3xl font-black text-brand-500 italic">KOSMA</Link>
-          <h1 className="text-4xl font-bold mt-8">
-            {mode === 'update-password' ? 'Neues Passwort' : isResetMode ? 'Reset' : 'Login'}
+          <h1 className="text-4xl font-bold mt-8 tracking-tight">
+            {mode === 'update-password' ? 'Passwort ändern' : isResetMode ? 'Passwort vergessen?' : mode === 'login' ? 'Login' : 'Sign Up'}
           </h1>
+          <p className="text-gray-500 mt-2">
+            {isResetMode ? 'Wir senden Ihnen einen Link zum Zurücksetzen.' : mode === 'update-password' ? 'Wählen Sie ein sicheres Passwort.' : 'Geben Sie Ihre Zugangsdaten ein.'}
+          </p>
         </div>
 
         <div className="space-y-6">
           {checkingSession ? (
             <div className="flex flex-col items-center py-10 gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
-              <p className="text-sm text-gray-400">Verifiziere Link...</p>
+              <p className="text-sm text-gray-400">Sitzung wird verifiziert...</p>
             </div>
           ) : (
             <>
               {mode !== 'update-password' && (
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Email</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-5 py-4 border border-gray-200 rounded outline-none focus:border-brand-500" />
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Email</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@beispiel.de" className="w-full px-5 py-4 border border-gray-200 rounded-lg outline-none focus:border-brand-500 transition-colors" />
                 </div>
               )}
+
               {mode === 'signup' && (
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Name</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-5 py-4 border border-gray-200 rounded outline-none focus:border-brand-500" />
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Name</label>
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full px-5 py-4 border border-gray-200 rounded-lg outline-none focus:border-brand-500 transition-colors" />
                 </div>
               )}
-              {mode !== 'update-password' && !isResetMode && (
+
+              {mode === 'login' && !isResetMode && (
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Passwort</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-5 py-4 border border-gray-200 rounded outline-none focus:border-brand-500" />
+                  <div className="flex justify-between items-end mb-2">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Passwort</label>
+                    <button 
+                      type="button"
+                      onClick={() => setSearchParams({ reset: 'true' })}
+                      className="text-[10px] font-black text-brand-500 hover:underline uppercase tracking-widest"
+                    >
+                      Passwort vergessen?
+                    </button>
+                  </div>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••••••" className="w-full px-5 py-4 border border-gray-200 rounded-lg outline-none focus:border-brand-500 transition-colors" />
                 </div>
               )}
+
+              {mode === 'signup' && (
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Passwort wählen</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mind. 6 Zeichen" className="w-full px-5 py-4 border border-gray-200 rounded-lg outline-none focus:border-brand-500 transition-colors" />
+                </div>
+              )}
+
               {mode === 'update-password' && (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Neues Passwort</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-5 py-4 border border-gray-200 rounded outline-none focus:border-brand-500" />
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Neues Passwort</label>
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••••••" className="w-full px-5 py-4 border border-gray-200 rounded-lg outline-none focus:border-brand-500 transition-colors" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Bestätigen</label>
-                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-5 py-4 border border-gray-200 rounded outline-none focus:border-brand-500" />
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Bestätigen</label>
+                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••••••" className="w-full px-5 py-4 border border-gray-200 rounded-lg outline-none focus:border-brand-500 transition-colors" />
                   </div>
                 </div>
               )}
 
               {error && (
-                <div className="p-4 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded flex gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+                <div className="p-4 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-lg flex gap-3 items-start animate-in shake-in-1">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" /> 
+                  <span>{error}</span>
                 </div>
               )}
 
-              <button onClick={handleAction} disabled={localLoading} className="w-full h-14 bg-brand-500 text-white rounded font-bold shadow-lg shadow-brand-500/20 disabled:opacity-50">
-                {localLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'Weiter'}
+              <button 
+                onClick={handleAction} 
+                disabled={localLoading} 
+                className="w-full h-14 bg-brand-500 text-white rounded-lg font-bold shadow-lg shadow-brand-500/20 disabled:opacity-50 transition-all hover:translate-y-[-1px] active:translate-y-[0px]"
+              >
+                {localLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : isResetMode ? 'Link anfordern' : 'Weiter'}
               </button>
             </>
           )}
         </div>
+        
         <div className="mt-8 text-center">
-          <Link to="/login" className="text-sm font-bold text-brand-500">Abbrechen</Link>
+          {isResetMode ? (
+            <button onClick={() => setSearchParams({})} className="text-sm font-bold text-gray-400 hover:text-brand-500">Abbrechen</button>
+          ) : (
+            <Link to={mode === 'login' ? '/signup' : '/login'} className="text-sm font-bold text-brand-500">
+              {mode === 'login' ? 'Noch kein Konto? Registrieren' : 'Bereits ein Konto? Login'}
+            </Link>
+          )}
         </div>
       </div>
     </div>
