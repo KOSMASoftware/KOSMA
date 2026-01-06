@@ -49,7 +49,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       setUser(constructUser(session.user, null));
     } finally {
-      // Profile fetch finished, we can definitely stop loading
       setIsLoading(false);
     }
   };
@@ -59,7 +58,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          setUser(constructUser(session.user, null));
           await fetchProfile(session);
         } else {
           setIsLoading(false);
@@ -73,14 +71,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        setUser(constructUser(session.user, null));
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await fetchProfile(session);
+        } else {
+          setUser(constructUser(session.user, null));
+          setIsLoading(false);
         }
       } else {
         setUser(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => {
