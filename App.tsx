@@ -7,10 +7,19 @@ import { AuthPage } from './pages/Auth';
 import { CustomerDashboard } from './pages/CustomerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserRole } from './types';
+import { Loader2 } from 'lucide-react';
 
 // Guard for protected routes
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserRole }> = ({ children, requiredRole }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+      return (
+          <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+              <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+          </div>
+      );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
