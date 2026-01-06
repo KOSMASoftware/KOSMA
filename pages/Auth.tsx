@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Loader2, Mail, AlertTriangle, Check, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Loader2, Mail, AlertTriangle, Check, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {
-  const { login, signup, resetPassword, updatePassword, isAuthenticated, isRecovering } = useAuth();
+  const { login, signup, resetPassword, updatePassword, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -17,19 +17,9 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [localLoading, setLocalLoading] = useState(false);
-  
-  // Local state for checking session, only active in update mode
-  const [checkingSession, setCheckingSession] = useState(mode === 'update-password');
-  
-  const isResetMode = searchParams.get('reset') === 'true';
-  const actionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // If Context already knows we are recovering, we can stop the spinner
-  useEffect(() => {
-    if (mode === 'update-password' && isRecovering) {
-      setCheckingSession(false);
-    }
-  }, [isRecovering, mode]);
+  // We show the form IMMEDIATELY for update-password. No more waiting for verification spinners.
+  const isResetMode = searchParams.get('reset') === 'true';
 
   useEffect(() => {
     if (isAuthenticated && mode !== 'update-password') {
@@ -37,75 +27,18 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
     }
   }, [isAuthenticated, mode, navigate]);
 
-  useEffect(() => {
-    if (mode === 'update-password') {
-      const verifySession = async () => {
-        // Start a hard timeout for the spinner
-        const hardTimeout = setTimeout(() => {
-          setCheckingSession(false);
-          setError("Die automatische Verifizierung dauert zu lange. Falls Sie ein Passwort-Feld sehen, fahren Sie fort. Falls nicht, fordern Sie bitte einen neuen Link an.");
-        }, 4500);
-
-        try {
-          // 1. Check if Supabase SDK already has the session
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          if (currentSession) {
-            clearTimeout(hardTimeout);
-            setCheckingSession(false);
-            return;
-          }
-
-          // 2. Manual Brute Force Extraction with decoding
-          const fullUrl = window.location.href;
-          const getParam = (name: string) => {
-            const match = fullUrl.match(new RegExp('[#&?]' + name + '=([^&]*)'));
-            return match ? decodeURIComponent(match[1]) : null;
-          };
-
-          const accessToken = getParam('access_token');
-          const refreshToken = getParam('refresh_token');
-
-          if (accessToken && refreshToken) {
-            const { data, error: setSessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
-            });
-
-            if (!setSessionError && data.session) {
-              clearTimeout(hardTimeout);
-              setCheckingSession(false);
-              return;
-            }
-          }
-
-          // 3. Fallback: Wait for SDK background processing
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const { data: { session: finalCheck } } = await supabase.auth.getSession();
-          
-          if (finalCheck) {
-            clearTimeout(hardTimeout);
-            setCheckingSession(false);
-          }
-          // Note: If no session after all this, the hardTimeout will handle the UI state
-        } catch (err) {
-          console.error("Verification error:", err);
-          setCheckingSession(false);
-        }
-      };
-
-      verifySession();
-    }
-  }, [mode]);
+  // Helper to grab tokens from the raw browser URL, ignoring what React thinks
+  const extractTokensFromUrl = () => {
+    const rawUrl = window.location.href;
+    const access_token = rawUrl.match(/[#&]access_token=([^&]+)/)?.[1];
+    const refresh_token = rawUrl.match(/[#&]refresh_token=([^&]+)/)?.[1];
+    return { access_token, refresh_token };
+  };
 
   const handleAction = async () => {
     if (localLoading) return;
     setError('');
     setLocalLoading(true);
-
-    actionTimeoutRef.current = setTimeout(() => {
-      setLocalLoading(false);
-      setError("Anfrage-Timeout. Bitte versuchen Sie es erneut.");
-    }, 15000);
     
     try {
       if (isResetMode) {
@@ -115,6 +48,17 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
       } else if (mode === 'update-password') {
         if (password.length < 6) throw new Error("Das Passwort muss mindestens 6 Zeichen lang sein.");
         if (password !== confirmPassword) throw new Error("Die Passwörter stimmen nicht überein.");
+
+        // BRUTE FORCE: Try to set session one last time right before updating
+        const { access_token, refresh_token } = extractTokensFromUrl();
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({
+            access_token: decodeURIComponent(access_token),
+            refresh_token: decodeURIComponent(refresh_token)
+          });
+        }
+
+        // Now try the update
         await updatePassword(password);
         setStep('done');
       } else if (mode === 'login') {
@@ -123,10 +67,10 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         await signup(email, name, password);
         setStep('success');
       }
-      if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
     } catch (err: any) {
-      if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
+      console.error("Auth Action Error:", err);
       setError(err.message || "Ein Fehler ist aufgetreten.");
+    } finally {
       setLocalLoading(false);
     }
   };
@@ -139,9 +83,9 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             <Mail className="w-10 h-10 text-brand-500" />
           </div>
           <h2 className="text-3xl font-bold mb-4">E-Mail gesendet</h2>
-          <p className="text-gray-500 mb-8">Wir haben einen Link an <b>{email}</b> geschickt. Bitte prüfe auch deinen Spam-Ordner.</p>
+          <p className="text-gray-500 mb-8">Link an <b>{email}</b> geschickt.</p>
           <button onClick={() => { setStep('form'); setSearchParams({}); }} className="text-brand-500 font-bold hover:underline flex items-center gap-2 mx-auto">
-             <ArrowLeft className="w-4 h-4" /> Zurück zum Login
+             <ArrowLeft className="w-4 h-4" /> Zurück
           </button>
         </div>
       </div>
@@ -155,9 +99,9 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Check className="w-10 h-10 text-green-500" />
           </div>
-          <h2 className="text-3xl font-bold mb-4">Passwort aktualisiert</h2>
-          <p className="text-gray-500 mb-8">Du kannst dich jetzt mit deinem neuen Passwort anmelden.</p>
-          <button onClick={() => navigate('/login')} className="w-full h-14 bg-brand-500 text-white rounded-xl font-bold shadow-xl shadow-brand-500/20">Zum Login</button>
+          <h2 className="text-3xl font-bold mb-4">Erfolg!</h2>
+          <p className="text-gray-500 mb-8">Dein Passwort wurde aktualisiert.</p>
+          <button onClick={() => navigate('/login')} className="w-full h-14 bg-brand-500 text-white rounded-xl font-bold shadow-xl shadow-brand-500/20">Jetzt einloggen</button>
         </div>
       </div>
     );
@@ -171,21 +115,9 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           <h1 className="text-4xl font-extrabold mt-8 tracking-tight text-gray-900">
             {mode === 'update-password' ? 'Neues Passwort' : isResetMode ? 'Reset Link' : mode === 'login' ? 'Login' : 'Registrieren'}
           </h1>
-          <p className="text-gray-500 mt-2">
-            {mode === 'update-password' ? 'Wähle ein sicheres Passwort für deinen Account.' : isResetMode ? 'Wir senden dir einen Link per E-Mail.' : 'Schön, dass du da bist.'}
-          </p>
         </div>
 
         <div className="space-y-6">
-          {checkingSession ? (
-            <div className="flex flex-col items-center py-16 gap-6">
-              <div className="relative">
-                <Loader2 className="w-12 h-12 animate-spin text-brand-500" />
-                <RefreshCw className="w-5 h-5 text-brand-200 absolute inset-0 m-auto animate-reverse-spin" />
-              </div>
-              <p className="text-sm font-medium text-gray-400">Verifiziere Token...</p>
-            </div>
-          ) : (
             <>
               {mode !== 'update-password' && (
                 <div>
@@ -212,13 +144,16 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
               )}
 
               {mode === 'update-password' && (
-                <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                <div className="space-y-6 animate-in slide-in-from-top-2">
+                  <div className="p-4 bg-brand-50 border border-brand-100 text-brand-700 text-xs rounded-lg mb-2">
+                    Geben Sie jetzt Ihr neues Passwort ein.
+                  </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Neues Passwort</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 Zeichen" className="w-full px-5 py-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Passwort bestätigen</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Bestätigen</label>
                     <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Passwort wiederholen" className="w-full px-5 py-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all" />
                   </div>
                 </div>
@@ -227,7 +162,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
               {error && (
                 <div className="p-4 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-xl flex gap-3 items-center animate-in shake-in-1">
                   <AlertTriangle className="w-5 h-5 shrink-0" /> 
-                  <span>{error}</span>
+                  <span className="flex-1">{error}</span>
                 </div>
               )}
 
@@ -239,7 +174,6 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
                 {localLoading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : isResetMode ? 'Link anfordern' : mode === 'update-password' ? 'Passwort speichern' : 'Weiter'}
               </button>
             </>
-          )}
         </div>
         
         <div className="mt-8 text-center">
