@@ -64,7 +64,7 @@ export const liveSystemService = {
 
     const start = performance.now();
     try {
-      const { error } = await supabase.auth.getSession();
+      const { error } = await (supabase.auth as any).getSession();
       if (error) throw error;
       
       return { 
