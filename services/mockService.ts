@@ -1,3 +1,4 @@
+
 import { User, UserRole, License, SubscriptionStatus, Invoice, PlanTier, Project } from '../types';
 
 // --- MOCK DATABASE ---
@@ -97,16 +98,19 @@ const PROJECTS: Record<string, Project[]> = {
 
 const INVOICES: Record<string, Invoice[]> = {
   'u1': [
-    { id: 'inv_101', date: '2023-01-15', amount: 390.00, status: 'paid', pdfUrl: '#' }
+    // Added missing currency: 'EUR'
+    { id: 'inv_101', date: '2023-01-15', amount: 390.00, currency: 'EUR', status: 'paid', pdfUrl: '#' }
   ],
   'u3': [
-    { id: 'inv_201', date: '2023-03-10', amount: 69.00, status: 'paid', pdfUrl: '#' },
-    { id: 'inv_202', date: '2023-04-10', amount: 69.00, status: 'paid', pdfUrl: '#' },
-    { id: 'inv_203', date: '2023-10-10', amount: 69.00, status: 'open', pdfUrl: '#' } // Failed payment
+    // Added missing currency: 'EUR'
+    { id: 'inv_201', date: '2023-03-10', amount: 69.00, currency: 'EUR', status: 'paid', pdfUrl: '#' },
+    { id: 'inv_202', date: '2023-04-10', amount: 69.00, currency: 'EUR', status: 'paid', pdfUrl: '#' },
+    { id: 'inv_203', date: '2023-10-10', amount: 69.00, currency: 'EUR', status: 'open', pdfUrl: '#' } // Failed payment
   ],
   'u6': [
-    { id: 'inv_601', date: '2023-01-01', amount: 59.00, status: 'paid', pdfUrl: '#' },
-    { id: 'inv_602', date: '2023-02-01', amount: 59.00, status: 'paid', pdfUrl: '#' }
+    // Added missing currency: 'EUR'
+    { id: 'inv_601', date: '2023-01-01', amount: 59.00, currency: 'EUR', status: 'paid', pdfUrl: '#' },
+    { id: 'inv_602', date: '2023-02-01', amount: 59.00, currency: 'EUR', status: 'paid', pdfUrl: '#' }
   ]
 };
 
@@ -228,10 +232,12 @@ export const mockApi = {
           if (tier === PlanTier.PRODUCTION) amount = 690;
           
           if (amount > 0) {
-            const newInvoice = {
+            // Added missing currency: 'EUR'
+            const newInvoice: Invoice = {
               id: `inv_${Date.now()}`,
               date: new Date().toISOString().split('T')[0],
               amount,
+              currency: 'EUR',
               status: 'paid' as const,
               pdfUrl: '#'
             };

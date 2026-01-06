@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'admin',
   CUSTOMER = 'customer'
@@ -17,47 +18,41 @@ export enum PlanTier {
   PRODUCTION = 'Production'
 }
 
-// Maps to Supabase 'auth.users' + 'public.customers'
+export interface BillingAddress {
+  companyName?: string;
+  vatId?: string;
+  street: string;
+  city: string;
+  zip: string;
+  country: string;
+}
+
 export interface User {
-  id: string; // Supabase Auth ID
+  id: string;
   email: string;
   name: string;
   role: UserRole;
   registeredAt: string;
-  stripeCustomerId?: string; // From 'public.customers'
+  stripeCustomerId?: string;
+  billingAddress?: BillingAddress;
 }
 
-// Maps to 'public.products' logic via Stripe
-export interface Product {
-  id: string;
-  name: string;
-  stripePriceId: string;
-}
-
-// Maps to 'public.projects' (Synced from Electron App)
 export interface Project {
   id: string;
   name: string;
   lastSynced: string;
 }
 
-// Maps to 'public.licenses' & 'public.subscriptions' combined view for frontend
 export interface License {
   id: string;
-  userId: string; // foreign key to customers
+  userId: string;
   productName: string; 
   planTier: PlanTier;
-  
-  // Subscription Data
   stripeSubscriptionId?: string;
   billingCycle: 'monthly' | 'yearly' | 'none';
   status: SubscriptionStatus;
-  
-  // License Specifics
   validUntil: string | null; 
   licenseKey: string | null;
-  
-  // Requirement D: Project Name from Stripe Metadata -> Invoice -> DB
   billingProjectName?: string; 
 }
 
@@ -65,8 +60,10 @@ export interface Invoice {
   id: string;
   date: string;
   amount: number;
+  currency: string;
   status: 'paid' | 'open';
   pdfUrl: string;
+  projectName?: string;
 }
 
 export interface Session {
