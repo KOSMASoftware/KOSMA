@@ -54,15 +54,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initSession = async () => {
       try {
-        // Manually handle HashRouter fragment tokens if needed
-        const hash = window.location.hash;
-        if (hash.includes('access_token=')) {
-          // Extract tokens from the combined hash string
-          const params = new URLSearchParams(hash.split('#').pop() || '');
+        // VERY AGGRESSIVE Hash Parsing for HashRouter
+        const fullHash = window.location.hash;
+        if (fullHash.includes('access_token=')) {
+          // Find the last occurrence of access_token to handle multiple hashes
+          const tokenPart = fullHash.substring(fullHash.indexOf('access_token='));
+          const params = new URLSearchParams(tokenPart);
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
           
           if (accessToken && refreshToken) {
+            console.log("Found recovery tokens, setting session...");
             await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken
@@ -84,10 +86,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Supabase Auth Event:", event);
       if (session) {
-        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           setUser(constructUser(session.user, null));
-          if (event !== 'PASSWORD_RECOVERY') await fetchProfile(session);
+          if (event === 'SIGNED_IN') await fetchProfile(session);
         }
       } else {
         setUser(null);
@@ -135,7 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updatePassword = async (password: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      throw new Error("Sitzung abgelaufen oder ungültig. Bitte fordere einen neuen Link an.");
+      throw new Error("Keine aktive Sitzung. Bitte fordere einen neuen Link an.");
     }
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;

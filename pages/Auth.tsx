@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Loader2, Mail, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Loader2, Mail, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {
@@ -20,23 +20,36 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   
   const isResetMode = searchParams.get('reset') === 'true';
 
+  // Effect 1: Guaranteed exit for hydration spinner
   useEffect(() => {
-    const checkSession = async () => {
-      if (mode === 'update-password') {
-        // First, wait a bit for AuthContext to do its thing
-        await new Promise(r => setTimeout(r, 800));
-        
-        // Manual double check
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session && !isAuthenticated) {
-          setError("Keine aktive Sitzung gefunden. Bitte verwende den Link aus der E-Mail oder fordere einen neuen an.");
-        }
+    if (mode === 'update-password') {
+      const timer = setTimeout(() => {
         setIsHydrating(false);
-      }
-    };
-    checkSession();
-  }, [mode, isAuthenticated]);
+      }, 2500); // 2.5 seconds max wait
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
+
+  // Effect 2: If we become authenticated, stop hydration immediately
+  useEffect(() => {
+    if (isAuthenticated && mode === 'update-password') {
+      setIsHydrating(false);
+      setError('');
+    }
+  }, [isAuthenticated, mode]);
+
+  // Effect 3: Perform a manual check once after a short delay
+  useEffect(() => {
+    if (mode === 'update-password' && !isHydrating && !isAuthenticated) {
+      const check = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError("Die Sitzung konnte nicht verifiziert werden. Der Link ist eventuell abgelaufen.");
+        }
+      };
+      check();
+    }
+  }, [mode, isHydrating, isAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +83,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             <Mail className="w-10 h-10" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">E-Mail gesendet</h1>
-          <p className="text-gray-600 mb-8 leading-relaxed">Wir haben dir einen Link an <strong>{email}</strong> geschickt. Bitte folge den Anweisungen in der Nachricht.</p>
+          <p className="text-gray-600 mb-8 leading-relaxed">Wir haben dir einen Link an <strong>{email}</strong> geschickt. Bitte folge den Anweisungen.</p>
           <button onClick={() => setStep('form')} className="text-brand-600 font-bold hover:underline">Zurück zum Login</button>
         </div>
       </div>
@@ -80,10 +93,12 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   if (isHydrating && mode === 'update-password') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center bg-white p-10 rounded-xl shadow-sm border border-gray-100">
-          <Loader2 className="w-12 h-12 text-brand-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-900 font-bold">Verifiziere Link...</p>
-          <p className="text-gray-400 text-sm mt-1">Einen Moment bitte.</p>
+        <div className="text-center bg-white p-12 rounded-2xl shadow-xl border border-gray-100 max-w-sm w-full mx-4">
+          <Loader2 className="w-12 h-12 text-brand-500 animate-spin mx-auto mb-6" />
+          <p className="text-gray-900 font-bold text-xl">Verifiziere Link...</p>
+          <p className="text-gray-400 text-sm mt-2 leading-relaxed">
+            Wir prüfen deine Identität. Dies kann bei Hash-Links einen Moment dauern.
+          </p>
         </div>
       </div>
     );
@@ -92,21 +107,21 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   return (
     <div className="min-h-screen flex flex-col justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link to="/" className="flex justify-center text-4xl font-black text-brand-500 mb-10 tracking-tighter">KOSMA</Link>
+        <Link to="/" className="flex justify-center text-4xl font-black text-brand-500 mb-10 tracking-tighter italic">KOSMA</Link>
         <h2 className="text-center text-3xl font-extrabold text-gray-900 mb-10">
           {mode === 'update-password' ? 'Neues Passwort setzen' : isResetMode ? 'Passwort vergessen?' : mode === 'login' ? 'Willkommen zurück' : 'Konto erstellen'}
         </h2>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-12 px-10 shadow-xl rounded-2xl border border-gray-100">
+        <div className="bg-white py-12 px-10 shadow-2xl rounded-3xl border border-gray-100">
           
-          {mode === 'update-password' && error.includes('Sitzung') && (
-            <div className="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-xl flex gap-4 text-amber-800 text-sm leading-relaxed">
+          {mode === 'update-password' && error && !isAuthenticated && (
+            <div className="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-2xl flex gap-4 text-amber-800 text-sm leading-relaxed">
                 <AlertTriangle className="w-6 h-6 flex-shrink-0 text-amber-500" />
                 <div>
                     <p className="font-bold text-base mb-1">Link ungültig</p>
-                    <p>Der Passwort-Reset-Link ist abgelaufen oder wurde bereits verwendet.</p>
+                    <p>{error}</p>
                     <Link to="/login?reset=true" className="inline-block mt-3 font-bold underline decoration-2 underline-offset-4">Neuen Link anfordern</Link>
                 </div>
             </div>
@@ -169,7 +184,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
               </div>
             )}
 
-            {error && !error.includes('Sitzung') && (
+            {error && (isAuthenticated || mode !== 'update-password') && (
               <div className="text-red-600 text-sm text-center bg-red-50 p-4 rounded-xl border border-red-100 font-bold">
                 {error}
               </div>
@@ -178,7 +193,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             <div>
               <button
                 type="submit"
-                disabled={isLoading || (mode === 'update-password' && error.includes('Sitzung'))}
+                disabled={isLoading || (mode === 'update-password' && !isAuthenticated && !isHydrating)}
                 className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-lg font-bold text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-500/30 disabled:opacity-50 transition-all transform active:scale-[0.98]"
               >
                 {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Bestätigen'}
