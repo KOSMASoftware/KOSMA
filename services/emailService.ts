@@ -6,8 +6,8 @@ const ELASTIC_EMAIL_API_KEY = 'YOUR_API_KEY_HERE';
 
 const API_URL = 'https://api.elasticemail.com/v2/email/send';
 
-// HARD REQUIREMENT: Always send from this address
-const SENDER_EMAIL = 'info@kosma.io';
+// HARD REQUIREMENT: Always send from this address to match Elastic Email verification
+const SENDER_EMAIL = 'register@kosma.io';
 
 interface EmailResponse {
   success: boolean;
