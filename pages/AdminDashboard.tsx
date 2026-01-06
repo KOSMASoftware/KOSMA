@@ -83,40 +83,40 @@ const useAdminData = () => {
         const fetchAll = async () => {
             setLoading(true);
             try {
-                // HYBRID APPROACH: Try Real first, Fallback to Mock
-                let usedMock = false;
+                // STRATEGY: MERGE REAL & MOCK DATA
+                // This ensures the Admin sees the Demo Users (for presentation) 
+                // AND the Real Users (for technical verification) simultaneously.
 
-                // 1. Fetch Profiles (Real)
-                const { data: profiles, error: profError } = await supabase.from('profiles').select('*');
-                
-                // 2. Fetch Licenses (Real)
-                const { data: licData, error: licError } = await supabase.from('licenses').select('*');
-                
-                // 3. Fetch Invoices for Revenue (Real)
-                const { data: invData, error: invError } = await supabase.from('invoices').select('amount, status');
+                // 1. Get Mock Data (Baseline)
+                const mockData = await mockApi.getAdminData();
+                let combinedUsers = [...mockData.users];
+                let combinedLicenses = [...mockData.licenses];
+                let combinedRevenue = mockData.stats.revenue;
 
-                // Determine if we should use mock
-                const realUsers = (profiles || []).length;
-                
-                if (realUsers === 0 || profError) {
-                    console.log("Admin Data: Real DB empty or failed. Using Mock Data.");
-                    const mockData = await mockApi.getAdminData();
-                    setUsers(mockData.users);
-                    setLicenses(mockData.licenses);
-                    setStats(mockData.stats);
-                    usedMock = true;
-                } else {
-                    // Process Real Data
-                    const mappedUsers: User[] = (profiles || []).map((p: any) => ({
+                // 2. Fetch Real Data from Supabase
+                const { data: profiles } = await supabase.from('profiles').select('*');
+                const { data: licData } = await supabase.from('licenses').select('*');
+                const { data: invData } = await supabase.from('invoices').select('amount, status');
+
+                // 3. Merge Real Data if available
+                if (profiles && profiles.length > 0) {
+                    const realUsers: User[] = profiles.map((p: any) => ({
                         id: p.id,
                         email: p.email || 'N/A', 
-                        name: p.full_name || 'Unknown', 
+                        name: p.full_name || 'Real User', 
                         role: p.role === 'admin' ? 'admin' : 'customer',
                         registeredAt: p.created_at || new Date().toISOString(),
                         stripeCustomerId: p.stripe_customer_id
                     }));
 
-                    const mappedLicenses: License[] = (licData || []).map((l: any) => ({
+                    // Filter out any real users that might conflict with mock IDs (unlikely but safe)
+                    // and add them to the list
+                    const uniqueRealUsers = realUsers.filter(r => !combinedUsers.find(m => m.id === r.id));
+                    combinedUsers = [...combinedUsers, ...uniqueRealUsers];
+                }
+
+                if (licData && licData.length > 0) {
+                    const realLicenses: License[] = licData.map((l: any) => ({
                         id: l.id,
                         userId: l.user_id,
                         productName: l.product_name,
@@ -128,26 +128,34 @@ const useAdminData = () => {
                         billingProjectName: l.billing_project_name,
                         stripeSubscriptionId: l.stripe_subscription_id
                     }));
+                     
+                    const uniqueRealLicenses = realLicenses.filter(r => !combinedLicenses.find(m => m.id === r.id));
+                    combinedLicenses = [...combinedLicenses, ...uniqueRealLicenses];
+                }
 
-                    const active = mappedLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
-                    const inactive = mappedLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE).length;
-                    const revenue = (invData || [])
+                if (invData && invData.length > 0) {
+                     const realRevenue = invData
                         .filter((i: any) => i.status === 'paid')
                         .reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
-
-                    setUsers(mappedUsers);
-                    setLicenses(mappedLicenses);
-                    setStats({
-                        totalUsers: mappedUsers.length,
-                        activeLicenses: active,
-                        inactiveLicenses: inactive,
-                        revenue
-                    });
+                     combinedRevenue += realRevenue;
                 }
+
+                // 4. Recalculate Stats based on Combined Data
+                const active = combinedLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
+                const inactive = combinedLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE).length;
+
+                setUsers(combinedUsers);
+                setLicenses(combinedLicenses);
+                setStats({
+                    totalUsers: combinedUsers.length,
+                    activeLicenses: active,
+                    inactiveLicenses: inactive,
+                    revenue: combinedRevenue
+                });
 
             } catch (err) {
                 console.error("Admin Data Fetch Error:", err);
-                // Hard Fallback
+                // Fallback to pure mock if something explodes
                 const mockData = await mockApi.getAdminData();
                 setUsers(mockData.users);
                 setLicenses(mockData.licenses);
@@ -307,7 +315,7 @@ const UsersManagement: React.FC = () => {
         rows = rows.filter(r => 
             r.name.toLowerCase().includes(lowerTerm) || 
             r.email.toLowerCase().includes(lowerTerm) ||
-            r.license?.billingProjectName?.toLowerCase().includes(lowerTerm)
+            (r.license?.billingProjectName || '').toLowerCase().includes(lowerTerm)
         );
     }
     rows.sort((a, b) => {
