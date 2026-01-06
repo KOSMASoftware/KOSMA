@@ -57,8 +57,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           await fetchProfile(session);
-        } else {
-          setUser(null);
         }
       } catch (error) {
         console.error('Session init error:', error);
@@ -70,8 +68,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth Event:", event);
       if (session) {
-        await fetchProfile(session);
+        if (event === 'PASSWORD_RECOVERY') {
+          // Keep loading false but ensure we have the session info for the update page
+          setUser(constructUser(session.user, null));
+        } else {
+          await fetchProfile(session);
+        }
       } else {
         setUser(null);
       }
@@ -116,7 +120,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    // Check if session exists before updating
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       throw new Error("Auth session missing! Please request a new reset link.");

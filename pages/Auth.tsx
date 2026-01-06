@@ -15,15 +15,22 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [isHydrating, setIsHydrating] = useState(mode === 'update-password');
   
   const isResetMode = searchParams.get('reset') === 'true';
 
-  // Specific check for password update mode
+  // Specific check for password update mode with a delay to allow Supabase to catch the hash token
   useEffect(() => {
-    if (mode === 'update-password' && !isLoading && !isAuthenticated) {
-      setError("No active session found. If you came from an email link, it may have expired.");
+    if (mode === 'update-password') {
+      const timer = setTimeout(() => {
+        setIsHydrating(false);
+        if (!isAuthenticated) {
+          setError("No active session found. If you came from an email link, it may have expired or the link format is incorrect.");
+        }
+      }, 1000); // Give it 1 second to parse the hash
+      return () => clearTimeout(timer);
     }
-  }, [mode, isLoading, isAuthenticated]);
+  }, [mode, isAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +64,19 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             <Mail className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
-          <p className="text-gray-600 mb-8">Instructions have been sent to {email}. Please follow them to continue.</p>
+          <p className="text-gray-600 mb-8">Instructions have been sent. Please follow them to continue.</p>
           <button onClick={() => setStep('form')} className="text-brand-600 font-bold hover:underline">Back to form</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isHydrating && mode === 'update-password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-brand-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 font-medium">Verifying reset link...</p>
         </div>
       </div>
     );
@@ -76,7 +94,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-10 px-8 shadow-sm sm:rounded-xl border border-gray-200">
           
-          {mode === 'update-password' && error.includes('session') && (
+          {mode === 'update-password' && !isAuthenticated && !isLoading && !isHydrating && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex gap-3 text-amber-800 text-sm">
                 <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                 <div>
@@ -144,7 +162,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
               </div>
             )}
 
-            {error && !error.includes('session') && (
+            {error && (
               <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-100 font-medium">
                 {error}
               </div>
@@ -153,7 +171,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             <div>
               <button
                 type="submit"
-                disabled={isLoading || (mode === 'update-password' && !isAuthenticated)}
+                disabled={isLoading || (mode === 'update-password' && !isAuthenticated) || isHydrating}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 transition-all"
               >
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue'}
