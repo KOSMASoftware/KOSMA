@@ -1,0 +1,632 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import { Routes, Route, useNavigate, useSearchParams, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { mockApi } from '../services/mockService';
+import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
+import { License, SubscriptionStatus, User, PlanTier, Project, Invoice } from '../types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy } from 'lucide-react';
+import { isSupabaseConfigured } from '../lib/supabaseClient';
+
+const TIER_COLORS = {
+  [PlanTier.FREE]: '#1F2937',
+  [PlanTier.BUDGET]: '#F59E0B',
+  [PlanTier.COST_CONTROL]: '#A855F7',
+  [PlanTier.PRODUCTION]: '#22C55E'
+};
+
+const CYCLE_COLORS = {
+  'yearly': '#0ea5e9',
+  'monthly': '#64748b',
+  'none': '#e2e8f0'
+};
+
+// --- SHARED ADMIN COMPONENTS ---
+
+const AdminTabs = () => {
+    const location = useLocation();
+    
+    return (
+        <div className="flex flex-wrap justify-center border-b border-gray-200 mb-8 bg-white sticky top-0 z-10 pt-2">
+            <Link 
+                to="/admin" 
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    location.pathname === '/admin' 
+                    ? 'border-brand-500 text-brand-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+                <LayoutDashboard className="w-4 h-4" /> Overview
+            </Link>
+             <Link 
+                to="/admin/users" 
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    location.pathname === '/admin/users' 
+                    ? 'border-brand-500 text-brand-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+                <ShieldCheck className="w-4 h-4" /> Users & Licenses
+            </Link>
+            <Link 
+                to="/admin/marketing" 
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    location.pathname === '/admin/marketing' 
+                    ? 'border-brand-500 text-brand-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+                <LineChart className="w-4 h-4" /> Marketing
+            </Link>
+             <Link 
+                to="/admin/system" 
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    location.pathname === '/admin/system' 
+                    ? 'border-brand-500 text-brand-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+                <Server className="w-4 h-4" /> System
+            </Link>
+        </div>
+    );
+};
+
+// --- VIEW 1: STRATEGIC OVERVIEW ---
+const DashboardOverview: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalUsers: 0, activeLicenses: 0, inactiveLicenses: 0, revenue: 0 });
+  const [licenses, setLicenses] = useState<License[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const data = await mockApi.getAdminData();
+      setStats(data.stats);
+      setLicenses(data.licenses);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  // Data for "Yearly vs Monthly"
+  const cycleCounts = licenses.reduce((acc, curr) => {
+    if (curr.status === SubscriptionStatus.ACTIVE) {
+       acc[curr.billingCycle] = (acc[curr.billingCycle] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const cycleChartData = [
+    { name: 'Yearly', value: cycleCounts['yearly'] || 0 },
+    { name: 'Monthly', value: cycleCounts['monthly'] || 0 }
+  ];
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading metrics...</div>;
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <AdminTabs />
+      <header>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-500">Platform performance and license distribution.</p>
+      </header>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div 
+          onClick={() => navigate('/admin/users')}
+          className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-brand-200 transition-all group"
+        >
+          <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-blue-50 text-brand-600 rounded-lg group-hover:bg-brand-600 group-hover:text-white transition-colors">
+              <Users className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-medium text-gray-500">Total Registrations</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
+        </div>
+        
+        <div 
+          onClick={() => navigate('/admin/users?status=active')}
+          className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-green-200 transition-all group"
+        >
+           <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
+              <CreditCard className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-medium text-gray-500">Active Licenses</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{stats.activeLicenses}</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+           <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-medium text-gray-500">Total Revenue</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">€{stats.revenue.toLocaleString()}</p>
+        </div>
+
+        <div 
+          onClick={() => navigate('/admin/marketing')}
+          className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:border-orange-200 transition-all group"
+        >
+           <div className="flex items-center gap-4 mb-2">
+            <div className="p-3 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-600 group-hover:text-white transition-colors">
+              <UserX className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-medium text-gray-500">Inactive Users</span>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{stats.inactiveLicenses}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Billing Cycles (Yearly vs Monthly)</h3>
+           <div className="h-64 w-full">
+             <ResponsiveContainer width="100%" height="100%">
+               <BarChart data={cycleChartData} layout="vertical">
+                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                 <XAxis type="number" hide />
+                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} />
+                 <Tooltip cursor={{fill: 'transparent'}} />
+                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={40}>
+                    <Cell fill={CYCLE_COLORS.yearly} />
+                    <Cell fill={CYCLE_COLORS.monthly} />
+                 </Bar>
+               </BarChart>
+             </ResponsiveContainer>
+          </div>
+          <p className="text-center text-sm text-gray-500 mt-2">Majority of users prefer yearly billing.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- VIEW 2: USER MANAGEMENT ---
+type SortKey = 'name' | 'planTier' | 'validUntil' | 'status';
+type SortDirection = 'asc' | 'desc';
+
+const UsersManagement: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [licenses, setLicenses] = useState<License[]>([]);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFilter = searchParams.get('status') || 'all';
+  const [planFilter, setPlanFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'name', direction: 'asc' });
+
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUserLicense, setSelectedUserLicense] = useState<License | null>(null);
+  const [userDetails, setUserDetails] = useState<{ projects: Project[], invoices: Invoice[] } | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const data = await mockApi.getAdminData();
+      setUsers(data.users);
+      setLicenses(data.licenses);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const tableData = useMemo(() => {
+    return users.map(u => {
+        const lic = licenses.find(l => l.userId === u.id);
+        return {
+            user: u,
+            license: lic,
+            name: u.name,
+            email: u.email,
+            planTier: lic?.planTier || PlanTier.FREE,
+            status: lic?.status || 'none',
+            validUntil: lic?.validUntil ? new Date(lic.validUntil).getTime() : 9999999999999
+        };
+    });
+  }, [users, licenses]);
+
+  const processedRows = useMemo(() => {
+    let rows = [...tableData];
+    if (statusFilter === 'active') rows = rows.filter(r => r.status === SubscriptionStatus.ACTIVE);
+    if (statusFilter === 'inactive') rows = rows.filter(r => r.status !== SubscriptionStatus.ACTIVE);
+    if (planFilter !== 'all') rows = rows.filter(r => r.planTier === planFilter);
+    if (searchTerm) {
+        const lowerTerm = searchTerm.toLowerCase();
+        rows = rows.filter(r => 
+            r.name.toLowerCase().includes(lowerTerm) || 
+            r.email.toLowerCase().includes(lowerTerm) ||
+            r.license?.billingProjectName?.toLowerCase().includes(lowerTerm)
+        );
+    }
+    rows.sort((a, b) => {
+        let valA: any = a[sortConfig.key];
+        let valB: any = b[sortConfig.key];
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    return rows;
+  }, [tableData, statusFilter, planFilter, searchTerm, sortConfig]);
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig(current => ({
+        key,
+        direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const SortIcon = ({ column }: { column: SortKey }) => {
+      if (sortConfig.key !== column) return <ArrowUpDown className="w-3 h-3 text-gray-300 ml-1 opacity-0 group-hover:opacity-50" />;
+      return sortConfig.direction === 'asc' 
+        ? <ChevronUp className="w-3 h-3 text-brand-600 ml-1" />
+        : <ChevronDown className="w-3 h-3 text-brand-600 ml-1" />;
+  };
+
+  const handleUserClick = async (row: typeof tableData[0]) => {
+    setSelectedUser(row.user);
+    setSelectedUserLicense(row.license || null);
+    setLoadingDetails(true);
+    const details = await mockApi.getUserDetails(row.user.id);
+    setUserDetails(details);
+    setLoadingDetails(false);
+  };
+
+  const closeDetails = () => {
+    setSelectedUser(null);
+    setSelectedUserLicense(null);
+    setUserDetails(null);
+  };
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading users...</div>;
+
+  return (
+    <div className="relative h-full animate-in slide-in-from-bottom-2 duration-500 pb-20">
+      <AdminTabs />
+      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+         <div>
+           <h1 className="text-2xl font-bold text-gray-900 capitalize">
+               {statusFilter === 'all' ? 'All' : statusFilter === 'active' ? 'Active' : 'Inactive'} Users ({processedRows.length})
+            </h1>
+         </div>
+         <div className="bg-white border border-gray-200 p-1 rounded-lg flex">
+            <button onClick={() => setSearchParams({})} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'all' ? 'bg-gray-100 text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>All</button>
+            <button onClick={() => setSearchParams({status: 'active'})} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'active' ? 'bg-green-50 text-green-700 shadow-sm border border-green-100' : 'text-gray-500 hover:text-gray-900'}`}>Active</button>
+            <button onClick={() => setSearchParams({status: 'inactive'})} className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'inactive' ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-100' : 'text-gray-500 hover:text-gray-900'}`}>Inactive</button>
+         </div>
+      </header>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row gap-4 items-center justify-between">
+           <div className="relative w-full max-w-md">
+             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+             <input 
+                type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search user, email..." 
+                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none w-full bg-white shadow-sm" 
+             />
+           </div>
+           
+           <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative flex items-center">
+                    <Filter className="absolute left-3 w-4 h-4 text-gray-500" />
+                    <select 
+                        value={planFilter}
+                        onChange={(e) => setPlanFilter(e.target.value)}
+                        className="pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none appearance-none cursor-pointer shadow-sm hover:border-gray-400"
+                    >
+                        <option value="all">All Plans</option>
+                        <option value={PlanTier.FREE}>{PlanTier.FREE}</option>
+                        <option value={PlanTier.BUDGET}>{PlanTier.BUDGET}</option>
+                        <option value={PlanTier.COST_CONTROL}>{PlanTier.COST_CONTROL}</option>
+                        <option value={PlanTier.PRODUCTION}>{PlanTier.PRODUCTION}</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+           </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-white text-gray-500 font-medium border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 cursor-pointer hover:bg-gray-50 group select-none" onClick={() => handleSort('name')}>
+                    <div className="flex items-center">Customer <SortIcon column="name" /></div>
+                </th>
+                <th className="px-6 py-4 cursor-pointer hover:bg-gray-50 group select-none" onClick={() => handleSort('planTier')}>
+                    <div className="flex items-center">Plan <SortIcon column="planTier" /></div>
+                </th>
+                <th className="px-6 py-4 cursor-pointer hover:bg-gray-50 group select-none" onClick={() => handleSort('validUntil')}>
+                     <div className="flex items-center">Valid Until <SortIcon column="validUntil" /></div>
+                </th>
+                <th className="px-6 py-4 cursor-pointer hover:bg-gray-50 group select-none" onClick={() => handleSort('status')}>
+                     <div className="flex items-center">Status <SortIcon column="status" /></div>
+                </th>
+                <th className="px-6 py-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {processedRows.map((row) => (
+                <tr key={row.user.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-gray-900">{row.user.name}</div>
+                    <div className="text-gray-500 text-xs">{row.user.email}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-200 bg-white">
+                        <div className={`w-2 h-2 rounded-full ${row.planTier === PlanTier.FREE ? 'bg-gray-800' : row.planTier === PlanTier.BUDGET ? 'bg-amber-500' : row.planTier === PlanTier.COST_CONTROL ? 'bg-purple-500' : 'bg-green-500'}`}></div>
+                        {row.planTier}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {row.license?.validUntil ? new Date(row.license.validUntil).toLocaleDateString() : '—'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      row.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-800' :
+                      row.status === SubscriptionStatus.PAST_DUE ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {row.status === SubscriptionStatus.ACTIVE ? 'Active' : row.status === SubscriptionStatus.PAST_DUE ? 'Past Due' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                        onClick={() => handleUserClick(row)}
+                        className="text-brand-600 hover:text-brand-800 font-medium text-xs border border-brand-200 hover:bg-brand-50 px-3 py-1.5 rounded transition-colors"
+                    >
+                        View Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Slide-over Panel for Details */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={closeDetails}></div>
+           <div className="relative w-full max-w-lg bg-white h-full shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300">
+               <button onClick={closeDetails} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full">
+                 <X className="w-5 h-5 text-gray-500" />
+               </button>
+               
+               <div className="mb-8">
+                  <div className="w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-2xl mb-4">
+                      {selectedUser.name.charAt(0)}
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedUser.name}</h2>
+                  <p className="text-gray-500">{selectedUser.email}</p>
+                  <div className="flex gap-2 mt-4">
+                     <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-500">{selectedUser.id}</span>
+                     <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-500">Reg: {new Date(selectedUser.registeredAt).toLocaleDateString()}</span>
+                  </div>
+               </div>
+
+               {loadingDetails ? (
+                   <div className="flex justify-center py-10"><RefreshCw className="w-6 h-6 animate-spin text-brand-500" /></div>
+               ) : (
+                   <div className="space-y-8">
+                       <section>
+                           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Subscription</h3>
+                           <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                               <div className="flex justify-between">
+                                   <span className="text-sm text-gray-500">Plan</span>
+                                   <span className="font-medium">{selectedUserLicense?.planTier}</span>
+                               </div>
+                               <div className="flex justify-between">
+                                   <span className="text-sm text-gray-500">Status</span>
+                                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${selectedUserLicense?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200'}`}>
+                                       {selectedUserLicense?.status?.toUpperCase()}
+                                   </span>
+                               </div>
+                               <div className="flex justify-between">
+                                   <span className="text-sm text-gray-500">Valid Until</span>
+                                   <span className="font-medium">{selectedUserLicense?.validUntil ? new Date(selectedUserLicense.validUntil).toLocaleDateString() : 'N/A'}</span>
+                               </div>
+                               {selectedUserLicense?.billingProjectName && (
+                                   <div className="flex justify-between">
+                                       <span className="text-sm text-gray-500">Billing Project</span>
+                                       <span className="font-medium">{selectedUserLicense.billingProjectName}</span>
+                                   </div>
+                               )}
+                           </div>
+                       </section>
+
+                       <section>
+                           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Invoices ({userDetails?.invoices.length})</h3>
+                           <div className="space-y-2">
+                               {userDetails?.invoices.map(inv => (
+                                   <div key={inv.id} className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded hover:bg-gray-50">
+                                       <div className="flex items-center gap-3">
+                                           <div className={`w-2 h-2 rounded-full ${inv.status === 'paid' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                           <div>
+                                               <div className="text-sm font-medium">€{inv.amount}</div>
+                                               <div className="text-xs text-gray-500">{inv.date}</div>
+                                           </div>
+                                       </div>
+                                       <a href="#" className="text-brand-600 hover:text-brand-800 text-xs font-medium flex items-center gap-1">
+                                           PDF <Download className="w-3 h-3" />
+                                       </a>
+                                   </div>
+                               ))}
+                               {userDetails?.invoices.length === 0 && <p className="text-sm text-gray-400 italic">No invoices found.</p>}
+                           </div>
+                       </section>
+                   </div>
+               )}
+           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- VIEW 3: SYSTEM HEALTH ---
+const SystemHealth: React.FC = () => {
+    const [statuses, setStatuses] = useState<SystemCheckResult[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+    const runChecks = async () => {
+        setLoading(true);
+        setStatuses([]); 
+        
+        // Parallel execution of all checks
+        const results = await Promise.all([
+            liveSystemService.checkDatabaseConnection(),
+            liveSystemService.checkAuthService(),
+            liveSystemService.checkStripe(),
+            liveSystemService.checkEmail(),
+            liveSystemService.checkRealtime()
+        ]);
+
+        setStatuses(results);
+        setLastChecked(new Date());
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        runChecks();
+    }, []);
+
+    const overallStatus = statuses.every(s => s.status === 'operational') ? 'operational' : statuses.some(s => s.status === 'down') ? 'down' : 'degraded';
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
+            <AdminTabs />
+            <div className="flex justify-between items-end mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">System Health</h1>
+                    <p className="text-gray-500">Live monitoring of system components and external APIs.</p>
+                </div>
+                <button 
+                    onClick={runChecks} 
+                    disabled={loading}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh Checks
+                </button>
+            </div>
+
+            {/* Overall Status Banner */}
+            <div className={`p-6 rounded-xl border flex items-center gap-6 ${
+                overallStatus === 'operational' ? 'bg-green-50 border-green-200' : 
+                overallStatus === 'down' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'
+            }`}>
+                 <div className={`p-4 rounded-full ${
+                     overallStatus === 'operational' ? 'bg-green-100 text-green-600' : 
+                     overallStatus === 'down' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'
+                 }`}>
+                     <Activity className="w-8 h-8" />
+                 </div>
+                 <div>
+                     <h2 className={`text-xl font-bold ${
+                         overallStatus === 'operational' ? 'text-green-900' : 
+                         overallStatus === 'down' ? 'text-red-900' : 'text-yellow-900'
+                     }`}>
+                         {overallStatus === 'operational' ? 'All Systems Operational' : overallStatus === 'down' ? 'System Critical' : 'Partially Degraded'}
+                     </h2>
+                     <p className="text-sm opacity-80 mt-1">
+                         Last checked: {lastChecked ? lastChecked.toLocaleTimeString() : 'Never'}
+                     </p>
+                 </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+                {statuses.map((status, idx) => (
+                    <div key={idx} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                            <div className={`mt-1 p-2 rounded-lg ${
+                                status.status === 'operational' ? 'bg-green-50 text-green-600' : 
+                                status.status === 'configuring' ? 'bg-blue-50 text-blue-600' :
+                                'bg-red-50 text-red-600'
+                            }`}>
+                                {status.service.includes('DB') ? <Database className="w-5 h-5"/> : 
+                                 status.service.includes('Stripe') ? <CreditCard className="w-5 h-5"/> :
+                                 status.service.includes('Auth') ? <Lock className="w-5 h-5"/> :
+                                 <Server className="w-5 h-5"/>}
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-900">{status.service}</h3>
+                                {status.message && <p className="text-sm text-gray-500 font-medium">{status.message}</p>}
+                                {status.details && (
+                                    <div className="mt-2 text-xs bg-gray-50 p-2 rounded border border-gray-100 text-gray-600 font-mono whitespace-pre-wrap">
+                                        {status.details}
+                                    </div>
+                                )}
+                                {status.actionLink && (
+                                    <a href={status.actionLink} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-brand-600 hover:underline">
+                                        Open Supabase Settings <ExternalLink className="w-3 h-3"/>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                        <div className="text-right">
+                             <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                status.status === 'operational' ? 'bg-green-100 text-green-800' : 
+                                status.status === 'configuring' ? 'bg-blue-100 text-blue-800' :
+                                'bg-red-100 text-red-800'
+                            }`}>
+                                {status.status.toUpperCase()}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-2 flex items-center justify-end gap-1">
+                                <Clock className="w-3 h-3" /> {status.latency}ms
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                
+                {statuses.length === 0 && !loading && (
+                    <div className="text-center py-10 text-gray-400">Waiting for check...</div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- VIEW 4: MARKETING (Placeholder) ---
+const MarketingInsights: React.FC = () => (
+    <div className="animate-in fade-in duration-500">
+        <AdminTabs />
+        <div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed">
+            <LineChart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900">Marketing Insights</h2>
+            <p className="text-gray-500">Coming soon in the next sprint.</p>
+        </div>
+    </div>
+);
+
+// --- MAIN ADMIN DASHBOARD ---
+export const AdminDashboard: React.FC = () => {
+  const { user } = useAuth();
+
+  // Basic role check
+  if (!user || user.role !== 'admin') return null;
+
+  return (
+    <Routes>
+      <Route index element={<DashboardOverview />} />
+      <Route path="users" element={<UsersManagement />} />
+      <Route path="marketing" element={<MarketingInsights />} />
+      <Route path="system" element={<SystemHealth />} />
+    </Routes>
+  );
+};

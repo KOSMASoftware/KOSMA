@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KOSMA - Production Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                DEFAULT: '#0093D0', // Kosma Blue
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                500: '#0093D0', 
+                600: '#007bbd',
+                700: '#00669e',
+                900: '#004d7a',
+              },
+              tier: {
+                free: '#1F2937',    // Gray-900
+                budget: '#F59E0B',  // Amber-500 (Orange)
+                cost: '#A855F7',    // Purple-500
+                production: '#22C55E' // Green-500
+              }
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-50 text-slate-900 antialiased font-sans">
+    <div id="root"></div>
+  </body>
+</html>

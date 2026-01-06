@@ -1,0 +1,5 @@
+{
+  "name": "SaaS License Manager Prototype",
+  "description": "A prototype for a SaaS platform with Customer and Admin dashboards, simulating Supabase Auth, Stripe payments, and License management.",
+  "requestFramePermissions": []
+}
