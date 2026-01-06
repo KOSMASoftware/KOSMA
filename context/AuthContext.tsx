@@ -8,8 +8,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<void>;
-  signup: (email: string, name: string, password?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, name: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
@@ -23,16 +23,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
-    let role = UserRole.CUSTOMER;
-    if (dbProfile?.role === 'admin') role = UserRole.ADMIN;
-    if (sessionUser.email === 'admin@demo.com') role = UserRole.ADMIN;
-
     return {
       id: sessionUser.id,
       email: sessionUser.email || '',
       name: dbProfile?.full_name || sessionUser.user_metadata?.full_name || 'User',
-      role: role,
-      registeredAt: sessionUser.created_at,
+      role: dbProfile?.role === 'admin' ? UserRole.ADMIN : UserRole.CUSTOMER,
+      registeredAt: sessionUser.created_at || new Date().toISOString(),
       stripeCustomerId: dbProfile?.stripe_customer_id || null
     };
   };
@@ -43,13 +39,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .from('profiles')
         .select('id, full_name, role, stripe_customer_id')
         .eq('id', session.user.id)
-        .limit(1);
+        .single();
 
       if (error) {
         setUser(constructUser(session.user, null));
       } else {
-        const profile = data && data.length > 0 ? data[0] : null;
-        setUser(constructUser(session.user, profile));
+        setUser(constructUser(session.user, data));
       }
     } catch (err) {
       setUser(constructUser(session.user, null));
@@ -57,70 +52,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    let mounted = true;
-
     const initSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-            if (session) {
-                await fetchProfile(session);
-            } else {
-                setUser(null);
-            }
+        if (session) {
+          await fetchProfile(session);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Session init error:', error);
       } finally {
-        if (mounted) setIsLoading(false);
+        setIsLoading(false);
       }
     };
 
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
       if (session) {
-         await fetchProfile(session);
+        await fetchProfile(session);
       } else {
-         setUser(null);
+        setUser(null);
       }
       setIsLoading(false);
     });
 
     return () => {
-        mounted = false;
-        subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
-  const login = async (email: string, password?: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-        const { data: sessionCheck } = await supabase.auth.getSession();
-        if (sessionCheck.session) {
-            await fetchProfile(sessionCheck.session);
-            return;
-        }
-        setIsLoading(false);
-        throw error;
+      setIsLoading(false);
+      throw error;
     }
   };
 
-  const signup = async (email: string, name: string, password?: string) => {
+  const signup = async (email: string, name: string, password: string) => {
     setIsLoading(true);
     const { error } = await supabase.auth.signUp({
-        email,
-        password: password || 'TempPass123!', 
-        options: {
-            data: { full_name: name, role: 'customer' },
-            emailRedirectTo: window.location.origin + '/#/dashboard'
-        }
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: window.location.origin + '/#/dashboard'
+      }
     });
     if (error) {
-        setIsLoading(false);
-        throw error;
+      setIsLoading(false);
+      throw error;
     }
   };
 
@@ -137,17 +121,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const resendVerification = async (email: string) => {
-     await supabase.auth.resend({
-         type: 'signup',
-         email: email,
-         options: { emailRedirectTo: window.location.origin + '/#/dashboard' }
-     });
+    await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: { emailRedirectTo: window.location.origin + '/#/dashboard' }
+    });
   };
 
   const logout = async () => {
     setIsLoading(true);
     await supabase.auth.signOut();
     setUser(null);
+    setIsLoading(false);
   };
 
   return (
