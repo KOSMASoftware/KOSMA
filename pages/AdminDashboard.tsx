@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { mockApi } from '../services/mockService';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, PlanTier, Project, Invoice } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area } from 'recharts';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 
 const TIER_COLORS = {
@@ -602,17 +602,281 @@ const SystemHealth: React.FC = () => {
     );
 };
 
-// --- VIEW 4: MARKETING (Placeholder) ---
-const MarketingInsights: React.FC = () => (
-    <div className="animate-in fade-in duration-500">
-        <AdminTabs />
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed">
-            <LineChart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900">Marketing Insights</h2>
-            <p className="text-gray-500">Coming soon in the next sprint.</p>
+// --- VIEW 4: MARKETING INSIGHTS ---
+const MarketingInsights: React.FC = () => {
+    const [users, setUsers] = useState<User[]>([]);
+    const [licenses, setLicenses] = useState<License[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const load = async () => {
+            setLoading(true);
+            const data = await mockApi.getAdminData();
+            setUsers(data.users);
+            setLicenses(data.licenses);
+            setLoading(false);
+        };
+        load();
+    }, []);
+
+    // 1. Growth Data (Registrations over time)
+    const growthData = useMemo(() => {
+        const monthCounts: Record<string, number> = {};
+        users.forEach(u => {
+            const date = new Date(u.registeredAt);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            monthCounts[key] = (monthCounts[key] || 0) + 1;
+        });
+
+        // Fill missing months roughly for demo, then sort
+        const sortedKeys = Object.keys(monthCounts).sort();
+        let cumulative = 0;
+        return sortedKeys.map(key => {
+            cumulative += monthCounts[key];
+            return {
+                name: key,
+                newUsers: monthCounts[key],
+                totalUsers: cumulative
+            };
+        });
+    }, [users]);
+
+    // 2. Churn & Retention Metrics
+    const metrics = useMemo(() => {
+        const total = users.length || 1;
+        const active = licenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
+        const churned = licenses.filter(l => l.status === SubscriptionStatus.CANCELED).length;
+        
+        // Simple ARPU Calculation based on Mock Prices
+        let totalRevenue = 0;
+        licenses.forEach(l => {
+             if (l.status === SubscriptionStatus.ACTIVE) {
+                 if (l.planTier === PlanTier.BUDGET) totalRevenue += 39; // Monthly equivalent
+                 if (l.planTier === PlanTier.COST_CONTROL) totalRevenue += 59;
+                 if (l.planTier === PlanTier.PRODUCTION) totalRevenue += 69;
+             }
+        });
+        const arpu = active > 0 ? (totalRevenue / active).toFixed(2) : "0.00";
+
+        return {
+            churnRate: ((churned / total) * 100).toFixed(1),
+            conversionRate: ((active / total) * 100).toFixed(1),
+            arpu: arpu
+        };
+    }, [users, licenses]);
+
+    // 3. Marketing Cohorts (The "Actionable" part)
+    const cohorts = useMemo(() => {
+        const winBack = users.filter(u => {
+            const lic = licenses.find(l => l.userId === u.id);
+            return lic?.status === SubscriptionStatus.CANCELED;
+        });
+
+        const upsellCandidates = users.filter(u => {
+             const lic = licenses.find(l => l.userId === u.id);
+             return lic?.status === SubscriptionStatus.ACTIVE && lic?.planTier === PlanTier.BUDGET;
+        });
+
+        const freeToPaid = users.filter(u => {
+            const lic = licenses.find(l => l.userId === u.id);
+            return lic?.planTier === PlanTier.FREE;
+        });
+
+        return { winBack, upsellCandidates, freeToPaid };
+    }, [users, licenses]);
+
+    const copyToClipboard = (users: User[]) => {
+        const emails = users.map(u => u.email).join(', ');
+        navigator.clipboard.writeText(emails);
+        alert(`Copied ${users.length} emails to clipboard.`);
+    };
+
+    if (loading) return <div className="p-12 text-center text-gray-500">Loading insights...</div>;
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <AdminTabs />
+            
+            <header className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Marketing Insights</h1>
+                    <p className="text-gray-500">Growth trends and actionable customer segments.</p>
+                </div>
+                <div className="text-right">
+                    <div className="text-sm font-medium text-gray-500">Estimated Monthly Revenue</div>
+                    <div className="text-2xl font-bold text-gray-900">~€{(parseFloat(metrics.arpu) * parseInt(metrics.conversionRate) / 100 * users.length).toFixed(0)}</div>
+                </div>
+            </header>
+
+            {/* Metrics Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-50 text-brand-600 rounded">
+                            <TrendingUp className="w-5 h-5" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-500">Avg. Revenue / User</span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900">€{metrics.arpu}</div>
+                    <p className="text-xs text-green-600 flex items-center mt-2">
+                        <ArrowUpRight className="w-3 h-3 mr-1" /> Based on active plans
+                    </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-green-50 text-green-600 rounded">
+                            <Target className="w-5 h-5" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-500">Conversion Rate</span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900">{metrics.conversionRate}%</div>
+                    <p className="text-xs text-gray-400 mt-2">
+                        Active Users / Total Signups
+                    </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-orange-50 text-orange-600 rounded">
+                            <UserX className="w-5 h-5" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-500">Churn Rate</span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900">{metrics.churnRate}%</div>
+                    <p className="text-xs text-orange-600 mt-2">
+                        Canceled subscriptions
+                    </p>
+                </div>
+            </div>
+
+            {/* Growth Chart */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-900 mb-6">User Acquisition Growth</h3>
+                <div className="h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#0093D0" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#0093D0" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                            <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickMargin={10} />
+                            <YAxis stroke="#9CA3AF" fontSize={12} />
+                            <Tooltip 
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            />
+                            <Area type="monotone" dataKey="totalUsers" stroke="#0093D0" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Marketing Action Center */}
+            <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Megaphone className="w-5 h-5 text-brand-500" /> Marketing Activities
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Cohort 1: Win Back */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-gray-100 bg-orange-50">
+                            <h3 className="font-bold text-orange-800">Win-Back Campaign</h3>
+                            <p className="text-xs text-orange-600">Target churned users</p>
+                        </div>
+                        <div className="p-4 flex-1">
+                            <div className="text-3xl font-bold text-gray-900 mb-2">{cohorts.winBack.length}</div>
+                            <div className="text-xs text-gray-500 mb-4">Users who canceled their subscription.</div>
+                            
+                            <ul className="space-y-2 mb-4">
+                                {cohorts.winBack.slice(0,3).map(u => (
+                                    <li key={u.id} className="text-sm flex items-center gap-2 text-gray-600">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
+                                        {u.email}
+                                    </li>
+                                ))}
+                                {cohorts.winBack.length > 3 && <li className="text-xs text-gray-400 pl-3">+{cohorts.winBack.length - 3} more...</li>}
+                            </ul>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50">
+                             <button 
+                                onClick={() => copyToClipboard(cohorts.winBack)}
+                                disabled={cohorts.winBack.length === 0}
+                                className="w-full py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                             >
+                                 <Copy className="w-4 h-4" /> Copy Email List
+                             </button>
+                        </div>
+                    </div>
+
+                    {/* Cohort 2: Upsell */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-gray-100 bg-blue-50">
+                            <h3 className="font-bold text-blue-800">Upsell to Production</h3>
+                            <p className="text-xs text-blue-600">Target 'Budget' users</p>
+                        </div>
+                        <div className="p-4 flex-1">
+                            <div className="text-3xl font-bold text-gray-900 mb-2">{cohorts.upsellCandidates.length}</div>
+                            <div className="text-xs text-gray-500 mb-4">Active Budget users ready for upgrade.</div>
+
+                            <ul className="space-y-2 mb-4">
+                                {cohorts.upsellCandidates.slice(0,3).map(u => (
+                                    <li key={u.id} className="text-sm flex items-center gap-2 text-gray-600">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                        {u.email}
+                                    </li>
+                                ))}
+                                {cohorts.upsellCandidates.length > 3 && <li className="text-xs text-gray-400 pl-3">+{cohorts.upsellCandidates.length - 3} more...</li>}
+                            </ul>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50">
+                             <button 
+                                onClick={() => copyToClipboard(cohorts.upsellCandidates)}
+                                disabled={cohorts.upsellCandidates.length === 0}
+                                className="w-full py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                             >
+                                 <Copy className="w-4 h-4" /> Copy Email List
+                             </button>
+                        </div>
+                    </div>
+
+                    {/* Cohort 3: Free to Paid */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-gray-100 bg-gray-100">
+                            <h3 className="font-bold text-gray-800">Trial Conversion</h3>
+                            <p className="text-xs text-gray-600">Target 'Free' users</p>
+                        </div>
+                        <div className="p-4 flex-1">
+                             <div className="text-3xl font-bold text-gray-900 mb-2">{cohorts.freeToPaid.length}</div>
+                             <div className="text-xs text-gray-500 mb-4">Users currently on the Free plan.</div>
+
+                             <ul className="space-y-2 mb-4">
+                                {cohorts.freeToPaid.slice(0,3).map(u => (
+                                    <li key={u.id} className="text-sm flex items-center gap-2 text-gray-600">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
+                                        {u.email}
+                                    </li>
+                                ))}
+                                {cohorts.freeToPaid.length > 3 && <li className="text-xs text-gray-400 pl-3">+{cohorts.freeToPaid.length - 3} more...</li>}
+                            </ul>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 bg-gray-50">
+                             <button 
+                                onClick={() => copyToClipboard(cohorts.freeToPaid)}
+                                disabled={cohorts.freeToPaid.length === 0}
+                                className="w-full py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                             >
+                                 <Copy className="w-4 h-4" /> Copy Email List
+                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // --- MAIN ADMIN DASHBOARD ---
 export const AdminDashboard: React.FC = () => {
