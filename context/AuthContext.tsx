@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       setUser(constructUser(session.user, null));
     } finally {
+      // Profile fetch finished, we can definitely stop loading
       setIsLoading(false);
     }
   };
@@ -60,10 +61,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (session) {
           setUser(constructUser(session.user, null));
           await fetchProfile(session);
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Session init error:', error);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -72,10 +73,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+        setUser(constructUser(session.user, null));
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await fetchProfile(session);
-        } else {
-          setUser(constructUser(session.user, null));
         }
       } else {
         setUser(null);
@@ -89,29 +89,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    } catch (error) {
-      setIsLoading(false);
-      throw error;
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
   const signup = async (email: string, name: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name } }
-      });
-      if (error) throw error;
-    } catch (error) {
-      setIsLoading(false);
-      throw error;
-    }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } }
+    });
+    if (error) throw error;
   };
 
   const resetPassword = async (email: string) => {
@@ -131,10 +119,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    setIsLoading(true);
     await supabase.auth.signOut();
     setUser(null);
-    setIsLoading(false);
   };
 
   return (
