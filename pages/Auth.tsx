@@ -1,18 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Check, X, Linkedin, Loader2, Mail, ArrowRight, Shield, User, AlertTriangle, UserX, GraduationCap, Briefcase } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { Check, X, Loader2, Mail, Shield, User, Briefcase, Zap, GraduationCap, Clock, UserX, AlertTriangle } from 'lucide-react';
 
 // --- COMPONENTS ---
-
-const DotPattern = ({ className }: { className?: string }) => (
-  <div className={`grid grid-cols-5 gap-2 opacity-20 ${className}`}>
-    {[...Array(15)].map((_, i) => (
-      <div key={i} className="w-2 h-2 rounded-full bg-gray-400"></div>
-    ))}
-  </div>
-);
 
 const Requirement = ({ met, text }: { met: boolean; text: string }) => (
   <div className={`flex items-center gap-2 text-xs transition-colors ${met ? 'text-green-600' : 'text-gray-400'}`}>
@@ -45,7 +36,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
   }, [mode]);
 
   // Password Rules
-  const pwdLength = password.length >= 6; // Supabase default is 6
+  const pwdLength = password.length >= 6; 
   const isPasswordValid = pwdLength;
 
   // Handlers
@@ -69,30 +60,8 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
     setAuthError('');
     
     try {
-      // Direct Supabase call to allow password passing (bypassing the simplified Context for now)
-      const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-              data: {
-                  full_name: `${firstName} ${lastName}`,
-                  role: 'customer'
-              },
-              emailRedirectTo: window.location.origin + '/#/dashboard'
-          }
-      });
-
-      if (error) throw error;
-
-      // Logic: If Supabase requires email confirmation, 'session' is null.
-      // If Auto-Confirm is ON, 'session' is populated.
-      if (data.session) {
-          navigate('/dashboard');
-      } else {
-          // Standard flow: Email sent, show success screen
-          setStep('success');
-      }
-
+      await signup(email, `${firstName} ${lastName}`, password);
+      setStep('success');
     } catch (err: any) {
       console.error(err);
       setAuthError(err.message || "Registration failed");
@@ -102,17 +71,19 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
   const handleLogin = async () => {
     setAuthError('');
     try {
-       // Direct Supabase call for password login
-       const { error } = await supabase.auth.signInWithPassword({
-           email,
-           password
-       });
-       
-       if (error) throw error;
+       await login(email, password);
        navigate('/dashboard');
     } catch (err: any) {
-       console.error(err);
-       setAuthError(err.message || "Invalid login credentials.");
+       console.error("Login Error Full:", err);
+       
+       // Handle specific Supabase errors for better UX
+       if (err.message && err.message.includes("Email not confirmed")) {
+           setAuthError("Email not verified. Please check your inbox or disable verification in Supabase Auth settings.");
+       } else if (err.message && (err.message.includes("Invalid login credentials") || err.message.includes("invalid_grant"))) {
+           setAuthError("Wrong email or password.");
+       } else {
+           setAuthError(err.message || "Login failed.");
+       }
     }
   };
 
@@ -123,52 +94,156 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' }> = ({ mode }) => {
     setTimeout(() => setResendStatus('idle'), 3000);
   };
 
+  // Helper for Demo Buttons
+  const fillCredentials = (demoEmail: string, demoPass: string) => {
+      setEmail(demoEmail);
+      setPassword(demoPass);
+      setEmailError('');
+      setAuthError('');
+  };
+
   // --- RENDERERS ---
 
   const renderLogin = () => (
-    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <h1 className="text-4xl font-bold text-gray-900 text-center mb-2">Login</h1>
-      <p className="text-gray-500 text-center mb-8">Welcome to KOSMA</p>
+      <p className="text-gray-500 text-center mb-8">Access your Real Database</p>
 
       <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-6">
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-            className={`w-full px-4 py-3 border ${emailError ? 'border-red-300 ring-red-100' : 'border-gray-300 focus:border-brand-500 focus:ring-brand-100'} rounded-lg focus:ring-4 outline-none transition-all`}
-            placeholder="name@company.com"
-          />
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+            <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
+            <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                className={`w-full px-4 py-3 border ${emailError ? 'border-red-300 ring-red-100' : 'border-gray-300 focus:border-brand-500 focus:ring-brand-100'} rounded-lg focus:ring-4 outline-none transition-all`}
+                placeholder="name@company.com"
+            />
+            </div>
+
+            <div>
+            <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold text-gray-500 uppercase">Password</label>
+            </div>
+            <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-brand-100 focus:border-brand-500 outline-none transition-all"
+                placeholder="••••••••••"
+            />
+            </div>
+
+            {(emailError || authError) && (
+            <div className={`p-4 text-sm rounded-lg flex items-start gap-3 ${authError.includes('verified') ? 'bg-orange-50 text-orange-800' : 'bg-red-50 text-red-600'}`}>
+                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" /> 
+                <div className="flex flex-col gap-1">
+                    <span className="font-bold">Login Failed</span>
+                    <span>{emailError || authError}</span>
+                </div>
+            </div>
+            )}
+
+            <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 bg-brand-500 text-white hover:bg-brand-600 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+            >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
+            </button>
         </div>
 
-        <div>
-           <div className="flex justify-between items-center mb-1">
-             <label className="block text-xs font-bold text-gray-500 uppercase">Password</label>
-           </div>
-           <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-brand-100 focus:border-brand-500 outline-none transition-all"
-            placeholder="••••••••••"
-          />
+        {/* --- FAST LOGIN BUTTONS (THE 6 WINDOWS) --- */}
+        <div className="mt-8 pt-6">
+             <div className="flex items-center justify-center gap-2 mb-6">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Fast Login (Pre-fill Form)</span>
+             </div>
+             
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {/* 1. Hans (Standard) */}
+                <button
+                    type="button"
+                    onClick={() => fillCredentials('customer@demo.com', 'password123')}
+                    className="p-4 bg-white border border-gray-200 rounded-xl hover:bg-brand-50 hover:border-brand-300 transition-all text-gray-600 flex flex-col items-center gap-2 group shadow-sm hover:shadow-md"
+                >
+                    <User className="w-8 h-8 text-brand-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                        <span className="block font-bold text-gray-900 text-sm">Hans</span>
+                        <span className="text-[10px] text-gray-500">Budget User</span>
+                    </div>
+                </button>
+
+                {/* 2. Admin */}
+                <button
+                    type="button"
+                    onClick={() => fillCredentials('admin@demo.com', 'password123')}
+                    className="p-4 bg-white border border-gray-200 rounded-xl hover:bg-purple-50 hover:border-purple-300 transition-all text-gray-600 flex flex-col items-center gap-2 group shadow-sm hover:shadow-md"
+                >
+                    <Shield className="w-8 h-8 text-purple-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                        <span className="block font-bold text-gray-900 text-sm">Admin</span>
+                        <span className="text-[10px] text-gray-500">System Root</span>
+                    </div>
+                </button>
+
+                {/* 3. Sarah (Pro) */}
+                <button
+                    type="button"
+                    onClick={() => fillCredentials('producer@film.de', 'password123')}
+                    className="p-4 bg-white border border-gray-200 rounded-xl hover:bg-green-50 hover:border-green-300 transition-all text-gray-600 flex flex-col items-center gap-2 group shadow-sm hover:shadow-md"
+                >
+                    <Briefcase className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                        <span className="block font-bold text-gray-900 text-sm">Sarah</span>
+                        <span className="text-[10px] text-gray-500">Production (Pro)</span>
+                    </div>
+                </button>
+
+                {/* 4. Max (Student) */}
+                 <button
+                    type="button"
+                    onClick={() => fillCredentials('student@hff.de', 'password123')}
+                    className="p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-gray-600 flex flex-col items-center gap-2 group shadow-sm hover:shadow-md"
+                >
+                    <GraduationCap className="w-8 h-8 text-gray-600 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                        <span className="block font-bold text-gray-900 text-sm">Max</span>
+                        <span className="text-[10px] text-gray-500">Student (Free)</span>
+                    </div>
+                </button>
+
+                 {/* 5. Tim (Trial Expired) */}
+                 <button
+                    type="button"
+                    onClick={() => fillCredentials('dropout@trial.com', 'password123')}
+                    className="p-4 bg-white border border-gray-200 rounded-xl hover:bg-orange-50 hover:border-orange-300 transition-all text-gray-600 flex flex-col items-center gap-2 group shadow-sm hover:shadow-md"
+                >
+                    <Clock className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                        <span className="block font-bold text-gray-900 text-sm">Tim</span>
+                        <span className="text-[10px] text-gray-500">Trial Expired</span>
+                    </div>
+                </button>
+
+                 {/* 6. Julia (Churned) */}
+                 <button
+                    type="button"
+                    onClick={() => fillCredentials('ex-customer@studio.com', 'password123')}
+                    className="p-4 bg-white border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-gray-600 flex flex-col items-center gap-2 group shadow-sm hover:shadow-md"
+                >
+                    <UserX className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                        <span className="block font-bold text-gray-900 text-sm">Julia</span>
+                        <span className="text-[10px] text-gray-500">Canceled</span>
+                    </div>
+                </button>
+             </div>
+             <p className="text-[10px] text-gray-400 text-center mt-4">
+                These buttons pre-fill the form. You must have these users in your <strong>REAL Supabase Auth</strong>.
+             </p>
         </div>
-
-        {(emailError || authError) && (
-          <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
-            <X className="w-4 h-4 flex-shrink-0" /> 
-            <span>{emailError || authError}</span>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-3 bg-white border border-brand-500 text-brand-500 hover:bg-brand-50 font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
-        </button>
       </form>
     </div>
   );

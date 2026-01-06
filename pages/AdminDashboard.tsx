@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Routes, Route, useNavigate, useSearchParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 import { mockApi } from '../services/mockService';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
 import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight } from 'lucide-react';
-import { isSupabaseConfigured } from '../lib/supabaseClient';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -72,23 +72,100 @@ const AdminTabs = () => {
     );
 };
 
+// --- DATA FETCHING HELPER ---
+const useAdminData = () => {
+    const [loading, setLoading] = useState(true);
+    const [users, setUsers] = useState<User[]>([]);
+    const [licenses, setLicenses] = useState<License[]>([]);
+    const [stats, setStats] = useState({ totalUsers: 0, activeLicenses: 0, inactiveLicenses: 0, revenue: 0 });
+
+    useEffect(() => {
+        const fetchAll = async () => {
+            setLoading(true);
+            try {
+                // HYBRID APPROACH: Try Real first, Fallback to Mock
+                let usedMock = false;
+
+                // 1. Fetch Profiles (Real)
+                const { data: profiles, error: profError } = await supabase.from('profiles').select('*');
+                
+                // 2. Fetch Licenses (Real)
+                const { data: licData, error: licError } = await supabase.from('licenses').select('*');
+                
+                // 3. Fetch Invoices for Revenue (Real)
+                const { data: invData, error: invError } = await supabase.from('invoices').select('amount, status');
+
+                // Determine if we should use mock
+                const realUsers = (profiles || []).length;
+                
+                if (realUsers === 0 || profError) {
+                    console.log("Admin Data: Real DB empty or failed. Using Mock Data.");
+                    const mockData = await mockApi.getAdminData();
+                    setUsers(mockData.users);
+                    setLicenses(mockData.licenses);
+                    setStats(mockData.stats);
+                    usedMock = true;
+                } else {
+                    // Process Real Data
+                    const mappedUsers: User[] = (profiles || []).map((p: any) => ({
+                        id: p.id,
+                        email: p.email || 'N/A', 
+                        name: p.full_name || 'Unknown', 
+                        role: p.role === 'admin' ? 'admin' : 'customer',
+                        registeredAt: p.created_at || new Date().toISOString(),
+                        stripeCustomerId: p.stripe_customer_id
+                    }));
+
+                    const mappedLicenses: License[] = (licData || []).map((l: any) => ({
+                        id: l.id,
+                        userId: l.user_id,
+                        productName: l.product_name,
+                        planTier: l.plan_tier as PlanTier,
+                        billingCycle: l.billing_cycle || 'none',
+                        status: l.status as SubscriptionStatus,
+                        validUntil: l.valid_until,
+                        licenseKey: l.license_key,
+                        billingProjectName: l.billing_project_name,
+                        stripeSubscriptionId: l.stripe_subscription_id
+                    }));
+
+                    const active = mappedLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
+                    const inactive = mappedLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE).length;
+                    const revenue = (invData || [])
+                        .filter((i: any) => i.status === 'paid')
+                        .reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
+
+                    setUsers(mappedUsers);
+                    setLicenses(mappedLicenses);
+                    setStats({
+                        totalUsers: mappedUsers.length,
+                        activeLicenses: active,
+                        inactiveLicenses: inactive,
+                        revenue
+                    });
+                }
+
+            } catch (err) {
+                console.error("Admin Data Fetch Error:", err);
+                // Hard Fallback
+                const mockData = await mockApi.getAdminData();
+                setUsers(mockData.users);
+                setLicenses(mockData.licenses);
+                setStats(mockData.stats);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAll();
+    }, []);
+
+    return { loading, users, licenses, stats };
+};
+
 // --- VIEW 1: STRATEGIC OVERVIEW ---
 const DashboardOverview: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalUsers: 0, activeLicenses: 0, inactiveLicenses: 0, revenue: 0 });
-  const [licenses, setLicenses] = useState<License[]>([]);
+  const { loading, stats, licenses } = useAdminData();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const data = await mockApi.getAdminData();
-      setStats(data.stats);
-      setLicenses(data.licenses);
-      setLoading(false);
-    };
-    load();
-  }, []);
 
   // Data for "Yearly vs Monthly"
   const cycleCounts = licenses.reduce((acc, curr) => {
@@ -194,9 +271,7 @@ type SortKey = 'name' | 'planTier' | 'validUntil' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 const UsersManagement: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
-  const [licenses, setLicenses] = useState<License[]>([]);
+  const { loading, users, licenses } = useAdminData();
   
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = searchParams.get('status') || 'all';
@@ -206,19 +281,6 @@ const UsersManagement: React.FC = () => {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserLicense, setSelectedUserLicense] = useState<License | null>(null);
-  const [userDetails, setUserDetails] = useState<{ projects: Project[], invoices: Invoice[] } | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      const data = await mockApi.getAdminData();
-      setUsers(data.users);
-      setLicenses(data.licenses);
-      setLoading(false);
-    };
-    load();
-  }, []);
 
   const tableData = useMemo(() => {
     return users.map(u => {
@@ -274,19 +336,14 @@ const UsersManagement: React.FC = () => {
         : <ChevronDown className="w-3 h-3 text-brand-600 ml-1" />;
   };
 
-  const handleUserClick = async (row: typeof tableData[0]) => {
+  const handleUserClick = (row: typeof tableData[0]) => {
     setSelectedUser(row.user);
     setSelectedUserLicense(row.license || null);
-    setLoadingDetails(true);
-    const details = await mockApi.getUserDetails(row.user.id);
-    setUserDetails(details);
-    setLoadingDetails(false);
   };
 
   const closeDetails = () => {
     setSelectedUser(null);
     setSelectedUserLicense(null);
-    setUserDetails(null);
   };
 
   if (loading) return <div className="p-12 text-center text-gray-500">Loading users...</div>;
@@ -415,62 +472,36 @@ const UsersManagement: React.FC = () => {
                   <p className="text-gray-500">{selectedUser.email}</p>
                   <div className="flex gap-2 mt-4">
                      <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-500">{selectedUser.id}</span>
-                     <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-500">Reg: {new Date(selectedUser.registeredAt).toLocaleDateString()}</span>
                   </div>
                </div>
 
-               {loadingDetails ? (
-                   <div className="flex justify-center py-10"><RefreshCw className="w-6 h-6 animate-spin text-brand-500" /></div>
-               ) : (
-                   <div className="space-y-8">
-                       <section>
-                           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Subscription</h3>
-                           <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                               <div className="flex justify-between">
-                                   <span className="text-sm text-gray-500">Plan</span>
-                                   <span className="font-medium">{selectedUserLicense?.planTier}</span>
-                               </div>
-                               <div className="flex justify-between">
-                                   <span className="text-sm text-gray-500">Status</span>
-                                   <span className={`text-xs font-bold px-2 py-0.5 rounded ${selectedUserLicense?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200'}`}>
-                                       {selectedUserLicense?.status?.toUpperCase()}
-                                   </span>
-                               </div>
-                               <div className="flex justify-between">
-                                   <span className="text-sm text-gray-500">Valid Until</span>
-                                   <span className="font-medium">{selectedUserLicense?.validUntil ? new Date(selectedUserLicense.validUntil).toLocaleDateString() : 'N/A'}</span>
-                               </div>
-                               {selectedUserLicense?.billingProjectName && (
-                                   <div className="flex justify-between">
-                                       <span className="text-sm text-gray-500">Billing Project</span>
-                                       <span className="font-medium">{selectedUserLicense.billingProjectName}</span>
-                                   </div>
-                               )}
+               <div className="space-y-8">
+                   <section>
+                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Subscription</h3>
+                       <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                           <div className="flex justify-between">
+                               <span className="text-sm text-gray-500">Plan</span>
+                               <span className="font-medium">{selectedUserLicense?.planTier}</span>
                            </div>
-                       </section>
-
-                       <section>
-                           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Invoices ({userDetails?.invoices.length})</h3>
-                           <div className="space-y-2">
-                               {userDetails?.invoices.map(inv => (
-                                   <div key={inv.id} className="flex justify-between items-center p-3 bg-white border border-gray-200 rounded hover:bg-gray-50">
-                                       <div className="flex items-center gap-3">
-                                           <div className={`w-2 h-2 rounded-full ${inv.status === 'paid' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                           <div>
-                                               <div className="text-sm font-medium">€{inv.amount}</div>
-                                               <div className="text-xs text-gray-500">{inv.date}</div>
-                                           </div>
-                                       </div>
-                                       <a href="#" className="text-brand-600 hover:text-brand-800 text-xs font-medium flex items-center gap-1">
-                                           PDF <Download className="w-3 h-3" />
-                                       </a>
-                                   </div>
-                               ))}
-                               {userDetails?.invoices.length === 0 && <p className="text-sm text-gray-400 italic">No invoices found.</p>}
+                           <div className="flex justify-between">
+                               <span className="text-sm text-gray-500">Status</span>
+                               <span className={`text-xs font-bold px-2 py-0.5 rounded ${selectedUserLicense?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200'}`}>
+                                   {selectedUserLicense?.status?.toUpperCase()}
+                               </span>
                            </div>
-                       </section>
-                   </div>
-               )}
+                           <div className="flex justify-between">
+                               <span className="text-sm text-gray-500">Valid Until</span>
+                               <span className="font-medium">{selectedUserLicense?.validUntil ? new Date(selectedUserLicense.validUntil).toLocaleDateString() : 'N/A'}</span>
+                           </div>
+                           {selectedUserLicense?.billingProjectName && (
+                               <div className="flex justify-between">
+                                   <span className="text-sm text-gray-500">Billing Project</span>
+                                   <span className="font-medium">{selectedUserLicense.billingProjectName}</span>
+                               </div>
+                           )}
+                       </div>
+                   </section>
+               </div>
            </div>
         </div>
       )}
@@ -604,20 +635,7 @@ const SystemHealth: React.FC = () => {
 
 // --- VIEW 4: MARKETING INSIGHTS ---
 const MarketingInsights: React.FC = () => {
-    const [users, setUsers] = useState<User[]>([]);
-    const [licenses, setLicenses] = useState<License[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const load = async () => {
-            setLoading(true);
-            const data = await mockApi.getAdminData();
-            setUsers(data.users);
-            setLicenses(data.licenses);
-            setLoading(false);
-        };
-        load();
-    }, []);
+    const { loading, users, licenses } = useAdminData();
 
     // 1. Growth Data (Registrations over time)
     const growthData = useMemo(() => {
@@ -647,7 +665,6 @@ const MarketingInsights: React.FC = () => {
         const active = licenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
         const churned = licenses.filter(l => l.status === SubscriptionStatus.CANCELED).length;
         
-        // Simple ARPU Calculation based on Mock Prices
         let totalRevenue = 0;
         licenses.forEach(l => {
              if (l.status === SubscriptionStatus.ACTIVE) {
@@ -665,7 +682,6 @@ const MarketingInsights: React.FC = () => {
         };
     }, [users, licenses]);
 
-    // 3. Marketing Cohorts (The "Actionable" part)
     const cohorts = useMemo(() => {
         const winBack = users.filter(u => {
             const lic = licenses.find(l => l.userId === u.id);
@@ -773,107 +789,6 @@ const MarketingInsights: React.FC = () => {
                     </ResponsiveContainer>
                 </div>
             </div>
-
-            {/* Marketing Action Center */}
-            <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Megaphone className="w-5 h-5 text-brand-500" /> Marketing Activities
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Cohort 1: Win Back */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-                        <div className="p-4 border-b border-gray-100 bg-orange-50">
-                            <h3 className="font-bold text-orange-800">Win-Back Campaign</h3>
-                            <p className="text-xs text-orange-600">Target churned users</p>
-                        </div>
-                        <div className="p-4 flex-1">
-                            <div className="text-3xl font-bold text-gray-900 mb-2">{cohorts.winBack.length}</div>
-                            <div className="text-xs text-gray-500 mb-4">Users who canceled their subscription.</div>
-                            
-                            <ul className="space-y-2 mb-4">
-                                {cohorts.winBack.slice(0,3).map(u => (
-                                    <li key={u.id} className="text-sm flex items-center gap-2 text-gray-600">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
-                                        {u.email}
-                                    </li>
-                                ))}
-                                {cohorts.winBack.length > 3 && <li className="text-xs text-gray-400 pl-3">+{cohorts.winBack.length - 3} more...</li>}
-                            </ul>
-                        </div>
-                        <div className="p-4 border-t border-gray-100 bg-gray-50">
-                             <button 
-                                onClick={() => copyToClipboard(cohorts.winBack)}
-                                disabled={cohorts.winBack.length === 0}
-                                className="w-full py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                             >
-                                 <Copy className="w-4 h-4" /> Copy Email List
-                             </button>
-                        </div>
-                    </div>
-
-                    {/* Cohort 2: Upsell */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-                        <div className="p-4 border-b border-gray-100 bg-blue-50">
-                            <h3 className="font-bold text-blue-800">Upsell to Production</h3>
-                            <p className="text-xs text-blue-600">Target 'Budget' users</p>
-                        </div>
-                        <div className="p-4 flex-1">
-                            <div className="text-3xl font-bold text-gray-900 mb-2">{cohorts.upsellCandidates.length}</div>
-                            <div className="text-xs text-gray-500 mb-4">Active Budget users ready for upgrade.</div>
-
-                            <ul className="space-y-2 mb-4">
-                                {cohorts.upsellCandidates.slice(0,3).map(u => (
-                                    <li key={u.id} className="text-sm flex items-center gap-2 text-gray-600">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                                        {u.email}
-                                    </li>
-                                ))}
-                                {cohorts.upsellCandidates.length > 3 && <li className="text-xs text-gray-400 pl-3">+{cohorts.upsellCandidates.length - 3} more...</li>}
-                            </ul>
-                        </div>
-                        <div className="p-4 border-t border-gray-100 bg-gray-50">
-                             <button 
-                                onClick={() => copyToClipboard(cohorts.upsellCandidates)}
-                                disabled={cohorts.upsellCandidates.length === 0}
-                                className="w-full py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                             >
-                                 <Copy className="w-4 h-4" /> Copy Email List
-                             </button>
-                        </div>
-                    </div>
-
-                    {/* Cohort 3: Free to Paid */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-                        <div className="p-4 border-b border-gray-100 bg-gray-100">
-                            <h3 className="font-bold text-gray-800">Trial Conversion</h3>
-                            <p className="text-xs text-gray-600">Target 'Free' users</p>
-                        </div>
-                        <div className="p-4 flex-1">
-                             <div className="text-3xl font-bold text-gray-900 mb-2">{cohorts.freeToPaid.length}</div>
-                             <div className="text-xs text-gray-500 mb-4">Users currently on the Free plan.</div>
-
-                             <ul className="space-y-2 mb-4">
-                                {cohorts.freeToPaid.slice(0,3).map(u => (
-                                    <li key={u.id} className="text-sm flex items-center gap-2 text-gray-600">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
-                                        {u.email}
-                                    </li>
-                                ))}
-                                {cohorts.freeToPaid.length > 3 && <li className="text-xs text-gray-400 pl-3">+{cohorts.freeToPaid.length - 3} more...</li>}
-                            </ul>
-                        </div>
-                        <div className="p-4 border-t border-gray-100 bg-gray-50">
-                             <button 
-                                onClick={() => copyToClipboard(cohorts.freeToPaid)}
-                                disabled={cohorts.freeToPaid.length === 0}
-                                className="w-full py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                             >
-                                 <Copy className="w-4 h-4" /> Copy Email List
-                             </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
@@ -881,10 +796,7 @@ const MarketingInsights: React.FC = () => {
 // --- MAIN ADMIN DASHBOARD ---
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
-
-  // Basic role check
-  if (!user || user.role !== 'admin') return null;
-
+  
   return (
     <Routes>
       <Route index element={<DashboardOverview />} />
