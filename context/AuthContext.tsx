@@ -60,6 +60,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
+          // Check if the current URL suggests recovery even if event didn't fire yet
+          if (window.location.href.includes('type=recovery') || window.location.href.includes('access_token=')) {
+            setIsRecovering(true);
+          }
           await fetchProfile(session);
         } else {
           setIsLoading(false);
@@ -75,15 +79,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (event === 'PASSWORD_RECOVERY') {
         setIsRecovering(true);
       }
+      
       if (session) {
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'PASSWORD_RECOVERY') {
           await fetchProfile(session);
-        } else {
-          setUser(constructUser(session.user, null));
-          setIsLoading(false);
         }
       } else {
-        setUser(null);
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsRecovering(false);
+        }
         setIsLoading(false);
       }
     });
@@ -115,8 +120,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Keine aktive Sitzung gefunden.");
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
     setIsRecovering(false);
