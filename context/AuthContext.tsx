@@ -41,39 +41,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', session.user.id)
         .single();
 
-      if (error) {
-        setUser(constructUser(session.user, null));
-      } else {
+      if (!error && data) {
         setUser(constructUser(session.user, data));
+      } else {
+        setUser(constructUser(session.user, null));
       }
     } catch (err) {
       setUser(constructUser(session.user, null));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const initSession = async () => {
       try {
-        // VERY AGGRESSIVE Hash Parsing for HashRouter
-        const fullHash = window.location.hash;
-        if (fullHash.includes('access_token=')) {
-          // Find the last occurrence of access_token to handle multiple hashes
-          const tokenPart = fullHash.substring(fullHash.indexOf('access_token='));
-          const params = new URLSearchParams(tokenPart);
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-          
-          if (accessToken && refreshToken) {
-            console.log("Found recovery tokens, setting session...");
-            await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
-            });
-          }
-        }
-
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
+          setUser(constructUser(session.user, null));
           await fetchProfile(session);
         }
       } catch (error) {
@@ -86,11 +71,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Supabase Auth Event:", event);
       if (session) {
-        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+          await fetchProfile(session);
+        } else {
           setUser(constructUser(session.user, null));
-          if (event === 'SIGNED_IN') await fetchProfile(session);
         }
       } else {
         setUser(null);
@@ -105,8 +90,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } catch (error) {
       setIsLoading(false);
       throw error;
     }
@@ -114,15 +101,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signup = async (email: string, name: string, password: string) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-        emailRedirectTo: window.location.origin + '/#/dashboard'
-      }
-    });
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } }
+      });
+      if (error) throw error;
+    } catch (error) {
       setIsLoading(false);
       throw error;
     }
@@ -136,20 +122,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      throw new Error("Keine aktive Sitzung. Bitte fordere einen neuen Link an.");
-    }
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
   };
 
   const resendVerification = async (email: string) => {
-    await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-      options: { emailRedirectTo: window.location.origin + '/#/dashboard' }
-    });
+    await supabase.auth.resend({ type: 'signup', email });
   };
 
   const logout = async () => {
@@ -168,8 +146,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
