@@ -19,6 +19,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// FIX 1: Schutzklausel für Recovery-Seite
+// Auf /update-password darf getSession() NICHT aufgerufen werden, da es im Recovery-Flow blockiert/timeoutet.
+const isRecoveryPage = typeof window !== 'undefined' && (
+  window.location.pathname === '/update-password' || 
+  window.location.pathname.endsWith('/update-password')
+);
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,8 +73,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // 1. Initial Session Load
-    // Wir verlassen uns zu 100% auf Supabase, den Hash zu lesen.
     const initSession = async () => {
+      // FIX 2: getSession komplett überspringen auf der Recovery-Seite
+      if (isRecoveryPage) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -91,7 +103,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (session) {
         if (userIdRef.current !== session.user.id || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          await fetchProfile(session);
+          // Auf der Recovery Page vermeiden wir auch hier komplexe Logik wenn möglich, 
+          // aber das Event System von Supabase ist getrennt von getSession() calls.
+          if (!isRecoveryPage) {
+             await fetchProfile(session);
+          }
         }
       } else {
         if (event === 'SIGNED_OUT') {
@@ -124,7 +140,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const resetPassword = async (email: string) => {
-    // Wir nutzen den sauberen Pfad /update-password für den Redirect
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: window.location.origin + '/update-password',
     });
@@ -132,16 +147,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    // Hier prüfen wir die Session, die Supabase aus dem URL-Hash wiederhergestellt hat
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Keine aktive Sitzung gefunden. Der Link ist möglicherweise abgelaufen.");
+    // FIX 3: updatePassword ist jetzt "dumm" und statusfrei.
+    // Kein getSession() Check (da wir uns auf den internen Supabase Client State verlassen).
+    // Kein manuelles setIsRecovering(false).
     
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
-    
-    // WICHTIG: Wir setzen isRecovering NICHT manuell auf false.
-    // Das verursacht Deadlocks durch Re-Renderings während der Promise-Auflösung.
-    // Der Status klärt sich von selbst beim nächsten Navigieren oder Logout.
   };
 
   const resendVerification = async (email: string) => {
