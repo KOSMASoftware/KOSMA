@@ -574,7 +574,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
             };
             updateLicense();
         }
-    }, [searchParams, user.id]);
+    }, [searchParams, user.id, setSearchParams, refresh]);
 
     if (loading || processing) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
 
@@ -673,7 +673,10 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button className="text-brand-500 hover:text-brand-700 font-bold flex items-center gap-1 ml-auto">
+                                        <button 
+                                            onClick={() => window.open(inv.pdfUrl, '_blank')}
+                                            className="text-brand-500 hover:text-brand-700 font-bold flex items-center gap-1 ml-auto"
+                                        >
                                             <Download className="w-4 h-4" /> PDF
                                         </button>
                                     </td>
