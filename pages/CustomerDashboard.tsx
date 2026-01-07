@@ -259,29 +259,39 @@ const getTierLevel = (tier: PlanTier) => {
     }
 };
 
+// FIX 1: Normalize Helper to avoid "none" / null comparisons causing logic bugs
+const normalizeCycle = (c: any): 'monthly' | 'yearly' | 'none' =>
+  (c === 'monthly' || c === 'yearly') ? c : 'none';
+
 const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> = ({ currentTier, currentCycle }) => {
-    // FIX 1: Initialize State based on actual Cycle from DB
-    // Prevents "Always Yearly" bug
+    
+    // Normalize logic immediately
+    const normalizedCurrentCycle = normalizeCycle(currentCycle);
+
+    // Initialize State - Default to 'yearly' if no paid cycle is active, otherwise sync.
     const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>(
-        (currentCycle === 'monthly' || currentCycle === 'yearly') ? currentCycle : 'yearly'
+        normalizedCurrentCycle === 'none' ? 'yearly' : normalizedCurrentCycle
     );
 
-    // Sync state if props change (e.g. after data load)
+    // Sync state if props change (data loaded)
     useEffect(() => {
-        if (currentCycle === 'monthly' || currentCycle === 'yearly') {
-            setBillingInterval(currentCycle);
+        if (normalizedCurrentCycle !== 'none') {
+            setBillingInterval(normalizedCurrentCycle);
         }
-    }, [currentCycle]);
+    }, [normalizedCurrentCycle]);
 
-    // FIX 2: Explicit Cycle handling
-    // We do NOT rely on state inside this function to avoid stale closures or race conditions
+    // FIX 2: Safe Stripe Link Lookup
     const handlePurchase = (planName: PlanTier, cycle: 'yearly' | 'monthly') => {
         try {
-            const link = (STRIPE_LINKS as any)[planName]?.[cycle];
+            // Explicit key mapping to match config/stripe.ts exactly
+            const linkMap = STRIPE_LINKS as Record<string, { monthly: string; yearly: string }>;
+            const link = linkMap[planName]?.[cycle];
             
+            console.log(`[Stripe] Lookup: Plan=${planName}, Cycle=${cycle} -> Link=${link}`);
+
             if (!link) {
-                console.error(`Link missing for plan: ${planName}, cycle: ${cycle}`);
-                alert("Configuration Error: Payment link missing. Please contact support.");
+                console.error(`[Stripe] Missing link for plan: ${planName}, cycle: ${cycle}`);
+                alert("Payment link configuration missing. Please contact support.");
                 return;
             }
 
@@ -289,7 +299,6 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
             sessionStorage.setItem('pending_purchase', JSON.stringify({ tier: planName, cycle: cycle }));
 
             // HARD REDIRECT
-            console.log(`Redirecting to Stripe (${cycle}):`, link);
             window.location.href = link;
         } catch (e) {
             console.error("Redirect failed:", e);
@@ -362,12 +371,15 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                     
                     // Logic Definition
                     const isSameTier = plan.name === currentTier;
-                    const isSameCycle = billingInterval === currentCycle;
                     
-                    // Case A: Active Plan (Same Tier + Same Cycle) -> DISABLED
+                    // Use Normalized Cycle for logic: Only true if actual cycle matches selected cycle AND isn't 'none'
+                    const isSameCycle = billingInterval === normalizedCurrentCycle;
+                    
+                    // Case A: Active Plan (Same Tier + Same Cycle + Valid Cycle) -> DISABLED
                     const isCurrentActive = isSameTier && isSameCycle;
 
                     // Case B: Cycle Switch (Same Tier + Diff Cycle) -> PURCHASE (Stripe)
+                    // Allowed even if tier is same, as long as cycle is different OR current is 'none'
                     const isCycleSwitch = isSameTier && !isSameCycle;
 
                     // Case C: Upgrade (Higher Tier) -> PURCHASE (Stripe)
@@ -379,7 +391,7 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                     // Button Label Logic
                     let btnLabel = "Select";
                     if (isCurrentActive) btnLabel = "Active Plan";
-                    else if (isCycleSwitch) btnLabel = `Switch to ${billingInterval === 'yearly' ? 'Yearly' : 'Monthly'}`;
+                    else if (isCycleSwitch && normalizedCurrentCycle !== 'none') btnLabel = `Switch to ${billingInterval === 'yearly' ? 'Yearly' : 'Monthly'}`;
                     else if (isUpgrade) btnLabel = `Upgrade to ${plan.title}`;
                     else if (isDowngrade) btnLabel = `Downgrade to ${plan.title}`;
 
@@ -459,7 +471,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     useEffect(() => {
         // REGEL: Webhook Simulation (SECURE PRODUCTION MODE)
         const stripeSuccess = searchParams.get('stripe_success');
-        const checkoutStatus = searchParams.get('checkout'); // Alternative check
+        const checkoutStatus = searchParams.get('checkout'); // Support checkout=success
         const isSuccess = stripeSuccess === 'true' || checkoutStatus === 'success';
 
         let tier = searchParams.get('tier') as PlanTier;
@@ -479,7 +491,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
              } catch(e) { console.error("Session recovery failed", e); }
         }
 
-        if (isSuccess && tier) {
+        if (isSuccess && tier && cycle) {
             const updateLicense = async () => {
                 setProcessing(true);
                 try {
@@ -506,12 +518,14 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     refresh(); // Reload Data from DB
                 } catch (err) {
                     console.error("Success handling failed via Edge Function:", err);
-                    alert("Activation failed. Please contact support if your payment was processed.");
+                    // alert("Activation failed. Please contact support if your payment was processed.");
                 } finally {
                     setProcessing(false);
                 }
             };
             updateLicense();
+        } else if (isSuccess && (!tier || !cycle)) {
+             console.warn("Detected success param but missing tier/cycle info. Cannot activate.");
         }
     }, [searchParams, user.id]);
 
