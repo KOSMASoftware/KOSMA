@@ -263,6 +263,14 @@ const getTierLevel = (tier: PlanTier) => {
 const normalizeCycle = (c: any): 'monthly' | 'yearly' | 'none' =>
   (c === 'monthly' || c === 'yearly') ? c : 'none';
 
+// FIX 2: Explicit Key Mapping for Stripe Config
+const getStripeKey = (t: PlanTier): string | null => {
+    if (t === PlanTier.BUDGET) return 'Budget';
+    if (t === PlanTier.COST_CONTROL) return 'Cost Control';
+    if (t === PlanTier.PRODUCTION) return 'Production';
+    return null;
+};
+
 const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> = ({ currentTier, currentCycle }) => {
     
     // Normalize logic immediately
@@ -280,22 +288,29 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
         }
     }, [normalizedCurrentCycle]);
 
-    // FIX 2: Safe Stripe Link Lookup
+    // FIX 3: Safe Stripe Link Lookup with Debugging
     const handlePurchase = (planName: PlanTier, cycle: 'yearly' | 'monthly') => {
         try {
-            // Explicit key mapping to match config/stripe.ts exactly
-            const linkMap = STRIPE_LINKS as Record<string, { monthly: string; yearly: string }>;
-            const link = linkMap[planName]?.[cycle];
+            const key = getStripeKey(planName);
             
-            console.log(`[Stripe] Lookup: Plan=${planName}, Cycle=${cycle} -> Link=${link}`);
+            if (!key) {
+                console.error(`[Stripe] Invalid PlanTier: ${planName}`);
+                alert("Invalid plan selected.");
+                return;
+            }
+
+            // Explicit cast not needed if we access via string key, but good for TS
+            const link = STRIPE_LINKS[key as keyof typeof STRIPE_LINKS]?.[cycle];
+            
+            console.log(`[Stripe] Redirecting: Tier=${planName} Key=${key} Cycle=${cycle} Link=${link}`);
 
             if (!link) {
-                console.error(`[Stripe] Missing link for plan: ${planName}, cycle: ${cycle}`);
+                console.error(`[Stripe] Missing link configuration`);
                 alert("Payment link configuration missing. Please contact support.");
                 return;
             }
 
-            // FIX 3: Store Pending Purchase for robust return flow (if URL params missing)
+            // FIX 4: Store Pending Purchase for robust return flow (if URL params missing)
             sessionStorage.setItem('pending_purchase', JSON.stringify({ tier: planName, cycle: cycle }));
 
             // HARD REDIRECT
@@ -373,14 +388,14 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                     const isSameTier = plan.name === currentTier;
                     
                     // Use Normalized Cycle for logic: Only true if actual cycle matches selected cycle AND isn't 'none'
-                    const isSameCycle = billingInterval === normalizedCurrentCycle;
+                    const isSameCycle = normalizedCurrentCycle !== 'none' && billingInterval === normalizedCurrentCycle;
                     
                     // Case A: Active Plan (Same Tier + Same Cycle + Valid Cycle) -> DISABLED
-                    const isCurrentActive = isSameTier && isSameCycle;
+                    const isCurrentActive = normalizedCurrentCycle !== 'none' && isSameTier && isSameCycle;
 
                     // Case B: Cycle Switch (Same Tier + Diff Cycle) -> PURCHASE (Stripe)
                     // Allowed even if tier is same, as long as cycle is different OR current is 'none'
-                    const isCycleSwitch = isSameTier && !isSameCycle;
+                    const isCycleSwitch = isSameTier && (!isSameCycle || normalizedCurrentCycle === 'none');
 
                     // Case C: Upgrade (Higher Tier) -> PURCHASE (Stripe)
                     const isUpgrade = planLevel > currentLevel;
@@ -462,7 +477,7 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
 
 const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user);
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
 
@@ -491,6 +506,13 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
              } catch(e) { console.error("Session recovery failed", e); }
         }
 
+        // HARDENED RETURN FLOW:
+        // If we still miss tier or cycle after recovery attempt, stop here.
+        if (isSuccess && (!tier || !cycle)) {
+             console.warn("Detected success param but missing tier/cycle info. Cannot activate.");
+             return;
+        }
+
         if (isSuccess && tier && cycle) {
             const updateLicense = async () => {
                 setProcessing(true);
@@ -500,7 +522,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         : (rawProjectName || 'New Production');
 
                     // AUFRUF DER SECURE EDGE FUNCTION
-                    // Rule: No userId in body. Authentication via JWT.
+                    // Rule: No userId in body. Authentication via JWT is handled automatically by invoke if user is logged in.
                     const { data, error } = await supabase.functions.invoke('dynamic-endpoint', {
                         body: {
                             tier: tier,
@@ -524,8 +546,6 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                 }
             };
             updateLicense();
-        } else if (isSuccess && (!tier || !cycle)) {
-             console.warn("Detected success param but missing tier/cycle info. Cannot activate.");
         }
     }, [searchParams, user.id]);
 
