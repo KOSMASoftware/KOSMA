@@ -1,12 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, Project, BillingAddress } from '../types';
-import { Check, Loader2, Download, CreditCard, User as UserIcon, HelpCircle, FileText, Settings, AlertTriangle, Receipt, Phone, LayoutDashboard, ArrowUpRight, Zap, CheckCircle as LucideCheckCircle, ExternalLink, Globe, MapPin, Building, Briefcase } from 'lucide-react';
-import { Routes, Route, Navigate, useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom';
-import { mockApi } from '../services/mockService';
-import { STRIPE_LINKS } from '../config/stripe';
+import { Loader2, Download, CreditCard, HelpCircle, FileText, Settings, Zap, CheckCircle as LucideCheckCircle, Briefcase, LayoutDashboard, Building } from 'lucide-react';
+import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 
 // --- SHARED COMPONENTS ---
 
@@ -50,14 +47,12 @@ const DashboardTabs = () => {
     );
 };
 
-// --- DATA HOOK ---
+// --- DATA HOOK (STRICT SUPABASE MODE) ---
 const useCustomerData = (user: User) => {
     const [loading, setLoading] = useState(true);
     const [licenses, setLicenses] = useState<License[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
     const [billingAddress, setBillingAddress] = useState<BillingAddress | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const refresh = () => setRefreshTrigger(prev => prev + 1);
@@ -66,9 +61,8 @@ const useCustomerData = (user: User) => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                if (user.id.startsWith('mock-bypass-')) {
-                    throw new Error('PROTOTYPE_MODE'); 
-                }
+                // REGEL 1: Supabase ist Source of Truth.
+                // Wir laden Lizenzen und Profil direkt.
 
                 // 1. Licenses & Profile
                 const { data: licData, error: licError } = await supabase
@@ -82,10 +76,10 @@ const useCustomerData = (user: User) => {
                     .eq('id', user.id)
                     .single();
 
-                if (licError) throw licError;
+                if (licError) console.error("License Fetch Error:", licError);
                 if (profileData?.billing_address) setBillingAddress(profileData.billing_address);
 
-                if (licData) {
+                if (licData && licData.length > 0) {
                      setLicenses(licData.map((l: any) => ({
                         id: l.id,
                         userId: l.user_id,
@@ -98,16 +92,24 @@ const useCustomerData = (user: User) => {
                         billingProjectName: l.billing_project_name,
                         stripeSubscriptionId: l.stripe_subscription_id
                     })));
+                } else {
+                    // Fallback (Regel 4.2): Wenn Lizenz fehlt -> Free.
+                    setLicenses([{
+                        id: 'temp', userId: user.id, productName: 'KOSMA', 
+                        planTier: PlanTier.FREE, billingCycle: 'none', 
+                        status: SubscriptionStatus.NONE, validUntil: null, 
+                        licenseKey: null 
+                    }]);
                 }
 
-                // 2. Invoices
+                // 2. Invoices (Regel 7)
                 const { data: invData, error: invError } = await supabase
                     .from('invoices')
                     .select('*')
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false });
 
-                 if (invError) throw invError;
+                 if (invError) console.error("Invoice Fetch Error:", invError);
                  if (invData) {
                     setInvoices(invData.map((i: any) => ({
                         id: i.id,
@@ -121,16 +123,7 @@ const useCustomerData = (user: User) => {
                  }
 
             } catch (err: any) {
-                const isSchemaError = err.message?.includes('schema') || err.message === 'PROTOTYPE_MODE' || err.code === 'PGRST000';
-                if (isSchemaError) {
-                    const fallbackId = 'u1'; 
-                    const mockLic = await mockApi.getLicense(fallbackId);
-                    const mockDetails = await mockApi.getUserDetails(fallbackId);
-                    if (mockLic) setLicenses([mockLic]);
-                    if (mockDetails) {
-                        setInvoices(mockDetails.invoices.map(i => ({...i, currency: 'EUR'})));
-                    }
-                }
+                console.error("Critical Data Load Error:", err);
             } finally {
                 setLoading(false);
             }
@@ -139,7 +132,7 @@ const useCustomerData = (user: User) => {
         if (user) fetchData();
     }, [user, refreshTrigger]);
 
-    return { loading, licenses, invoices, projects, billingAddress, refresh };
+    return { loading, licenses, invoices, billingAddress, refresh };
 };
 
 
@@ -153,6 +146,7 @@ const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, user
     const handleSave = async () => {
         setSaving(true);
         try {
+            // Regel 3: Nur existierende Spalten updaten.
             const { error } = await supabase
                 .from('profiles')
                 .update({ billing_address: address })
@@ -161,7 +155,7 @@ const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, user
             setIsEditing(false);
         } catch (err) {
             console.error(err);
-            alert("Error saving address. Make sure the 'profiles' table has a 'billing_address' JSONB column.");
+            alert("Error saving address.");
         } finally {
             setSaving(false);
         }
@@ -241,19 +235,24 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
 
-    const activeLicense = licenses.find(l => l.status === SubscriptionStatus.ACTIVE);
+    // Finde die wichtigste Lizenz (Active > Trial > Free)
+    const activeLicense = licenses.find(l => l.status === SubscriptionStatus.ACTIVE) 
+                       || licenses.find(l => l.status === SubscriptionStatus.TRIAL)
+                       || licenses[0];
 
     useEffect(() => {
+        // REGEL 3.3: Webhook Simulation (Prototype only)
+        // In Production macht das ein Backend-Webhook.
+        // Hier simulieren wir den DB-Write, wenn der User von Stripe zurückkommt.
         const stripeSuccess = searchParams.get('stripe_success');
         const tier = searchParams.get('tier') as PlanTier;
         const cycle = searchParams.get('cycle') as 'monthly' | 'yearly';
         const rawProjectName = searchParams.get('project_name');
         
-        if (stripeSuccess === 'true' && tier && !user.id.startsWith('mock-bypass-')) {
+        if (stripeSuccess === 'true' && tier) {
             const updateLicense = async () => {
                 setProcessing(true);
                 try {
-                    // Clean up project name if it's the stripe session placeholder
                     const projectName = (rawProjectName && rawProjectName.startsWith('cs_test')) 
                         ? `Project (Session ${rawProjectName.substring(8, 14)})` 
                         : (rawProjectName || 'New Production');
@@ -262,7 +261,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     if (cycle === 'yearly') validUntil.setFullYear(validUntil.getFullYear() + 1);
                     else validUntil.setMonth(validUntil.getMonth() + 1);
 
-                    // License update
+                    // 1. Lizenz Update (Source of Truth)
                     await supabase
                         .from('licenses')
                         .upsert({
@@ -276,13 +275,12 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                             license_key: `KOS-${tier.substring(0,3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`
                         }, { onConflict: 'user_id' });
 
-                    // Map price based on cycle and tier
+                    // 2. Invoice Erstellung (Source of Truth)
                     let amount = 0;
                     if (tier === PlanTier.BUDGET) amount = cycle === 'yearly' ? 390 : 39;
                     if (tier === PlanTier.COST_CONTROL) amount = cycle === 'yearly' ? 590 : 59;
                     if (tier === PlanTier.PRODUCTION) amount = cycle === 'yearly' ? 690 : 69;
 
-                    // Simulate Invoice creation (In Real Life: Stripe Webhook does this)
                     await supabase.from('invoices').insert({
                         user_id: user.id,
                         amount: amount,
@@ -291,8 +289,8 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     });
 
                     setSuccessMessage(true);
-                    setSearchParams({}); 
-                    refresh();
+                    setSearchParams({}); // Clean URL
+                    refresh(); // Reload Data from DB
                 } catch (err) {
                     console.error("Success handling failed:", err);
                 } finally {
@@ -319,7 +317,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     <LucideCheckCircle className="w-8 h-8 text-green-500" />
                     <div>
                         <h3 className="font-bold text-lg">Thank you! Your payment was successful.</h3>
-                        <p className="text-sm">Your {activeLicense?.planTier} license is now active. The invoice has been generated below.</p>
+                        <p className="text-sm">Your {activeLicense?.planTier} license is now active.</p>
                     </div>
                 </div>
             )}
@@ -331,12 +329,24 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Active Plan</h2>
                         <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black text-gray-900">{activeLicense?.planTier || 'Free'}</span>
-                            <span className="text-sm text-gray-500">{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
+                            {activeLicense?.status === 'active' && (
+                                <span className="text-sm text-gray-500">{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
+                            )}
+                        </div>
+                        <div className="mt-3">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${
+                                activeLicense?.status === 'active' ? 'bg-green-100 text-green-800' :
+                                activeLicense?.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                            }`}>
+                                {activeLicense?.status === SubscriptionStatus.ACTIVE ? 'Active Subscription' :
+                                 activeLicense?.status === SubscriptionStatus.TRIAL ? 'Free Trial' : 'Free Tier'}
+                            </span>
                         </div>
                         <p className="text-sm text-gray-500 mt-2">
-                            {activeLicense?.status === 'active' 
-                                ? `Next renewal: ${new Date(activeLicense.validUntil!).toLocaleDateString()}.`
-                                : 'You are currently on the free trial tier.'
+                            {activeLicense?.validUntil 
+                                ? `Valid until: ${new Date(activeLicense.validUntil).toLocaleDateString()}`
+                                : 'No expiry date.'
                             }
                         </p>
                         {activeLicense?.billingProjectName && (
@@ -346,12 +356,15 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         )}
                     </div>
                     <div className="flex flex-col gap-3 w-full md:w-auto">
-                         <button className="px-6 py-2 bg-brand-500 text-white rounded-lg font-bold hover:bg-brand-600 transition-colors shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
-                            <Zap className="w-4 h-4" /> Change Plan
-                         </button>
-                         <button className="px-6 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
-                            Cancel Subscription
-                         </button>
+                         <Link to="/" className="px-6 py-2 bg-brand-500 text-white rounded-lg font-bold hover:bg-brand-600 transition-colors shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
+                            <Zap className="w-4 h-4" /> 
+                            {activeLicense?.status === SubscriptionStatus.TRIAL ? 'Buy Full License' : 'Upgrade Plan'}
+                         </Link>
+                         {activeLicense?.status === 'active' && (
+                             <button className="px-6 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
+                                Cancel Subscription
+                             </button>
+                         )}
                     </div>
                 </div>
 
@@ -417,7 +430,11 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
 const Overview: React.FC<{ user: User }> = ({ user }) => {
     const { loading, licenses, invoices } = useCustomerData(user);
     if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
-    const activeLicense = licenses.find(l => l.status === SubscriptionStatus.ACTIVE);
+    
+    // Prioritize showing Active or Trial licenses
+    const activeLicense = licenses.find(l => l.status === SubscriptionStatus.ACTIVE) 
+                       || licenses.find(l => l.status === SubscriptionStatus.TRIAL)
+                       || licenses[0];
 
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -431,10 +448,17 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
                     <h3 className="text-lg font-bold text-gray-900 mb-4">License Status</h3>
                     {activeLicense ? (
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-green-50 text-green-600 rounded-lg"><Zap className="w-6 h-6" /></div>
+                            <div className={`p-3 rounded-lg ${activeLicense.status === SubscriptionStatus.TRIAL ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                                <Zap className="w-6 h-6" />
+                            </div>
                             <div>
                                 <p className="font-bold text-gray-900">{activeLicense.planTier} Plan</p>
-                                <p className="text-xs text-gray-500">Valid until {new Date(activeLicense.validUntil!).toLocaleDateString()}</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-brand-500 mb-1">
+                                    {activeLicense.status}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    {activeLicense.validUntil ? `Valid until ${new Date(activeLicense.validUntil).toLocaleDateString()}` : 'No expiration'}
+                                </p>
                             </div>
                         </div>
                     ) : (
@@ -444,14 +468,18 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Invoices</h3>
-                    <ul className="space-y-2">
-                        {invoices.slice(0, 2).map(inv => (
-                            <li key={inv.id} className="text-sm flex justify-between">
-                                <span className="text-gray-500">{new Date(inv.date).toLocaleDateString()}</span>
-                                <span className="font-bold">{inv.amount} €</span>
-                            </li>
-                        ))}
-                    </ul>
+                    {invoices.length > 0 ? (
+                        <ul className="space-y-2">
+                            {invoices.slice(0, 2).map(inv => (
+                                <li key={inv.id} className="text-sm flex justify-between">
+                                    <span className="text-gray-500">{new Date(inv.date).toLocaleDateString()}</span>
+                                    <span className="font-bold">{inv.amount} €</span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-gray-400">No invoices yet.</p>
+                    )}
                     <Link to="/dashboard/subscription" className="mt-6 block text-center py-2 border border-gray-200 rounded font-bold text-sm hover:bg-gray-50">View All</Link>
                 </div>
             </div>

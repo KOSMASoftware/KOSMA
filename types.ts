@@ -8,7 +8,8 @@ export enum SubscriptionStatus {
   ACTIVE = 'active',
   PAST_DUE = 'past_due',
   CANCELED = 'canceled',
-  NONE = 'none'
+  NONE = 'none',
+  TRIAL = 'trial'
 }
 
 export enum PlanTier {
@@ -49,7 +50,7 @@ export interface License {
   productName: string; 
   planTier: PlanTier;
   stripeSubscriptionId?: string;
-  billingCycle: 'monthly' | 'yearly' | 'none';
+  billingCycle: 'monthly' | 'yearly' | 'none' | 'trial';
   status: SubscriptionStatus;
   validUntil: string | null; 
   licenseKey: string | null;

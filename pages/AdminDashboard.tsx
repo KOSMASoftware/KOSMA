@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -77,14 +77,14 @@ const useAdminData = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [licenses, setLicenses] = useState<License[]>([]);
     const [stats, setStats] = useState({ totalUsers: 0, activeLicenses: 0, inactiveLicenses: 0, revenue: 0 });
+    const [refreshIndex, setRefreshIndex] = useState(0);
+
+    const refreshData = () => setRefreshIndex(prev => prev + 1);
 
     useEffect(() => {
         const fetchAll = async () => {
             setLoading(true);
             try {
-                // STRICT MODE: ONLY REAL DATA FROM SUPABASE
-                // If tables are empty or RLS blocks access, this will return empty arrays.
-
                 const { data: profiles, error: pError } = await supabase.from('profiles').select('*');
                 const { data: licData, error: lError } = await supabase.from('licenses').select('*');
                 const { data: invData, error: iError } = await supabase.from('invoices').select('amount, status');
@@ -96,7 +96,6 @@ const useAdminData = () => {
                 let realLicenses: License[] = [];
                 let realRevenue = 0;
 
-                // 1. Process Users
                 if (profiles && profiles.length > 0) {
                     realUsers = profiles.map((p: any) => ({
                         id: p.id,
@@ -108,7 +107,6 @@ const useAdminData = () => {
                     }));
                 }
 
-                // 2. Process Licenses
                 if (licData && licData.length > 0) {
                     realLicenses = licData.map((l: any) => ({
                         id: l.id,
@@ -124,16 +122,14 @@ const useAdminData = () => {
                     }));
                 }
 
-                // 3. Process Revenue
                 if (invData && invData.length > 0) {
                      realRevenue = invData
                         .filter((i: any) => i.status === 'paid')
                         .reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
                 }
 
-                // 4. Stats
-                const active = realLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
-                const inactive = realLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE).length;
+                const active = realLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE || l.status === SubscriptionStatus.TRIAL).length;
+                const inactive = realLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE && l.status !== SubscriptionStatus.TRIAL).length;
 
                 setUsers(realUsers);
                 setLicenses(realLicenses);
@@ -151,9 +147,9 @@ const useAdminData = () => {
             }
         };
         fetchAll();
-    }, []);
+    }, [refreshIndex]);
 
-    return { loading, users, licenses, stats };
+    return { loading, users, licenses, stats, refreshData };
 };
 
 // --- VIEW 1: STRATEGIC OVERVIEW ---
@@ -161,7 +157,6 @@ const DashboardOverview: React.FC = () => {
   const { loading, stats, licenses } = useAdminData();
   const navigate = useNavigate();
 
-  // Data for "Yearly vs Monthly"
   const cycleCounts = licenses.reduce((acc, curr) => {
     if (curr.status === SubscriptionStatus.ACTIVE) {
        acc[curr.billingCycle] = (acc[curr.billingCycle] || 0) + 1;
@@ -207,7 +202,7 @@ const DashboardOverview: React.FC = () => {
             <div className="p-3 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
               <CreditCard className="w-6 h-6" />
             </div>
-            <span className="text-sm font-medium text-gray-500">Active Licenses</span>
+            <span className="text-sm font-medium text-gray-500">Active / Trial</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{stats.activeLicenses}</p>
         </div>
@@ -235,43 +230,23 @@ const DashboardOverview: React.FC = () => {
           <p className="text-3xl font-bold text-gray-900">{stats.inactiveLicenses}</p>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Billing Cycles (Yearly vs Monthly)</h3>
-           <div className="h-64 w-full">
-             <ResponsiveContainer width="100%" height="100%">
-               <BarChart data={cycleChartData} layout="vertical">
-                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                 <XAxis type="number" hide />
-                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} />
-                 <Tooltip cursor={{fill: 'transparent'}} />
-                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={40}>
-                    <Cell fill={CYCLE_COLORS.yearly} />
-                    <Cell fill={CYCLE_COLORS.monthly} />
-                 </Bar>
-               </BarChart>
-             </ResponsiveContainer>
-          </div>
-          <p className="text-center text-sm text-gray-500 mt-2">Majority of users prefer yearly billing.</p>
-        </div>
-      </div>
     </div>
   );
 };
 
-// --- VIEW 2: USER MANAGEMENT ---
+// --- VIEW 2: USER MANAGEMENT (With Manual Extension) ---
 type SortKey = 'name' | 'planTier' | 'validUntil' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 const UsersManagement: React.FC = () => {
-  const { loading, users, licenses } = useAdminData();
+  const { loading, users, licenses, refreshData } = useAdminData();
   
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = searchParams.get('status') || 'all';
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'name', direction: 'asc' });
+  const [modifying, setModifying] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserLicense, setSelectedUserLicense] = useState<License | null>(null);
@@ -286,15 +261,15 @@ const UsersManagement: React.FC = () => {
             email: u.email,
             planTier: lic?.planTier || PlanTier.FREE,
             status: lic?.status || 'none',
-            validUntil: lic?.validUntil ? new Date(lic.validUntil).getTime() : 9999999999999
+            validUntil: lic?.validUntil ? new Date(lic.validUntil).getTime() : 0
         };
     });
   }, [users, licenses]);
 
   const processedRows = useMemo(() => {
     let rows = [...tableData];
-    if (statusFilter === 'active') rows = rows.filter(r => r.status === SubscriptionStatus.ACTIVE);
-    if (statusFilter === 'inactive') rows = rows.filter(r => r.status !== SubscriptionStatus.ACTIVE);
+    if (statusFilter === 'active') rows = rows.filter(r => r.status === SubscriptionStatus.ACTIVE || r.status === SubscriptionStatus.TRIAL);
+    if (statusFilter === 'inactive') rows = rows.filter(r => r.status !== SubscriptionStatus.ACTIVE && r.status !== SubscriptionStatus.TRIAL);
     if (planFilter !== 'all') rows = rows.filter(r => r.planTier === planFilter);
     if (searchTerm) {
         const lowerTerm = searchTerm.toLowerCase();
@@ -328,6 +303,32 @@ const UsersManagement: React.FC = () => {
       return sortConfig.direction === 'asc' 
         ? <ChevronUp className="w-3 h-3 text-brand-600 ml-1" />
         : <ChevronDown className="w-3 h-3 text-brand-600 ml-1" />;
+  };
+
+  // REGEL 6.2: Manuelle Verlängerung
+  const extendLicense = async (days: number) => {
+      if (!selectedUser || !selectedUserLicense) return;
+      setModifying(true);
+      try {
+          const currentValid = selectedUserLicense.validUntil ? new Date(selectedUserLicense.validUntil) : new Date();
+          const newDate = new Date(currentValid);
+          newDate.setDate(newDate.getDate() + days);
+
+          await supabase.from('licenses').upsert({
+              user_id: selectedUser.id,
+              valid_until: newDate.toISOString(),
+              status: 'active' // Re-activate if expired
+          }, { onConflict: 'user_id' });
+
+          alert(`Successfully extended license for ${selectedUser.name} by ${days} days.`);
+          refreshData(); // Refresh UI
+          closeDetails();
+      } catch (err) {
+          console.error("Extension failed", err);
+          alert("Failed to extend license.");
+      } finally {
+          setModifying(false);
+      }
   };
 
   const handleUserClick = (row: typeof tableData[0]) => {
@@ -433,10 +434,11 @@ const UsersManagement: React.FC = () => {
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       row.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-800' :
+                      row.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-800' :
                       row.status === SubscriptionStatus.PAST_DUE ? 'bg-red-100 text-red-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
-                      {row.status === SubscriptionStatus.ACTIVE ? 'Active' : row.status === SubscriptionStatus.PAST_DUE ? 'Past Due' : 'Inactive'}
+                      {row.status === SubscriptionStatus.ACTIVE ? 'Active' : row.status === SubscriptionStatus.TRIAL ? 'Trial' : row.status === SubscriptionStatus.PAST_DUE ? 'Past Due' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -444,7 +446,7 @@ const UsersManagement: React.FC = () => {
                         onClick={() => handleUserClick(row)}
                         className="text-brand-600 hover:text-brand-800 font-medium text-xs border border-brand-200 hover:bg-brand-50 px-3 py-1.5 rounded transition-colors"
                     >
-                        View Details
+                        Manage
                     </button>
                   </td>
                 </tr>
@@ -477,8 +479,8 @@ const UsersManagement: React.FC = () => {
 
                <div className="space-y-8">
                    <section>
-                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Subscription</h3>
-                       <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Subscription Details</h3>
+                       <div className="bg-gray-50 p-4 rounded-lg space-y-3 border border-gray-200">
                            <div className="flex justify-between">
                                <span className="text-sm text-gray-500">Plan</span>
                                <span className="font-medium">{selectedUserLicense?.planTier}</span>
@@ -501,6 +503,31 @@ const UsersManagement: React.FC = () => {
                            )}
                        </div>
                    </section>
+
+                   <section>
+                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Admin Actions</h3>
+                       <p className="text-xs text-gray-500 mb-4">Manual override of license validity. Does not affect Stripe.</p>
+                       
+                       <div className="grid grid-cols-2 gap-3">
+                           <button 
+                                onClick={() => extendLicense(14)}
+                                disabled={modifying}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
+                           >
+                               <CalendarPlus className="w-4 h-4 text-green-600" />
+                               Extend 14 Days
+                           </button>
+                           
+                           <button 
+                                onClick={() => extendLicense(30)}
+                                disabled={modifying}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
+                           >
+                               <CalendarPlus className="w-4 h-4 text-green-600" />
+                               Extend 30 Days
+                           </button>
+                       </div>
+                   </section>
                </div>
            </div>
         </div>
@@ -519,7 +546,6 @@ const SystemHealth: React.FC = () => {
         setLoading(true);
         setStatuses([]); 
         
-        // Parallel execution of all checks
         const results = await Promise.all([
             liveSystemService.checkDatabaseConnection(),
             liveSystemService.checkAuthService(),
@@ -624,10 +650,6 @@ const SystemHealth: React.FC = () => {
                         </div>
                     </div>
                 ))}
-                
-                {statuses.length === 0 && !loading && (
-                    <div className="text-center py-10 text-gray-400">Waiting for check...</div>
-                )}
             </div>
         </div>
     );
@@ -637,7 +659,7 @@ const SystemHealth: React.FC = () => {
 const MarketingInsights: React.FC = () => {
     const { loading, users, licenses } = useAdminData();
 
-    // 1. Growth Data (Registrations over time)
+    // 1. Growth Data
     const growthData = useMemo(() => {
         const monthCounts: Record<string, number> = {};
         users.forEach(u => {
@@ -658,7 +680,7 @@ const MarketingInsights: React.FC = () => {
         });
     }, [users]);
 
-    // 2. Churn & Retention Metrics
+    // 2. Metrics
     const metrics = useMemo(() => {
         const total = users.length || 1;
         const active = licenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
@@ -667,7 +689,7 @@ const MarketingInsights: React.FC = () => {
         let totalRevenue = 0;
         licenses.forEach(l => {
              if (l.status === SubscriptionStatus.ACTIVE) {
-                 if (l.planTier === PlanTier.BUDGET) totalRevenue += 39; // Monthly equivalent
+                 if (l.planTier === PlanTier.BUDGET) totalRevenue += 39; 
                  if (l.planTier === PlanTier.COST_CONTROL) totalRevenue += 59;
                  if (l.planTier === PlanTier.PRODUCTION) totalRevenue += 69;
              }
@@ -680,31 +702,6 @@ const MarketingInsights: React.FC = () => {
             arpu: arpu
         };
     }, [users, licenses]);
-
-    const cohorts = useMemo(() => {
-        const winBack = users.filter(u => {
-            const lic = licenses.find(l => l.userId === u.id);
-            return lic?.status === SubscriptionStatus.CANCELED;
-        });
-
-        const upsellCandidates = users.filter(u => {
-             const lic = licenses.find(l => l.userId === u.id);
-             return lic?.status === SubscriptionStatus.ACTIVE && lic?.planTier === PlanTier.BUDGET;
-        });
-
-        const freeToPaid = users.filter(u => {
-            const lic = licenses.find(l => l.userId === u.id);
-            return lic?.planTier === PlanTier.FREE;
-        });
-
-        return { winBack, upsellCandidates, freeToPaid };
-    }, [users, licenses]);
-
-    const copyToClipboard = (users: User[]) => {
-        const emails = users.map(u => u.email).join(', ');
-        navigator.clipboard.writeText(emails);
-        alert(`Copied ${users.length} emails to clipboard.`);
-    };
 
     if (loading) return <div className="p-12 text-center text-gray-500">Loading insights...</div>;
 

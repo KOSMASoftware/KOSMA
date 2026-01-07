@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -19,27 +18,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// FIX: Route-basierte Erkennung (Stateless & Robust)
-// Wir prüfen NUR, ob wir auf der 'update-password' Route sind.
-// Wir verlassen uns NICHT auf Tokens (access_token), da Supabase diese oft bereinigt.
+// Helper: Route-basierte Erkennung für Recovery Flow
 const isRecoveryFlow = () => {
   if (typeof window === 'undefined') return false;
-
   const p = window.location.pathname;
   const hash = window.location.hash || '';
-
-  // 1. Sind wir auf dem Pfad /update-password?
-  const onUpdatePasswordPath = p === '/update-password' || p.endsWith('/update-password');
-
-  // 2. Hash-Check:
-  const hashRoute = hash.split('?')[0]; 
   
+  const onUpdatePasswordPath = p === '/update-password' || p.endsWith('/update-password');
+  
+  // Hash-Check um Deadlocks zu vermeiden
+  const hashRoute = hash.split('?')[0]; 
   const isSafeHash = 
     hashRoute === '' || 
     hashRoute === '#' || 
-    hashRoute === '#/' ||                 // FIX: Verhindert Deadlock bei leerem Hash-Router Root
-    hashRoute.startsWith('#/update-password') || // Explizit auch die Router-interne URL erlauben
-    !hashRoute.startsWith('#/');          // !startsWith('#/') fängt access_token=... ab
+    hashRoute === '#/' ||                 
+    hashRoute.startsWith('#/update-password') || 
+    !hashRoute.startsWith('#/');          
 
   return onUpdatePasswordPath && isSafeHash;
 };
@@ -47,12 +41,7 @@ const isRecoveryFlow = () => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // UI-Status: Zeigt an, ob wir visuell im Recovery Mode sind
-  const [isRecovering, setIsRecovering] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return isRecoveryFlow();
-  });
+  const [isRecovering, setIsRecovering] = useState(() => isRecoveryFlow());
   
   const userIdRef = useRef<string | null>(null);
 
@@ -79,6 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(newUser);
       userIdRef.current = newUser.id;
     } catch (err) {
+      // Fallback nur, wenn DB komplett streikt, User Session ist aber da
       const fallbackUser = constructUser(session.user, null);
       setUser(fallbackUser);
       userIdRef.current = fallbackUser.id;
@@ -88,19 +78,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    // 1. Initial Session Load
     const initSession = async () => {
-      // WICHTIG: Auf der Recovery-Seite NIEMALS getSession() aufrufen.
-      // Das führt zu einem Deadlock, da Supabase auf Token-Austausch wartet.
+      // REGEL 4.1: Kein getSession im Recovery Flow
       if (isRecoveryFlow()) {
-        console.log("Auth: Recovery Flow detected (Route based) - skipping session fetch.");
+        console.log("Auth: Recovery Flow detected - skipping session fetch.");
         setIsLoading(false);
         return;
       }
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
         if (session) {
           await fetchProfile(session);
         } else {
@@ -114,14 +101,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initSession();
 
-    // 2. Auth State Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth Event:", event);
       if (event === 'PASSWORD_RECOVERY') setIsRecovering(true);
       
       if (session) {
         if (userIdRef.current !== session.user.id || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          // Auch hier: Wenn wir noch auf der Recovery Seite sind, keine Profile laden.
           if (!isRecoveryFlow()) {
              await fetchProfile(session);
           }
@@ -140,12 +124,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
+    // REGEL 4.2: Login Flow
+    // 1. Auth mit Passwort
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
     if (error) throw error;
+    // 2. onAuthStateChange übernimmt das Laden des Profils und der Lizenzen
   };
 
   const signup = async (email: string, name: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    // REGEL 2.1: Signup Process
+    // 1. User anlegen
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { 
@@ -153,7 +142,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         emailRedirectTo: window.location.origin + '/#/dashboard'
       }
     });
+
     if (error) throw error;
+
+    // WICHTIG: Wenn Auto-Confirm in Supabase an ist, haben wir hier einen User.
+    // Wir legen SOFORT Profile & Lizenz an, um Regel 2.1 zu erfüllen (Trial ab Sekunde 0).
+    if (data.user) {
+        const userId = data.user.id;
+        
+        // 2. Profile erstellen (falls Trigger fehlt)
+        const { error: profileError } = await supabase.from('profiles').upsert({
+            id: userId,
+            full_name: name,
+            email: email,
+            role: 'customer'
+        });
+
+        if (!profileError) {
+            // 3. TRIAL LIZENZ ERSTELLEN (Source of Truth Logic)
+            const trialEnd = new Date();
+            trialEnd.setDate(trialEnd.getDate() + 14); // +14 Tage
+
+            // Wir prüfen erst, ob schon eine Lizenz existiert, um Duplikate zu vermeiden
+            const { data: existingLicense } = await supabase.from('licenses').select('id').eq('user_id', userId).single();
+            
+            if (!existingLicense) {
+                await supabase.from('licenses').insert({
+                    user_id: userId,
+                    product_name: 'KOSMA',
+                    plan_tier: 'Production', // Höchster Plan für Trial
+                    status: 'trial',
+                    billing_cycle: 'trial',
+                    valid_until: trialEnd.toISOString()
+                });
+            }
+        }
+    }
   };
 
   const resetPassword = async (email: string) => {
@@ -164,8 +188,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    // "Dummes" Update: Wir verlassen uns darauf, dass Supabase die Tokens 
-    // aus der URL (intern) nutzt. Kein getSession check vorher nötig.
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
   };
