@@ -76,28 +76,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // --- 1. BRIDGE MECHANISM (Fix A) ---
         // If we land on a clean path /update-password (likely from Supabase Redirect),
-        // we wait briefly for the SDK to parse tokens, then redirect into the HashRouter.
+        // we wait for the SDK to parse tokens, then redirect into the SPA HashRouter.
         if (p === '/update-password' || p.endsWith('/update-password')) {
-            await supabase.auth.getSession(); // Let SDK parse fragments
+            await supabase.auth.getSession(); // Trigger token detection from fragment
             setTimeout(() => {
+                // Redirect directly to SPA Root + Hash route
                 window.location.replace(window.location.origin + '/#/update-password');
-            }, 50); // Small tick to ensure session is registered
+            }, 50); // Small delay to ensure SDK registration
             return; 
         }
 
         // --- 2. DOUBLE-HASH KILLER FALLBACK ---
-        // Robust extraction from window.location.hash if tokens are stuck behind the router.
+        // Robust extraction from window.location.hash if tokens are hidden behind the router hash.
         const tokenIdx = h.indexOf("#access_token=");
         if (tokenIdx >= 0) {
           const frag = h.substring(tokenIdx + 1);
           const params = new URLSearchParams(frag);
           const at = params.get("access_token");
           const rt = params.get("refresh_token");
-          const type = params.get("type");
-
+          
           if (at && rt) {
             await supabase.auth.setSession({ access_token: at, refresh_token: rt });
-            if (type === 'recovery' || h.includes('type=recovery')) setIsRecovering(true);
+            if (h.includes("type=recovery")) setIsRecovering(true);
           }
         }
 
@@ -105,9 +105,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data: { session } } = await supabase.auth.getSession();
 
         // --- 4. ROBUSTER CLEANUP ---
-        // Only cleanup if we actually see an access_token in the hash. Becomes important
-        // because we don't want to lose the #/update-password part.
-        if (h.includes('access_token=')) {
+        // Only perform cleanup if the hash actually contains auth parameters.
+        // Prevents losing the SPA route (e.g. #/update-password).
+        if (h.includes("#access_token=")) {
           const baseHash = h.split("#access_token=")[0];
           const cleanUrl = window.location.origin + window.location.pathname + baseHash;
           window.history.replaceState({}, "", cleanUrl);
@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const resetPassword = async (email: string) => {
     // FIX A: Redirect to a clean path without a hash.
-    // Ensure "https://<your-domain>/update-password" is in Supabase Redirect Allow-list.
+    // User must add "https://<your-domain>/update-password" to the Supabase Allow-list.
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: window.location.origin + '/update-password',
     });
