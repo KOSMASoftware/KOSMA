@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Loader2, AlertTriangle, Check, ShieldCheck, ArrowLeft, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {
-  const { login, signup, resetPassword, updatePassword } = useAuth();
+  const { login, signup, resetPassword, updatePassword, isRecovering } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -18,6 +18,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
 
   const isResetRequest = searchParams.get('reset') === 'true';
 
+  // Debug check for session availability in update-password mode
+  useEffect(() => {
+    if (mode === 'update-password') {
+      console.log("AuthPage: Update Password Mode active. isRecovering:", isRecovering);
+    }
+  }, [mode, isRecovering]);
+
   const handleAction = async () => {
     if (loading) return;
     setError('');
@@ -26,13 +33,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
     try {
       if (mode === 'update-password') {
         await updatePassword(password);
+        console.log("Password update successful");
         navigate('/dashboard');
       } else if (isResetRequest) {
         await resetPassword(email);
         setStep('success');
       } else if (mode === 'login') {
         await login(email, password);
-        // Navigation will be handled by the AuthContext observer or manually if needed
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
@@ -43,6 +50,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         setStep('success');
       }
     } catch (err: any) {
+      console.error("Auth action error:", err);
       setError(err.message || "Ein Fehler ist aufgetreten.");
     } finally {
       setLoading(false);
@@ -82,6 +90,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         </div>
 
         <div className="space-y-5">
+          {error && (
+            <div className="p-4 bg-red-50 text-red-600 text-xs font-bold rounded-2xl border border-red-100 flex items-start gap-2 animate-in fade-in zoom-in-95">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {mode !== 'update-password' && (
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1 tracking-widest">E-Mail Adresse</label>
@@ -118,13 +133,6 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             {loading ? <Loader2 className="animate-spin w-5 h-5" /> : mode === 'update-password' ? <KeyRound className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
             {loading ? 'Verarbeite...' : mode === 'update-password' ? 'Passwort speichern' : isResetRequest ? 'Link senden' : 'Einloggen'}
           </button>
-
-          {error && (
-            <div className="p-4 bg-red-50 text-red-600 text-xs font-bold rounded-2xl border border-red-100 flex items-start gap-2 animate-in fade-in zoom-in-95">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
 
           {mode === 'login' && !isResetRequest && (
             <div className="text-center mt-6">

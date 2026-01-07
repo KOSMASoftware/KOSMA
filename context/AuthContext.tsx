@@ -24,8 +24,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
   
-  // Guard against double exchange in React StrictMode
-  const exchangedRef = useRef(false);
+  // Refs zur Vermeidung von Race Conditions und unnötigen Re-Runs
+  const didExchangeCodeRef = useRef(false);
+  const didSetSessionRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
     return {
@@ -46,13 +48,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', session.user.id)
         .single();
 
-      if (!error && data) {
-        setUser(constructUser(session.user, data));
-      } else {
-        setUser(constructUser(session.user, null));
-      }
+      const newUser = constructUser(session.user, error ? null : data);
+      setUser(newUser);
+      userIdRef.current = newUser.id;
     } catch (err) {
-      setUser(constructUser(session.user, null));
+      const fallbackUser = constructUser(session.user, null);
+      setUser(fallbackUser);
+      userIdRef.current = fallbackUser.id;
     } finally {
       setIsLoading(false);
     }
@@ -61,54 +63,62 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initSession = async () => {
       try {
-        // Robust extraction of params from both search query and hash (for HashRouter)
-        const getParamsFromUrl = () => {
-          const search = new URLSearchParams(window.location.search);
-          const hashQuery = window.location.hash.split("?")[1] ?? "";
-          const hashParams = new URLSearchParams(hashQuery);
-
-          const code = search.get("code") ?? hashParams.get("code");
-          const type = search.get("type") ?? hashParams.get("type");
-          const hasAccessToken = window.location.hash.includes("access_token=");
-
-          return { code, type, hasAccessToken };
-        };
-
-        const { code, type, hasAccessToken } = getParamsFromUrl();
+        const rawUrl = window.location.href;
         
-        // 1. Set recovery mode ONLY if type is recovery or it's an implicit flow token
-        // This prevents signup confirmations from triggering the recovery UI
-        const isRecovery = type === "recovery" || hasAccessToken;
-        if (isRecovery) {
-          setIsRecovering(true);
+        // 1. PKCE Check (?code=...)
+        const urlObj = new URL(rawUrl);
+        const code = urlObj.searchParams.get('code');
+        if (code && !didExchangeCodeRef.current) {
+          didExchangeCodeRef.current = true;
+          await supabase.auth.exchangeCodeForSession(code);
         }
 
-        // 2. Perform PKCE Code Exchange with Guard
-        if (code && !exchangedRef.current) {
-          exchangedRef.current = true;
-          console.log("PKCE Code detected, exchanging for session...");
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        // 2. Session Check (Auto-Detection von Supabase)
+        let { data: { session } } = await supabase.auth.getSession();
+
+        // 3. Manueller Fallback für Implicit Flow + HashRouter (#/route#access_token=...)
+        if (!session && rawUrl.includes('access_token=') && !didSetSessionRef.current) {
+          didSetSessionRef.current = true;
           
-          if (exchangeError) {
-            console.error("Code exchange failed:", exchangeError.message);
-          } else {
-            console.log("Code exchange successful!");
-            // Clean URL: Remove 'code' and other params but keep the hash for routing
-            const cleanUrl = window.location.origin + window.location.pathname + window.location.hash.split('?')[0];
-            window.history.replaceState({}, '', cleanUrl);
+          const tokenPart = rawUrl.substring(rawUrl.indexOf("access_token="));
+          const p = new URLSearchParams(tokenPart.replace(/#/g, '&').replace(/\?/g, '&'));
+          
+          const at = p.get('access_token');
+          const rt = p.get('refresh_token');
+          const type = p.get('type');
+
+          if (at && rt) {
+            const { data: manualData } = await supabase.auth.setSession({
+              access_token: at,
+              refresh_token: rt
+            });
+            session = manualData.session;
+            if (type === 'recovery') setIsRecovering(true);
           }
         }
 
-        // 3. Check for existing session
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        // 4. Recovery Marker setzen (auch bei Fehlern oder Timeouts)
+        if (rawUrl.includes('type=recovery') || rawUrl.includes('error_description=Password+recovery+token+expired')) {
+          setIsRecovering(true);
+        }
+
         if (session) {
           await fetchProfile(session);
+          
+          // 5. Robustes URL Cleanup
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete("code");
+          cleanUrl.searchParams.delete("type");
+          // Wichtig: Hash-Teil vor dem Token bewahren (für HashRouter)
+          if (cleanUrl.hash.includes("access_token=")) {
+             cleanUrl.hash = cleanUrl.hash.split("#access_token=")[0];
+          }
+          window.history.replaceState({}, '', cleanUrl.toString());
         } else {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error("Auth initialization failed:", error);
+        console.error("Auth: Init Error", error);
         setIsLoading(false);
       }
     };
@@ -116,29 +126,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Supabase Auth Event:", event);
-      
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsRecovering(true);
-      }
+      if (event === 'PASSWORD_RECOVERY') setIsRecovering(true);
       
       if (session) {
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'PASSWORD_RECOVERY') {
+        // Profil nur laden wenn nötig (neue ID oder wichtige Events)
+        if (userIdRef.current !== session.user.id || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await fetchProfile(session);
         }
       } else {
         if (event === 'SIGNED_OUT') {
           setUser(null);
+          userIdRef.current = null;
           setIsRecovering(false);
         }
         setIsLoading(false);
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    return () => subscription.unsubscribe();
+  }, []); // Dependency-Array LEER lassen für stabiles Init
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
@@ -166,14 +172,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updatePassword = async (password: string) => {
     const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error("Ihre Sitzung ist abgelaufen oder ungültig. Bitte verwenden Sie den Link aus der E-Mail erneut.");
-    }
-
+    if (!session) throw new Error("Keine gültige Sitzung gefunden. Bitte Link neu anfordern.");
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
-    
     setIsRecovering(false);
   };
 
@@ -184,6 +185,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    userIdRef.current = null;
     setIsRecovering(false);
   };
 
