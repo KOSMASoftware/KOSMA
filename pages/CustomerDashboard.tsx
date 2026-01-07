@@ -2,9 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { License, SubscriptionStatus, Invoice, PlanTier, User, Project, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, HelpCircle, FileText, Settings, Zap, CheckCircle as LucideCheckCircle, Briefcase, LayoutDashboard, Building } from 'lucide-react';
+import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, CheckCircle as LucideCheckCircle, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
+import { STRIPE_LINKS } from '../config/stripe';
 
 // --- SHARED COMPONENTS ---
 
@@ -62,26 +63,17 @@ const useCustomerData = (user: User) => {
         const fetchData = async (retryCount = 0) => {
             if (retryCount === 0) setLoading(true);
             try {
-                // REGEL 1: Supabase ist Source of Truth.
-                // DEBUG: Prüfe User ID
-                console.log("[Dashboard] Fetching for User:", user.id);
-
                 // 1. Licenses & Profile
                 const { data: licData, error: licError } = await supabase
                     .from('licenses')
                     .select('*')
                     .eq('user_id', user.id);
 
-                if (licError) {
-                    console.error("[Dashboard] License Fetch Error:", licError);
-                } else {
-                    console.log("[Dashboard] Raw Licenses from DB:", licData);
-                }
+                if (licError) console.error("License Fetch Error:", licError);
                 
-                // RETRY LOGIC: Falls Lizenzen leer sind (Trigger Latenz), kurz warten und nochmal versuchen
+                // RETRY LOGIC
                 if ((!licData || licData.length === 0) && retryCount < 3) {
-                     console.warn(`[Dashboard] License not found (Attempt ${retryCount+1}/3). Retrying...`);
-                     await new Promise(r => setTimeout(r, 600)); // 600ms warten
+                     await new Promise(r => setTimeout(r, 600)); 
                      return fetchData(retryCount + 1);
                 }
 
@@ -107,7 +99,6 @@ const useCustomerData = (user: User) => {
                         stripeSubscriptionId: l.stripe_subscription_id
                     }));
 
-                    // PRIORITÄTSSORTIERUNG: Active > Trial > Past Due > ...
                     const priority = {
                         [SubscriptionStatus.ACTIVE]: 1,
                         [SubscriptionStatus.TRIAL]: 2,
@@ -124,8 +115,6 @@ const useCustomerData = (user: User) => {
 
                     setLicenses(mappedLicenses);
                 } else {
-                    // Fallback (Regel 4.2): Wenn Lizenz nach Retries immer noch fehlt -> Free.
-                    console.warn("[Dashboard] No license found after retries. Falling back to FREE.");
                     setLicenses([{
                         id: 'temp', userId: user.id, productName: 'KOSMA', 
                         planTier: PlanTier.FREE, billingCycle: 'none', 
@@ -134,14 +123,13 @@ const useCustomerData = (user: User) => {
                     }]);
                 }
 
-                // 2. Invoices (Regel 7)
-                const { data: invData, error: invError } = await supabase
+                // 2. Invoices
+                const { data: invData } = await supabase
                     .from('invoices')
                     .select('*')
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false });
 
-                 if (invError) console.error("Invoice Fetch Error:", invError);
                  if (invData) {
                     setInvoices(invData.map((i: any) => ({
                         id: i.id,
@@ -178,7 +166,6 @@ const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, user
     const handleSave = async () => {
         setSaving(true);
         try {
-            // Regel 3: Nur existierende Spalten updaten.
             const { error } = await supabase
                 .from('profiles')
                 .update({ billing_address: address })
@@ -261,24 +248,238 @@ const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, user
     );
 };
 
+// Helper to determine Hierarchy: Free < Budget < Cost Control < Production
+const getTierLevel = (tier: PlanTier) => {
+    switch (tier) {
+        case PlanTier.FREE: return 0;
+        case PlanTier.BUDGET: return 1;
+        case PlanTier.COST_CONTROL: return 2;
+        case PlanTier.PRODUCTION: return 3;
+        default: return 0;
+    }
+};
+
+const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> = ({ currentTier, currentCycle }) => {
+    // FIX 1: Initialize State based on actual Cycle from DB
+    // Prevents "Always Yearly" bug
+    const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>(
+        (currentCycle === 'monthly' || currentCycle === 'yearly') ? currentCycle : 'yearly'
+    );
+
+    // Sync state if props change (e.g. after data load)
+    useEffect(() => {
+        if (currentCycle === 'monthly' || currentCycle === 'yearly') {
+            setBillingInterval(currentCycle);
+        }
+    }, [currentCycle]);
+
+    // FIX 2: Explicit Cycle handling
+    // We do NOT rely on state inside this function to avoid stale closures or race conditions
+    const handlePurchase = (planName: PlanTier, cycle: 'yearly' | 'monthly') => {
+        try {
+            const link = (STRIPE_LINKS as any)[planName]?.[cycle];
+            
+            if (!link) {
+                console.error(`Link missing for plan: ${planName}, cycle: ${cycle}`);
+                alert("Configuration Error: Payment link missing. Please contact support.");
+                return;
+            }
+
+            // FIX 3: Store Pending Purchase for robust return flow (if URL params missing)
+            sessionStorage.setItem('pending_purchase', JSON.stringify({ tier: planName, cycle: cycle }));
+
+            // HARD REDIRECT
+            console.log(`Redirecting to Stripe (${cycle}):`, link);
+            window.location.href = link;
+        } catch (e) {
+            console.error("Redirect failed:", e);
+            alert("Something went wrong initializing the checkout. Please try again.");
+        }
+    };
+
+    const handleDowngrade = () => {
+        alert("Dein Downgrade wird zum Ende deiner aktuellen Laufzeit wirksam. Bitte kontaktiere den Support, um dies einzurichten.");
+    };
+
+    const plans = [
+        {
+          name: PlanTier.BUDGET,
+          title: "Budget",
+          Icon: Calculator,
+          subtitle: "For production managers focused on budget creation.",
+          price: billingInterval === 'yearly' ? 390 : 39,
+          colorClass: "border-amber-500",
+          textClass: "text-amber-500",
+          btnClass: "border-amber-500 text-amber-600 bg-amber-50 hover:bg-amber-100",
+          save: billingInterval === 'yearly' ? 78 : null,
+          features: ["Budgeting Module", "Unlimited Projects", "Share Projects"]
+        },
+        {
+          name: PlanTier.COST_CONTROL,
+          title: "Cost Control",
+          Icon: BarChart3,
+          subtitle: "For production managers monitoring production costs.",
+          price: billingInterval === 'yearly' ? 590 : 59,
+          colorClass: "border-purple-600",
+          textClass: "text-purple-600",
+          btnClass: "border-purple-600 text-purple-700 bg-purple-50 hover:bg-purple-100",
+          save: billingInterval === 'yearly' ? 238 : null,
+          features: ["Budgeting Module", "Cost Control Module", "Share projects"]
+        },
+        {
+          name: PlanTier.PRODUCTION,
+          title: "Production",
+          Icon: Clapperboard,
+          subtitle: "For producers seeking full project control.",
+          price: billingInterval === 'yearly' ? 690 : 69,
+          colorClass: "border-green-600",
+          textClass: "text-green-600",
+          btnClass: "border-green-600 text-green-700 bg-green-50 hover:bg-green-100",
+          save: billingInterval === 'yearly' ? 378 : null,
+          features: ["All Modules Included", "Financing & Cashflow", "Full Control"]
+        }
+    ];
+
+    const currentLevel = getTierLevel(currentTier);
+
+    return (
+        <div className="mt-16 border-t border-gray-100 pt-12">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+                <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Change Subscription</h3>
+                    <p className="text-gray-500 mt-1">Upgrade or downgrade your license instantly.</p>
+                </div>
+                {/* TOGGLE: Updates local state to show correct prices */}
+                <div className="inline-flex bg-gray-100 rounded-full p-1">
+                    <button onClick={() => setBillingInterval('yearly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Yearly</button>
+                    <button onClick={() => setBillingInterval('monthly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Monthly</button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {plans.map((plan) => {
+                    const planLevel = getTierLevel(plan.name);
+                    
+                    // Logic Definition
+                    const isSameTier = plan.name === currentTier;
+                    const isSameCycle = billingInterval === currentCycle;
+                    
+                    // Case A: Active Plan (Same Tier + Same Cycle) -> DISABLED
+                    const isCurrentActive = isSameTier && isSameCycle;
+
+                    // Case B: Cycle Switch (Same Tier + Diff Cycle) -> PURCHASE (Stripe)
+                    const isCycleSwitch = isSameTier && !isSameCycle;
+
+                    // Case C: Upgrade (Higher Tier) -> PURCHASE (Stripe)
+                    const isUpgrade = planLevel > currentLevel;
+
+                    // Case D: Downgrade (Lower Tier) -> ALERT
+                    const isDowngrade = planLevel < currentLevel;
+                    
+                    // Button Label Logic
+                    let btnLabel = "Select";
+                    if (isCurrentActive) btnLabel = "Active Plan";
+                    else if (isCycleSwitch) btnLabel = `Switch to ${billingInterval === 'yearly' ? 'Yearly' : 'Monthly'}`;
+                    else if (isUpgrade) btnLabel = `Upgrade to ${plan.title}`;
+                    else if (isDowngrade) btnLabel = `Downgrade to ${plan.title}`;
+
+                    return (
+                        <div key={plan.name} className={`relative bg-white rounded-2xl shadow-sm border border-gray-100 border-t-[8px] ${plan.colorClass} p-8 flex flex-col text-center transform transition-all hover:shadow-xl`}>
+                            {isCurrentActive && (
+                                <div className="absolute top-0 right-0 bg-gray-900 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                                    CURRENT
+                                </div>
+                            )}
+                            
+                            <h4 className={`text-2xl font-bold ${plan.textClass} mb-4`}>{plan.title}</h4>
+                            
+                            <div className="flex justify-center mb-6">
+                                <plan.Icon className={`w-12 h-12 ${plan.textClass} opacity-90`} />
+                            </div>
+
+                            <div className="mb-2">
+                                <span className={`text-4xl font-bold ${plan.textClass}`}>{plan.price}€</span>
+                                <span className="text-sm text-gray-400">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
+                            </div>
+
+                            <div className="h-6 mb-8">
+                                {plan.save && (
+                                    <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded">
+                                        Save {plan.save}€ per year
+                                    </span>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    if (isDowngrade) handleDowngrade();
+                                    else handlePurchase(plan.name, billingInterval); // IMPORTANT: Pass the SELECTED cycle
+                                }}
+                                disabled={isCurrentActive}
+                                className={`w-full py-3 rounded-lg border-2 text-sm font-bold transition-all mb-8 ${
+                                    isCurrentActive
+                                    ? 'border-gray-100 text-gray-300 cursor-not-allowed' 
+                                    : isDowngrade
+                                        ? 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700' // Downgrade Grey
+                                        : `${plan.btnClass}` // Upgrade/Switch Colored
+                                }`}
+                            >
+                                {btnLabel}
+                            </button>
+
+                            <div className="border-t border-gray-100 pt-6 flex-1">
+                                <ul className="space-y-3 text-left text-sm text-gray-600">
+                                    {plan.features.map((f, i) => (
+                                        <li key={i} className="flex gap-3 items-start">
+                                            <Check className={`w-4 h-4 ${plan.textClass} shrink-0 mt-0.5`} /> 
+                                            <span className="leading-tight">{f}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+             <p className="text-center text-xs text-gray-400 mt-8">
+                All payments are processed securely via Stripe. You can cancel your subscription at any time.
+            </p>
+        </div>
+    );
+};
+
 const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user);
     const [searchParams, setSearchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
 
-    // Prioritätssortierung passiert bereits im Hook. [0] ist immer die relevanteste Lizenz.
     const activeLicense = licenses[0];
 
     useEffect(() => {
-        // REGEL 3.3: Webhook Simulation (SECURE PRODUCTION MODE)
-        // Jetzt rufen wir die Edge Function auf, anstatt in die DB zu schreiben.
+        // REGEL: Webhook Simulation (SECURE PRODUCTION MODE)
         const stripeSuccess = searchParams.get('stripe_success');
-        const tier = searchParams.get('tier') as PlanTier;
-        const cycle = searchParams.get('cycle') as 'monthly' | 'yearly';
+        const checkoutStatus = searchParams.get('checkout'); // Alternative check
+        const isSuccess = stripeSuccess === 'true' || checkoutStatus === 'success';
+
+        let tier = searchParams.get('tier') as PlanTier;
+        let cycle = searchParams.get('cycle') as 'monthly' | 'yearly';
         const rawProjectName = searchParams.get('project_name');
         
-        if (stripeSuccess === 'true' && tier) {
+        // RECOVERY FROM SESSION STORAGE (Falls Stripe keine Params liefert)
+        if (isSuccess && (!tier || !cycle)) {
+             try {
+                const stored = sessionStorage.getItem('pending_purchase');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    tier = parsed.tier;
+                    cycle = parsed.cycle;
+                    console.log("Recovered purchase info from session:", tier, cycle);
+                }
+             } catch(e) { console.error("Session recovery failed", e); }
+        }
+
+        if (isSuccess && tier) {
             const updateLicense = async () => {
                 setProcessing(true);
                 try {
@@ -287,11 +488,9 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         : (rawProjectName || 'New Production');
 
                     // AUFRUF DER SECURE EDGE FUNCTION
-                    // Da wir Client-Side Schreibrechte entfernt haben, muss das Backend (Service Role) das machen.
-                    // UPDATE: Funktion heißt jetzt 'dynamic-endpoint' (wie vom User deployed).
+                    // Rule: No userId in body. Authentication via JWT.
                     const { data, error } = await supabase.functions.invoke('dynamic-endpoint', {
                         body: {
-                            userId: user.id,
                             tier: tier,
                             cycle: cycle,
                             projectName: projectName
@@ -300,6 +499,8 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
 
                     if (error) throw error;
 
+                    // Clean up
+                    sessionStorage.removeItem('pending_purchase');
                     setSuccessMessage(true);
                     setSearchParams({}); // Clean URL
                     refresh(); // Reload Data from DB
@@ -368,17 +569,15 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                             </p>
                         )}
                     </div>
-                    <div className="flex flex-col gap-3 w-full md:w-auto">
-                         <Link to="/" className="px-6 py-2 bg-brand-500 text-white rounded-lg font-bold hover:bg-brand-600 transition-colors shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
-                            <Zap className="w-4 h-4" /> 
-                            {activeLicense?.status === SubscriptionStatus.TRIAL ? 'Buy Full License' : 'Upgrade Plan'}
-                         </Link>
-                         {activeLicense?.status === SubscriptionStatus.ACTIVE && (
-                             <button className="px-6 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
-                                Cancel Subscription
-                             </button>
-                         )}
-                    </div>
+                    
+                    {activeLicense?.status === SubscriptionStatus.ACTIVE && (
+                        <button 
+                             onClick={() => alert("Please contact support to cancel your subscription. It will remain active until the end of the billing period.")}
+                             className="px-6 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors"
+                        >
+                           Cancel Subscription
+                        </button>
+                    )}
                 </div>
 
                 {/* Billing Address Card */}
@@ -386,7 +585,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
             </div>
 
             {/* Invoices Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-12">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
                         <FileText className="w-5 h-5 text-gray-400" /> Invoice History
@@ -397,7 +596,6 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                             <tr>
                                 <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Project / Service</th>
                                 <th className="px-6 py-4">Amount</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Invoice</th>
@@ -407,7 +605,6 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                             {invoices.length > 0 ? invoices.map(inv => (
                                 <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 text-gray-600">{new Date(inv.date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 font-medium text-gray-900">{inv.projectName || 'General Subscription'}</td>
                                     <td className="px-6 py-4 font-bold">{inv.amount.toFixed(2)} {inv.currency}</td>
                                     <td className="px-6 py-4">
                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
@@ -422,7 +619,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
                                         No invoices found yet.
                                     </td>
                                 </tr>
@@ -431,11 +628,14 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     </table>
                 </div>
             </div>
+
+            {/* PRICING SELECTION (Integrated Here) */}
+            <PricingSection 
+                currentTier={activeLicense?.planTier || PlanTier.FREE} 
+                currentCycle={activeLicense?.billingCycle || 'none'}
+            />
             
-            <div className="mt-8 flex items-center gap-4 p-4 bg-blue-50 border border-blue-100 rounded-lg text-blue-800 text-sm">
-                <HelpCircle className="w-5 h-5" />
-                <p>Need a custom invoice or have billing questions? Contact our support at <a href="mailto:support@kosma.io" className="font-bold underline">support@kosma.io</a></p>
-            </div>
+            <div className="h-20"></div>
         </div>
     );
 };
@@ -475,7 +675,9 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
                     ) : (
                         <p className="text-sm text-gray-500">No active license.</p>
                     )}
-                    <Link to="/dashboard/subscription" className="mt-6 block text-center py-2 border border-gray-200 rounded font-bold text-sm hover:bg-gray-50">Manage</Link>
+                    <Link to="/dashboard/subscription" className="mt-6 block text-center py-2 bg-brand-500 text-white rounded font-bold text-sm hover:bg-brand-600 transition-colors">
+                        {activeLicense?.status === SubscriptionStatus.TRIAL ? 'Upgrade Now' : 'Manage Subscription'}
+                    </Link>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Invoices</h3>

@@ -113,3 +113,87 @@ Die Struktur wird automatisch durch `supabase/setup.sql` erstellt.
 *   `profiles`: Benutzerdaten
 *   `licenses`: Abonnement-Status
 *   `invoices`: Rechnungen
+
+---
+
+# 🧰 DEBUGGING TOOLS
+
+Um die komplette Konfiguration deiner Datenbank (Policies, RLS-Status, Trigger und Functions) auf einen Blick zu sehen, führe folgenden SQL-Code im Supabase SQL Editor aus. Das hilft extrem bei der Fehlersuche.
+
+```sql
+-- DUMP: Policies + RLS + Trigger + Functions (public + auth.users trigger)
+-- Copy/Paste in Supabase SQL Editor
+
+with p as (
+  select
+    'POLICY' as type,
+    n.nspname as schemaname,
+    c.relname as tablename,
+    pol.polname as name,
+    case pol.polcmd
+      when 'r' then 'SELECT'
+      when 'a' then 'INSERT'
+      when 'w' then 'UPDATE'
+      when 'd' then 'DELETE'
+      when '*' then 'ALL'
+      else pol.polcmd::text
+    end as cmd,
+    array(select rolname from pg_roles r where r.oid = any (pol.polroles)) as roles,
+    pg_get_expr(pol.polqual, pol.polrelid) as qual,
+    pg_get_expr(pol.polwithcheck, pol.polrelid) as with_check
+  from pg_policy pol
+  join pg_class c on c.oid = pol.polrelid
+  join pg_namespace n on n.oid = c.relnamespace
+),
+rls as (
+  select
+    'RLS' as type,
+    n.nspname as schemaname,
+    c.relname as tablename,
+    null::text as name,
+    null::text as cmd,
+    null::text[] as roles,
+    c.relrowsecurity::text as qual,
+    c.relforcerowsecurity::text as with_check
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where c.relkind in ('r','p') and n.nspname not in ('pg_catalog','information_schema')
+),
+trg as (
+  select
+    'TRIGGER' as type,
+    n.nspname as schemaname,
+    c.relname as tablename,
+    t.tgname as name,
+    null::text as cmd,
+    null::text[] as roles,
+    pg_get_triggerdef(t.oid, true) as qual,
+    null::text as with_check
+  from pg_trigger t
+  join pg_class c on c.oid = t.tgrelid
+  join pg_namespace n on n.oid = c.relnamespace
+  where not t.tgisinternal
+),
+fn as (
+  select
+    'FUNCTION' as type,
+    n.nspname as schemaname,
+    null::text as tablename,
+    p.proname as name,
+    null::text as cmd,
+    null::text[] as roles,
+    pg_get_functiondef(p.oid) as qual,
+    null::text as with_check
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname in ('public','auth')
+)
+select * from fn
+union all
+select * from p
+union all
+select * from rls
+union all
+select * from trg
+order by type, schemaname, tablename nulls first, name;
+```
