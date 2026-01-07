@@ -8,14 +8,20 @@ Ein SaaS-Prototyp für Filmproduktionsmanagement.
 
 # 🚀 WICHTIG: ERSTE SCHRITTE
 
-Um die Datenbank korrekt einzurichten und das System **sicher** zu machen, musst du zwei Dinge tun:
+Um die Datenbank korrekt einzurichten und das System **sicher** zu machen, musst du folgende Schritte durchführen:
 
-### 1. SQL ausführen
-1. Kopiere das korrigierte SQL-Skript (Fixed Syntax) aus dem Chat.
-2. Gehe zu deinem Supabase Projekt -> **SQL Editor**.
-3. Füge den Inhalt ein und klicke auf **RUN**.
+### 1. SQL Setup (Tabellen erstellen)
+1. Gehe zu deinem Supabase Projekt -> **SQL Editor**.
+2. Führe das `setup.sql` Skript aus (falls noch nicht geschehen), um Tabellen zu erstellen.
 
-### 2. Edge Function deployen
+### 2. RLS Infinite Recursion Fix (WICHTIG!)
+Wenn du 500er Fehler oder "infinite recursion" im Dashboard siehst:
+1. Öffne die Datei `supabase/fix_rls.sql` in diesem Projekt.
+2. Kopiere den **kompletten Inhalt**.
+3. Gehe zum Supabase **SQL Editor**, füge den Inhalt ein und klicke auf **RUN**.
+   *Dies behebt das Problem, dass sich Admin-Checks in einer Endlosschleife aufhängen.*
+
+### 3. Edge Function deployen
 Da wir client-seitige Schreibrechte entfernt haben (Security!), muss der Server Updates übernehmen. Edge Functions müssen via CLI deployed werden.
 
 **Voraussetzungen:**
@@ -38,11 +44,11 @@ Da wir client-seitige Schreibrechte entfernt haben (Security!), muss der Server 
     *(Gib dein Datenbank-Passwort ein, wenn gefragt).*
 
 3.  **Function Deployen:**
-    Wir deployen die Funktion `webhook-handler`.
+    Wir deployen die Funktion `dynamic-endpoint` (ehemals webhook-handler).
     ```bash
-    npx supabase functions deploy webhook-handler --no-verify-jwt
+    npx supabase functions deploy dynamic-endpoint --no-verify-jwt
     ```
-    *Hinweis: Das Flag `--no-verify-jwt` erlaubt den Aufruf auch ohne aktiven User-Token, was für Webhooks von Stripe wichtig wäre. In unserer Simulation rufen wir es aber MIT Token auf, das Flag schadet jedoch nicht.*
+    *Hinweis: Das Flag `--no-verify-jwt` erlaubt den Aufruf auch ohne aktiven User-Token. Da wir im Code aber jetzt JWT Validierung eingebaut haben, ist es sicherer, das Token vom Frontend mitzuschicken.*
 
 4.  **Secrets setzen (Optional):**
     Die Function benötigt `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`. Diese werden von Supabase automatisch injiziert.
@@ -91,7 +97,7 @@ Das Frontend darf niemals "raten" oder Status aus LocalStorage/Stripe ableiten.
 Stripe ist nur der Zahlungsabwickler. Statusänderungen (Kauf, Kündigung) gelangen ausschließlich über **Webhooks** in die Supabase-Datenbank. Das Frontend liest nur Supabase.
 
 **Security Update:**
-Das Frontend darf **NICHT** in die `licenses` oder `invoices` Tabellen schreiben. Dies geschieht ausschließlich über die Edge Function `webhook-handler` (simuliert) oder echte Stripe Webhooks.
+Das Frontend darf **NICHT** in die `licenses` oder `invoices` Tabellen schreiben. Dies geschieht ausschließlich über die Edge Function `dynamic-endpoint` (simuliert) oder echte Stripe Webhooks.
 
 ## 4. Auth & Recovery Flow
 Um Deadlocks ("Infinite Spinner") zu vermeiden:
