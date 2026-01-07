@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
@@ -35,6 +35,23 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
 };
 
 const App: React.FC = () => {
+  // RADIKALE LÖSUNG:
+  // Wir prüfen, ob wir auf dem Pfad /update-password sind (durch Supabase Redirect).
+  // Wenn ja, rendern wir die AuthPage direkt in einem BrowserRouter, damit die URL und der Hash (Token) 
+  // unangetastet bleiben und von Supabase verarbeitet werden können.
+  // KEIN REDIRECT, KEIN HASH-ROUTER FÜR DIESEN FALL.
+  const isUpdatePasswordPath = window.location.pathname === '/update-password' || window.location.pathname.endsWith('/update-password');
+
+  if (isUpdatePasswordPath) {
+    return (
+      <AuthProvider>
+        <BrowserRouter>
+           <AuthPage mode="update-password" />
+        </BrowserRouter>
+      </AuthProvider>
+    );
+  }
+
   return (
     <AuthProvider>
       <HashRouter>
@@ -43,6 +60,7 @@ const App: React.FC = () => {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/signup" element={<AuthPage mode="signup" />} />
+          {/* Fallback route within HashRouter just in case */}
           <Route path="/update-password" element={<AuthPage mode="update-password" />} />
 
           {/* Customer Routes */}

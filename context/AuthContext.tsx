@@ -23,15 +23,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Initial check for recovery state (prevents UI flicker)
+  // Einfache Erkennung des Recovery-Modus anhand der URL-Parameter/Hash
   const [isRecovering, setIsRecovering] = useState(() => {
     if (typeof window === 'undefined') return false;
     const h = window.location.hash;
     const s = window.location.search;
-    return h.includes('type=recovery') || s.includes('type=recovery') || h.includes('access_token=');
+    return h.includes('type=recovery') || s.includes('type=recovery');
   });
   
-  const didInitRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
@@ -66,53 +65,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    if (didInitRef.current) return;
-    didInitRef.current = true;
-
+    // 1. Initial Session Load
+    // Wir verlassen uns zu 100% auf Supabase, den Hash zu lesen.
     const initSession = async () => {
       try {
-        const h = window.location.hash;
-        const p = window.location.pathname;
-
-        // --- 1. BRIDGE MECHANISM (Fix A) ---
-        // If we land on a clean path /update-password (likely from Supabase Redirect),
-        // we wait for the SDK to parse tokens, then redirect into the SPA HashRouter.
-        if (p === '/update-password' || p.endsWith('/update-password')) {
-            await supabase.auth.getSession(); // Trigger token detection from fragment
-            setTimeout(() => {
-                // Redirect directly to SPA Root + Hash route
-                window.location.replace(window.location.origin + '/#/update-password');
-            }, 50); // Small delay to ensure SDK registration
-            return; 
-        }
-
-        // --- 2. DOUBLE-HASH KILLER FALLBACK ---
-        // Robust extraction from window.location.hash if tokens are hidden behind the router hash.
-        const tokenIdx = h.indexOf("#access_token=");
-        if (tokenIdx >= 0) {
-          const frag = h.substring(tokenIdx + 1);
-          const params = new URLSearchParams(frag);
-          const at = params.get("access_token");
-          const rt = params.get("refresh_token");
-          
-          if (at && rt) {
-            await supabase.auth.setSession({ access_token: at, refresh_token: rt });
-            if (h.includes("type=recovery")) setIsRecovering(true);
-          }
-        }
-
-        // --- 3. SESSION HOOK ---
         const { data: { session } } = await supabase.auth.getSession();
-
-        // --- 4. ROBUSTER CLEANUP ---
-        // Only perform cleanup if the hash actually contains auth parameters.
-        // Prevents losing the SPA route (e.g. #/update-password).
-        if (h.includes("#access_token=")) {
-          const baseHash = h.split("#access_token=")[0];
-          const cleanUrl = window.location.origin + window.location.pathname + baseHash;
-          window.history.replaceState({}, "", cleanUrl);
-        }
-
+        
         if (session) {
           await fetchProfile(session);
         } else {
@@ -126,6 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initSession();
 
+    // 2. Auth State Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth Event:", event);
       if (event === 'PASSWORD_RECOVERY') setIsRecovering(true);
@@ -165,8 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const resetPassword = async (email: string) => {
-    // FIX A: Redirect to a clean path without a hash.
-    // User must add "https://<your-domain>/update-password" to the Supabase Allow-list.
+    // Wir nutzen den sauberen Pfad /update-password für den Redirect
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: window.location.origin + '/update-password',
     });
@@ -174,8 +132,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
+    // Hier prüfen wir die Session, die Supabase aus dem URL-Hash wiederhergestellt hat
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Sitzung abgelaufen. Bitte fordere einen neuen Link an.");
+    if (!session) throw new Error("Keine aktive Sitzung gefunden. Der Link ist möglicherweise abgelaufen.");
     
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
