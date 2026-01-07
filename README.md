@@ -1,14 +1,58 @@
-
 # KOSMA - SaaS Production Management Prototype
 
 Ein SaaS-Prototyp für Filmproduktionsmanagement.
-**Aktuelle Domain:** `kosma.io`
+**Aktuelle Domain:** `kosma.io` (Deployment: `kosma-lake.vercel.app`)
 
 ---
 
-# 🚀 WICHTIG: INSTALLATION & SETUP
+# 🚨 INCIDENT REPORT: PASSWORT RESET "SUPER-GAU" (Feb 2024)
 
-Damit das System sicher und korrekt läuft, müssen diese Schritte in der angegebenen Reihenfolge durchgeführt werden.
+**Problem:** Der Passwort-Reset-Flow funktionierte lokal, aber nicht im Vercel-Deployment. Links aus Emails führten ins Leere oder Sessions wurden nicht übernommen.
+**Status:** Gelöst.
+
+### 1. Root Cause Analyse (Warum es nicht ging)
+
+Das Problem war NICHT "kosma.io vs. Vercel", sondern dass Reset-Link, Redirects, Routing und Session-Handling nicht sauber auf `kosma-lake.vercel.app` ausgerichtet waren.
+
+**A) Reset-Link Ziel (Routing Konflikt)**
+Der Reset-Link ging auf eine URL, die die App nicht korrekt verarbeitet hat.
+*   *Typisch:* Router (HashRouter) konnte die Route nicht direkt laden oder Vercel lieferte einen 404.
+*   *Ergebnis:* Seite lädt, aber Reset-Token wird "verschluckt" oder Seite bleibt weiß.
+
+**B) Supabase Auth Redirect URLs (Strict Security)**
+Wenn Redirect URLs in Supabase nicht exakt passen (auch nur ein fehlender Slash oder Wildcard `/*`), bricht der Flow ab.
+*   *Effekt:* Supabase schickt Link, Browser landet irgendwo, aber Supabase akzeptiert den Redirect nicht sauber -> Reset Flow bricht ab.
+
+**C) SPA-Routing auf Vercel (Fallback fehlt)**
+Beim Direktaufruf einer Route wie `/update-password` (aus der E-Mail) wusste Vercel nicht, was zu tun ist.
+*   *Problem:* Vercel sucht nach einer Datei `update-password.html`.
+*   *Lösung:* Vercel muss alles auf `index.html` routen (Rewrite).
+
+**D) Session Instabilität (Race Condition)**
+Wenn die Seite nach dem Redirect lädt, ist `supabase.auth.getSession()` oft noch leer (null).
+*   *Problem:* Der Code läuft sofort in einen Zustand "Kein User", bevor das Token aus der URL verarbeitet wurde.
+*   *Lösung:* Retry-Logik und Hybrid-Router.
+
+### 2. Die Lösung (The Fix)
+
+Wir haben das System an drei Stellen gehärtet:
+
+1.  **Supabase Konfiguration:**
+    *   Site URL: `https://kosma-lake.vercel.app`
+    *   Redirect URLs: `https://kosma-lake.vercel.app/*` (Wichtig: Wildcard!)
+2.  **Vercel Konfiguration (`vercel.json`):**
+    *   Explizite Rewrites, damit alle Pfade (auch `/update-password`) auf `index.html` geleitet werden.
+3.  **Frontend Logik (Hybrid Router):**
+    *   Wir nutzen eine Weiche in `App.tsx`:
+        *   Normaler Betrieb: `HashRouter` (/#/dashboard)
+        *   Recovery Flow: `BrowserRouter` (/update-password)
+    *   Wir erzwingen ein **Re-Mounting** des `AuthProvider` durch einen `key`-Prop Wechsel. Das garantiert, dass die Session frisch initialisiert wird.
+
+---
+
+# 🚀 INSTALLATION & SETUP (Schritt für Schritt)
+
+Damit das System sicher läuft, müssen diese Schritte in der angegebenen Reihenfolge durchgeführt werden.
 
 ### 1. SQL Basiseinrichtung
 1. Gehe zu deinem Supabase Projekt -> **SQL Editor**.
@@ -19,8 +63,7 @@ Damit die Edge Function Lizenzen aktualisieren kann, statt Duplikate zu erzeugen
 
 ```sql
 -- Sicherstellen, dass ein User nur EINE Lizenzzeile hat
-ALTER TABLE licenses
-ADD CONSTRAINT licenses_user_id_key UNIQUE (user_id);
+ALTER TABLE licenses ADD CONSTRAINT licenses_user_id_key UNIQUE (user_id);
 ```
 
 ### 3. RLS Fix (Infinite Recursion vermeiden)
@@ -58,15 +101,25 @@ Da unser Code die Authentifizierung (`Authorization: Bearer ...`) selbst prüft,
 
 ### 2. Stripe Integration & Race Conditions
 Der Ablauf bei einem Kauf:
-1.  Frontend leitet zu Stripe Payment Link weiter (`CustomerDashboard.tsx`).
+1.  Frontend leitet zu Stripe Payment Link weiter.
 2.  Stripe leitet zurück zur App (`/dashboard/subscription`).
-3.  **Challenge:** Durch den Hard-Redirect ist die Supabase-Session im Frontend oft noch nicht initialisiert, wenn die Seite lädt.
-4.  **Lösung:** Das Frontend implementiert eine **Retry-Logik**, die bis zu 3 Sekunden wartet, bis `supabase.auth.getSession()` ein valides Token liefert, bevor der Request an die Edge Function gesendet wird.
+3.  **Lösung:** Das Frontend wartet (Retry-Logik), bis `supabase.auth.getSession()` ein valides Token liefert, bevor der Request an die Edge Function gesendet wird.
 
-### 3. Lizenzmodell
-*   **Produkte:** Nur ein Hauptprodukt (`KOSMA`).
-*   **Tiers:** `Free`, `Budget`, `Cost Control`, `Production`.
-*   **Logik:** Ein User hat immer genau einen Eintrag in der `licenses` Tabelle. Bei Ablauf oder Kündigung wird der Status geändert, der Eintrag aber nicht gelöscht.
+---
+
+# 🔮 MIGRATION: KOSMA.EU (Checkliste)
+
+Wenn das Projekt später auf die echte Domain `kosma.eu` umzieht, muss exakt folgendes angepasst werden, sonst tritt der "Super-GAU" erneut auf:
+
+1.  **Supabase Auth Settings:**
+    *   Ändere "Site URL" auf `https://kosma.eu`.
+    *   Füge `https://kosma.eu/*` zu den Redirect URLs hinzu.
+2.  **Email Templates:**
+    *   In Supabase Auth Templates sicherstellen, dass Links `{{ .SiteURL }}/update-password` verwenden.
+3.  **Edge Function CORS:**
+    *   In `supabase/functions/webhook-handler/index.ts` muss `https://kosma.eu` und `https://www.kosma.eu` zur `allowedOrigins` Liste hinzugefügt werden.
+4.  **Vercel / DNS:**
+    *   Domain in Vercel aufschalten.
 
 ---
 
