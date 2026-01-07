@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
@@ -23,6 +23,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
+  
+  // Guard against double exchange in React StrictMode
+  const exchangedRef = useRef(false);
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
     return {
@@ -58,27 +61,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initSession = async () => {
       try {
-        const getCodeFromUrl = () => {
-          const searchParams = new URLSearchParams(window.location.search);
-          if (searchParams.get('code')) return searchParams.get('code');
+        // Robust extraction of params from both search query and hash (for HashRouter)
+        const getParamsFromUrl = () => {
+          const search = new URLSearchParams(window.location.search);
+          const hashQuery = window.location.hash.split("?")[1] ?? "";
+          const hashParams = new URLSearchParams(hashQuery);
 
-          const hashParts = window.location.hash.split('?');
-          if (hashParts.length > 1) {
-            const hashParams = new URLSearchParams(hashParts[1]);
-            if (hashParams.get('code')) return hashParams.get('code');
-          }
-          
-          if (window.location.hash.includes('access_token=')) return 'implicit';
-          return null;
+          const code = search.get("code") ?? hashParams.get("code");
+          const type = search.get("type") ?? hashParams.get("type");
+          const hasAccessToken = window.location.hash.includes("access_token=");
+
+          return { code, type, hasAccessToken };
         };
 
-        const code = getCodeFromUrl();
+        const { code, type, hasAccessToken } = getParamsFromUrl();
         
-        // Specifically check if this is a recovery (password reset) flow
-        const isRecoveryInUrl = window.location.href.includes('type=recovery') || 
-                               window.location.hash.includes('type=recovery');
+        // 1. Set recovery mode ONLY if type is recovery or it's an implicit flow token
+        // This prevents signup confirmations from triggering the recovery UI
+        const isRecovery = type === "recovery" || hasAccessToken;
+        if (isRecovery) {
+          setIsRecovering(true);
+        }
 
-        if (code && code !== 'implicit') {
+        // 2. Perform PKCE Code Exchange with Guard
+        if (code && !exchangedRef.current) {
+          exchangedRef.current = true;
           console.log("PKCE Code detected, exchanging for session...");
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           
@@ -86,20 +93,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error("Code exchange failed:", exchangeError.message);
           } else {
             console.log("Code exchange successful!");
-            if (isRecoveryInUrl) setIsRecovering(true);
-            
-            // Clean URL: Remove 'code' but keep the hash for routing
+            // Clean URL: Remove 'code' and other params but keep the hash for routing
             const cleanUrl = window.location.origin + window.location.pathname + window.location.hash.split('?')[0];
             window.history.replaceState({}, '', cleanUrl);
           }
         }
 
+        // 3. Check for existing session
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (isRecoveryInUrl) {
-          setIsRecovering(true);
-        }
-
         if (session) {
           await fetchProfile(session);
         } else {
