@@ -58,28 +58,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initSession = async () => {
       try {
-        // Robust detection of PKCE 'code' in URL
-        // HashRouter often causes the code to be placed differently
         const getCodeFromUrl = () => {
-          // 1. Try standard search params (?code=...)
           const searchParams = new URLSearchParams(window.location.search);
           if (searchParams.get('code')) return searchParams.get('code');
 
-          // 2. Try fragments in hash (/#/path?code=...)
           const hashParts = window.location.hash.split('?');
           if (hashParts.length > 1) {
             const hashParams = new URLSearchParams(hashParts[1]);
             if (hashParams.get('code')) return hashParams.get('code');
           }
           
-          // 3. Try legacy fragment format (#access_token=...)
           if (window.location.hash.includes('access_token=')) return 'implicit';
-          
           return null;
         };
 
         const code = getCodeFromUrl();
         
+        // Specifically check if this is a recovery (password reset) flow
+        const isRecoveryInUrl = window.location.href.includes('type=recovery') || 
+                               window.location.hash.includes('type=recovery');
+
         if (code && code !== 'implicit') {
           console.log("PKCE Code detected, exchanging for session...");
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -88,21 +86,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error("Code exchange failed:", exchangeError.message);
           } else {
             console.log("Code exchange successful!");
-            // Clean URL: Remove 'code' and other params from the address bar
+            if (isRecoveryInUrl) setIsRecovering(true);
+            
+            // Clean URL: Remove 'code' but keep the hash for routing
             const cleanUrl = window.location.origin + window.location.pathname + window.location.hash.split('?')[0];
             window.history.replaceState({}, '', cleanUrl);
           }
         }
 
-        // Get the session (either from storage or freshly exchanged)
         const { data: { session } } = await supabase.auth.getSession();
         
-        // Detect recovery mode
-        const isRecovery = window.location.href.includes('type=recovery') || 
-                          window.location.hash.includes('type=recovery') ||
-                          code !== null;
-
-        if (isRecovery) {
+        if (isRecoveryInUrl) {
           setIsRecovering(true);
         }
 
@@ -169,12 +163,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    // SECURITY: Ensure session exists before updating
-    // This addresses the "Auth session missing" error
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      throw new Error("Ihre Sitzung ist abgelaufen oder ungültig. Bitte fordern Sie einen neuen Link an.");
+      throw new Error("Ihre Sitzung ist abgelaufen oder ungültig. Bitte verwenden Sie den Link aus der E-Mail erneut.");
     }
 
     const { error } = await supabase.auth.updateUser({ password });
