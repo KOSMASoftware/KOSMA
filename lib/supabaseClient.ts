@@ -14,7 +14,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    // Empfehlung: Auf true lassen, damit Supabase Standard-Flows erkennt.
     detectSessionInUrl: true, 
   },
   realtime: {
@@ -23,6 +22,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     },
   },
 });
+
+// Zum Debugging in der Konsole verfügbar machen
+if (typeof window !== 'undefined') {
+    (window as any).supabase = supabase;
+}
 
 export const isSupabaseConfigured = () => {
     return SUPABASE_URL.includes('supabase.co') && SUPABASE_ANON_KEY.length > 20;

@@ -22,11 +22,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRecovering, setIsRecovering] = useState(false);
   
-  // Refs zur Vermeidung von Race Conditions und unnötigen Re-Runs
-  const didExchangeCodeRef = useRef(false);
-  const didSetSessionRef = useRef(false);
+  // Sofortige Prüfung beim Instanziieren (verhindert UI-Glitch)
+  const [isRecovering, setIsRecovering] = useState(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    return hash.includes('type=recovery') || search.includes('type=recovery') || hash.includes('access_token=');
+  });
+  
+  const didInitRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
@@ -61,25 +65,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+
     const initSession = async () => {
       try {
         const rawUrl = window.location.href;
         
-        // 1. PKCE Check (?code=...)
+        // 1. PKCE Flow (?code=...)
         const urlObj = new URL(rawUrl);
         const code = urlObj.searchParams.get('code');
-        if (code && !didExchangeCodeRef.current) {
-          didExchangeCodeRef.current = true;
+        if (code) {
           await supabase.auth.exchangeCodeForSession(code);
         }
 
-        // 2. Session Check (Auto-Detection von Supabase)
+        // 2. Session holen (Supabase Auto-Detect)
         let { data: { session } } = await supabase.auth.getSession();
 
-        // 3. Manueller Fallback für Implicit Flow + HashRouter (#/route#access_token=...)
-        if (!session && rawUrl.includes('access_token=') && !didSetSessionRef.current) {
-          didSetSessionRef.current = true;
-          
+        // 3. Manueller Fallback für HashRouter (#/route#access_token=...)
+        if (!session && rawUrl.includes('access_token=')) {
           const tokenPart = rawUrl.substring(rawUrl.indexOf("access_token="));
           const p = new URLSearchParams(tokenPart.replace(/#/g, '&').replace(/\?/g, '&'));
           
@@ -97,23 +101,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         }
 
-        // 4. Recovery Marker setzen (auch bei Fehlern oder Timeouts)
-        if (rawUrl.includes('type=recovery') || rawUrl.includes('error_description=Password+recovery+token+expired')) {
-          setIsRecovering(true);
-        }
-
         if (session) {
           await fetchProfile(session);
           
-          // 5. Robustes URL Cleanup
-          const cleanUrl = new URL(window.location.href);
-          cleanUrl.searchParams.delete("code");
-          cleanUrl.searchParams.delete("type");
-          // Wichtig: Hash-Teil vor dem Token bewahren (für HashRouter)
-          if (cleanUrl.hash.includes("access_token=")) {
-             cleanUrl.hash = cleanUrl.hash.split("#access_token=")[0];
+          // 4. Intelligenter URL Cleanup für HashRouter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("code");
+          url.searchParams.delete("type");
+          url.searchParams.delete("redirect_to");
+          // Behält #/update-password bei, löscht aber #access_token=...
+          if (url.hash.includes("#access_token=")) {
+            url.hash = url.hash.split("#access_token=")[0];
           }
-          window.history.replaceState({}, '', cleanUrl.toString());
+          window.history.replaceState({}, '', url.toString());
         } else {
           setIsLoading(false);
         }
@@ -126,10 +126,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth Event:", event);
       if (event === 'PASSWORD_RECOVERY') setIsRecovering(true);
       
       if (session) {
-        // Profil nur laden wenn nötig (neue ID oder wichtige Events)
         if (userIdRef.current !== session.user.id || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           await fetchProfile(session);
         }
@@ -144,7 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => subscription.unsubscribe();
-  }, []); // Dependency-Array LEER lassen für stabiles Init
+  }, []);
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
@@ -171,8 +171,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
+    // Sicherstellen, dass wir eine Session haben
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Keine gültige Sitzung gefunden. Bitte Link neu anfordern.");
+    if (!session) throw new Error("Deine Sitzung ist abgelaufen. Bitte fordere einen neuen Passwort-Link an.");
+    
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
     setIsRecovering(false);
