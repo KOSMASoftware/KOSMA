@@ -387,9 +387,8 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                     // Logic Definition
                     const isSameTier = plan.name === currentTier;
                     
-                    // Use Normalized Cycle for logic: Only true if actual cycle matches selected cycle AND isn't 'none'
-                    // Fix: Explicitly cast normalizedCurrentCycle to string to avoid "no overlap" error with 'none' in union
-                    const isSameCycle = normalizedCurrentCycle !== 'none' && billingInterval === (normalizedCurrentCycle as string);
+                    // CLEANER LOGIC: avoid type overlap errors by checking for 'none' first
+                    const isSameCycle = normalizedCurrentCycle !== 'none' ? billingInterval === normalizedCurrentCycle : false;
                     
                     // Case A: Active Plan (Same Tier + Same Cycle + Valid Cycle) -> DISABLED
                     const isCurrentActive = normalizedCurrentCycle !== 'none' && isSameTier && isSameCycle;
@@ -478,7 +477,7 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
 
 const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user);
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
 
@@ -520,15 +519,16 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                 try {
                     // FIX: Race Condition Handling & Explicit Auth Token
                     // 1. Wait for session to be ready (Retry Logic)
-                    let token = (await supabase.auth.getSession()).data.session?.access_token;
+                    let sessionData = await supabase.auth.getSession();
+                    let token = sessionData.data.session?.access_token;
                     
                     if (!token) {
                         console.log("Session not ready immediately after redirect. Retrying...");
                         for (let i = 0; i < 5; i++) {
-                            await new Promise(r => setTimeout(r, 500)); // Wait 500ms
-                            const { data } = await supabase.auth.getSession();
-                            if (data.session?.access_token) {
-                                token = data.session.access_token;
+                            await new Promise(r => setTimeout(r, 600)); // Wait 600ms
+                            sessionData = await supabase.auth.getSession();
+                            if (sessionData.data.session?.access_token) {
+                                token = sessionData.data.session.access_token;
                                 break;
                             }
                         }
@@ -537,6 +537,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     if (!token) {
                         console.error("No access token found after retries. User might need to login again.");
                         alert("Session expired. Please log in again to activate your license.");
+                        setProcessing(false);
                         return;
                     }
 

@@ -21,7 +21,7 @@ function cors(origin: string | null) {
     "Access-Control-Allow-Origin": o,
     "Vary": "Origin",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, hx-request, hx-current-url",
   };
 }
 
