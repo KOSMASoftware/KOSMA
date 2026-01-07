@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -425,7 +424,7 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                             </div>
 
                             <div className="mb-2">
-                                <span className={`text-4xl font-bold ${plan.textClass}`}>{plan.price}€</span>
+                                <span className={`text-4xl font-bold ${plan.textClass}`}>{plan.price} €</span>
                                 <span className="text-sm text-gray-400">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
                             </div>
 
@@ -477,7 +476,7 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
 
 const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user);
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
 
@@ -547,6 +546,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
 
                     // AUFRUF DER SECURE EDGE FUNCTION
                     // Rule: Explicitly pass Authorization header to avoid 401
+                    // CHANGE: Reverted to 'dynamic-endpoint' to match manual dashboard setup
                     const { data, error } = await supabase.functions.invoke('dynamic-endpoint', {
                         body: {
                             tier: tier,
