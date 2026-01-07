@@ -58,17 +58,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initSession = async () => {
       try {
+        // Fix for HashRouter: Supabase sometimes struggles with tokens inside the hash.
+        // If we see access_token or code in the URL, we let Supabase handle the exchange.
         const { data: { session } } = await supabase.auth.getSession();
+        
+        // Manual check for recovery mode in URL (Safari/HashRouter safe)
+        const isRecovery = window.location.href.includes('type=recovery') || 
+                          window.location.hash.includes('access_token=') ||
+                          window.location.search.includes('code=');
+
+        if (isRecovery) {
+          setIsRecovering(true);
+        }
+
         if (session) {
-          // Check if the current URL suggests recovery even if event didn't fire yet
-          if (window.location.href.includes('type=recovery') || window.location.href.includes('access_token=')) {
-            setIsRecovering(true);
-          }
           await fetchProfile(session);
         } else {
           setIsLoading(false);
         }
       } catch (error) {
+        console.error("Auth init error:", error);
         setIsLoading(false);
       }
     };
@@ -76,6 +85,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth Event:", event);
+      
       if (event === 'PASSWORD_RECOVERY') {
         setIsRecovering(true);
       }
@@ -99,7 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
     if (error) throw error;
   };
 
@@ -107,13 +118,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } }
+      options: { 
+        data: { full_name: name },
+        emailRedirectTo: window.location.origin + '/#/dashboard'
+      }
     });
     if (error) throw error;
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: window.location.origin + '/#/update-password',
     });
     if (error) throw error;
