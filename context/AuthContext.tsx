@@ -138,7 +138,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
-    setIsRecovering(false);
+    
+    // WICHTIG: Wir setzen isRecovering NICHT manuell auf false.
+    // Das verursacht Deadlocks durch Re-Renderings während der Promise-Auflösung.
+    // Der Status klärt sich von selbst beim nächsten Navigieren oder Logout.
   };
 
   const resendVerification = async (email: string) => {
