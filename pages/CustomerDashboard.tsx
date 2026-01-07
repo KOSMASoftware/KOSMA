@@ -59,8 +59,8 @@ const useCustomerData = (user: User) => {
     const refresh = () => setRefreshTrigger(prev => prev + 1);
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
+        const fetchData = async (retryCount = 0) => {
+            if (retryCount === 0) setLoading(true);
             try {
                 // REGEL 1: Supabase ist Source of Truth.
                 // DEBUG: Prüfe User ID
@@ -76,6 +76,13 @@ const useCustomerData = (user: User) => {
                     console.error("[Dashboard] License Fetch Error:", licError);
                 } else {
                     console.log("[Dashboard] Raw Licenses from DB:", licData);
+                }
+                
+                // RETRY LOGIC: Falls Lizenzen leer sind (Trigger Latenz), kurz warten und nochmal versuchen
+                if ((!licData || licData.length === 0) && retryCount < 3) {
+                     console.warn(`[Dashboard] License not found (Attempt ${retryCount+1}/3). Retrying...`);
+                     await new Promise(r => setTimeout(r, 600)); // 600ms warten
+                     return fetchData(retryCount + 1);
                 }
 
                 const { data: profileData } = await supabase
@@ -117,8 +124,8 @@ const useCustomerData = (user: User) => {
 
                     setLicenses(mappedLicenses);
                 } else {
-                    // Fallback (Regel 4.2): Wenn Lizenz fehlt -> Free.
-                    console.warn("[Dashboard] No license found. Falling back to FREE.");
+                    // Fallback (Regel 4.2): Wenn Lizenz nach Retries immer noch fehlt -> Free.
+                    console.warn("[Dashboard] No license found after retries. Falling back to FREE.");
                     setLicenses([{
                         id: 'temp', userId: user.id, productName: 'KOSMA', 
                         planTier: PlanTier.FREE, billingCycle: 'none', 
@@ -264,8 +271,8 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const activeLicense = licenses[0];
 
     useEffect(() => {
-        // REGEL 3.3: Webhook Simulation (Prototype only)
-        // In Production macht das ein Backend-Webhook.
+        // REGEL 3.3: Webhook Simulation (SECURE PRODUCTION MODE)
+        // Jetzt rufen wir die Edge Function auf, anstatt in die DB zu schreiben.
         const stripeSuccess = searchParams.get('stripe_success');
         const tier = searchParams.get('tier') as PlanTier;
         const cycle = searchParams.get('cycle') as 'monthly' | 'yearly';
@@ -279,42 +286,26 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         ? `Project (Session ${rawProjectName.substring(8, 14)})` 
                         : (rawProjectName || 'New Production');
 
-                    const validUntil = new Date();
-                    if (cycle === 'yearly') validUntil.setFullYear(validUntil.getFullYear() + 1);
-                    else validUntil.setMonth(validUntil.getMonth() + 1);
-
-                    // 1. Lizenz Update (Source of Truth)
-                    await supabase
-                        .from('licenses')
-                        .upsert({
-                            user_id: user.id,
-                            plan_tier: tier, // Enum!
-                            status: SubscriptionStatus.ACTIVE, // Enum!
-                            billing_cycle: cycle,
-                            valid_until: validUntil.toISOString(),
-                            product_name: 'KOSMA',
-                            billing_project_name: projectName,
-                            license_key: `KOS-${tier.substring(0,3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`
-                        }, { onConflict: 'user_id' });
-
-                    // 2. Invoice Erstellung (Source of Truth)
-                    let amount = 0;
-                    if (tier === PlanTier.BUDGET) amount = cycle === 'yearly' ? 390 : 39;
-                    if (tier === PlanTier.COST_CONTROL) amount = cycle === 'yearly' ? 590 : 59;
-                    if (tier === PlanTier.PRODUCTION) amount = cycle === 'yearly' ? 690 : 69;
-
-                    await supabase.from('invoices').insert({
-                        user_id: user.id,
-                        amount: amount,
-                        status: 'paid',
-                        project_name: projectName
+                    // AUFRUF DER SECURE EDGE FUNCTION
+                    // Da wir Client-Side Schreibrechte entfernt haben, muss das Backend (Service Role) das machen.
+                    // UPDATE: Funktion heißt jetzt 'dynamic-endpoint' (wie vom User deployed).
+                    const { data, error } = await supabase.functions.invoke('dynamic-endpoint', {
+                        body: {
+                            userId: user.id,
+                            tier: tier,
+                            cycle: cycle,
+                            projectName: projectName
+                        }
                     });
+
+                    if (error) throw error;
 
                     setSuccessMessage(true);
                     setSearchParams({}); // Clean URL
                     refresh(); // Reload Data from DB
                 } catch (err) {
-                    console.error("Success handling failed:", err);
+                    console.error("Success handling failed via Edge Function:", err);
+                    alert("Activation failed. Please contact support if your payment was processed.");
                 } finally {
                     setProcessing(false);
                 }

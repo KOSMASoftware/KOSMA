@@ -57,13 +57,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   };
 
-  const fetchProfile = async (session: Session) => {
+  // FETCH PROFILE mit Retry-Logik (falls der DB Trigger eine Sekunde braucht)
+  const fetchProfile = async (session: Session, retryCount = 0) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, role, stripe_customer_id')
         .eq('id', session.user.id)
         .single();
+
+      // Wenn kein Profil da ist (Trigger Delay), versuchen wir es kurz noch einmal
+      if ((error || !data) && retryCount < 3) {
+          console.log(`Auth: Profile missing (Trigger latency?). Retry ${retryCount + 1}/3...`);
+          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms warten
+          return fetchProfile(session, retryCount + 1);
+      }
 
       const newUser = constructUser(session.user, error ? null : data);
       setUser(newUser);
@@ -135,7 +143,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signup = async (email: string, name: string, password: string) => {
     // REGEL 2.1: Signup Process (Trigger based)
     // Wir erstellen nur den User. Der Postgres-Trigger übernimmt Profil- und Lizenzerstellung automatisch.
-    // Client-side Inserts wurden entfernt, um RLS-Probleme und Race Conditions zu vermeiden.
     const { error } = await supabase.auth.signUp({
       email,
       password,
