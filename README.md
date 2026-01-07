@@ -4,8 +4,7 @@ KOSMA ist ein SaaS-Prototyp für Film- und Produktionsmanagement mit rollenbasie
 
 **Aktueller Betrieb:**
 *   **Deployment:** `https://kosma-lake.vercel.app`
-*   **Produktiv-Domain (geplant):** `kosma.eu`
-*   **Frühere Platzhalter:** `kosma.io` (nicht produktiv relevant)
+*   **Produktiv-Domain (geplant):** `kosma.io`
 
 ---
 
@@ -355,13 +354,13 @@ Auth-Flows dürfen niemals implizit sein. Alles muss dokumentiert und reproduzie
 
 ---
 
-# 10. MIGRATION CHECKLISTE (KOSMA.EU)
+# 10. MIGRATION CHECKLISTE (KOSMA.IO)
 
 Wenn eine einzige dieser Stellen vergessen wird, bricht der Auth-Flow.
 
 ### Supabase
-*   [ ] **Site URL:** Ändern auf `https://kosma.eu`.
-*   [ ] **Redirect URLs:** `https://kosma.eu/*` hinzufügen.
+*   [ ] **Site URL:** Ändern auf `https://kosma.io`.
+*   [ ] **Redirect URLs:** `https://kosma.io/*` hinzufügen.
 *   [ ] **E-Mail Templates:** Prüfen, ob Links hardcodiert sind (`{{ .SiteURL }}/update-password`).
 
 ### Frontend
@@ -369,7 +368,7 @@ Wenn eine einzige dieser Stellen vergessen wird, bricht der Auth-Flow.
 *   [ ] Router-Weiche (`App.tsx`) beibehalten.
 
 ### Edge Function
-*   [ ] **CORS Origins:** `https://kosma.eu` und `https://www.kosma.eu` in `index.ts` hinzufügen und neu deployen.
+*   [ ] **CORS Origins:** `https://kosma.io` und `https://www.kosma.io` in `index.ts` hinzufügen und neu deployen.
 
 ### Vercel
 *   [ ] Domain aufschalten.
