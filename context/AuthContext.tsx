@@ -19,23 +19,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// FIX 1: Schutzklausel für Recovery-Seite
-// Auf /update-password darf getSession() NICHT aufgerufen werden, da es im Recovery-Flow blockiert/timeoutet.
-const isRecoveryPage = typeof window !== 'undefined' && (
-  window.location.pathname === '/update-password' || 
-  window.location.pathname.endsWith('/update-password')
-);
+// FIX: Route-basierte Erkennung (Stateless & Robust)
+// Wir prüfen NUR, ob wir auf der 'update-password' Route sind.
+// Wir verlassen uns NICHT auf Tokens (access_token), da Supabase diese oft bereinigt.
+const isRecoveryFlow = () => {
+  if (typeof window === 'undefined') return false;
+
+  const p = window.location.pathname;
+  const hash = window.location.hash || '';
+
+  // 1. Sind wir auf dem Pfad /update-password?
+  const onUpdatePasswordPath = p === '/update-password' || p.endsWith('/update-password');
+
+  // 2. Hash-Check:
+  const hashRoute = hash.split('?')[0]; 
+  
+  const isSafeHash = 
+    hashRoute === '' || 
+    hashRoute === '#' || 
+    hashRoute === '#/' ||                 // FIX: Verhindert Deadlock bei leerem Hash-Router Root
+    hashRoute.startsWith('#/update-password') || // Explizit auch die Router-interne URL erlauben
+    !hashRoute.startsWith('#/');          // !startsWith('#/') fängt access_token=... ab
+
+  return onUpdatePasswordPath && isSafeHash;
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Einfache Erkennung des Recovery-Modus anhand der URL-Parameter/Hash
+  // UI-Status: Zeigt an, ob wir visuell im Recovery Mode sind
   const [isRecovering, setIsRecovering] = useState(() => {
     if (typeof window === 'undefined') return false;
-    const h = window.location.hash;
-    const s = window.location.search;
-    return h.includes('type=recovery') || s.includes('type=recovery');
+    return isRecoveryFlow();
   });
   
   const userIdRef = useRef<string | null>(null);
@@ -74,8 +90,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // 1. Initial Session Load
     const initSession = async () => {
-      // FIX 2: getSession komplett überspringen auf der Recovery-Seite
-      if (isRecoveryPage) {
+      // WICHTIG: Auf der Recovery-Seite NIEMALS getSession() aufrufen.
+      // Das führt zu einem Deadlock, da Supabase auf Token-Austausch wartet.
+      if (isRecoveryFlow()) {
+        console.log("Auth: Recovery Flow detected (Route based) - skipping session fetch.");
         setIsLoading(false);
         return;
       }
@@ -103,9 +121,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (session) {
         if (userIdRef.current !== session.user.id || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          // Auf der Recovery Page vermeiden wir auch hier komplexe Logik wenn möglich, 
-          // aber das Event System von Supabase ist getrennt von getSession() calls.
-          if (!isRecoveryPage) {
+          // Auch hier: Wenn wir noch auf der Recovery Seite sind, keine Profile laden.
+          if (!isRecoveryFlow()) {
              await fetchProfile(session);
           }
         }
@@ -147,10 +164,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updatePassword = async (password: string) => {
-    // FIX 3: updatePassword ist jetzt "dumm" und statusfrei.
-    // Kein getSession() Check (da wir uns auf den internen Supabase Client State verlassen).
-    // Kein manuelles setIsRecovering(false).
-    
+    // "Dummes" Update: Wir verlassen uns darauf, dass Supabase die Tokens 
+    // aus der URL (intern) nutzt. Kein getSession check vorher nötig.
     const { error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
   };

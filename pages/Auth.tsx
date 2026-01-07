@@ -87,7 +87,16 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           </p>
           
           <button 
-            onClick={() => { setStep('form'); navigate('/login'); }} 
+            onClick={() => { 
+              if (mode === 'update-password') {
+                // HARD REDIRECT: Wichtig, um den /update-password Pfad komplett zu verlassen
+                // und sicherzustellen, dass AuthContext nicht mehr denkt, wir wären im Recovery Flow.
+                window.location.replace('/#/login');
+              } else {
+                setStep('form'); 
+                navigate('/login'); 
+              }
+            }} 
             className="text-brand-500 font-bold hover:underline"
           >
             {mode === 'update-password' ? 'Zum Login' : 'Zurück zum Login'}
