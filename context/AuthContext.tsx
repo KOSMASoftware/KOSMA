@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { User, UserRole } from '../types';
+import { User, UserRole, PlanTier, SubscriptionStatus } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
@@ -132,9 +133,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signup = async (email: string, name: string, password: string) => {
-    // REGEL 2.1: Signup Process
-    // 1. User anlegen
-    const { data, error } = await supabase.auth.signUp({
+    // REGEL 2.1: Signup Process (Trigger based)
+    // Wir erstellen nur den User. Der Postgres-Trigger übernimmt Profil- und Lizenzerstellung automatisch.
+    // Client-side Inserts wurden entfernt, um RLS-Probleme und Race Conditions zu vermeiden.
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: { 
@@ -144,40 +146,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     if (error) throw error;
-
-    // WICHTIG: Wenn Auto-Confirm in Supabase an ist, haben wir hier einen User.
-    // Wir legen SOFORT Profile & Lizenz an, um Regel 2.1 zu erfüllen (Trial ab Sekunde 0).
-    if (data.user) {
-        const userId = data.user.id;
-        
-        // 2. Profile erstellen (falls Trigger fehlt)
-        const { error: profileError } = await supabase.from('profiles').upsert({
-            id: userId,
-            full_name: name,
-            email: email,
-            role: 'customer'
-        });
-
-        if (!profileError) {
-            // 3. TRIAL LIZENZ ERSTELLEN (Source of Truth Logic)
-            const trialEnd = new Date();
-            trialEnd.setDate(trialEnd.getDate() + 14); // +14 Tage
-
-            // Wir prüfen erst, ob schon eine Lizenz existiert, um Duplikate zu vermeiden
-            const { data: existingLicense } = await supabase.from('licenses').select('id').eq('user_id', userId).single();
-            
-            if (!existingLicense) {
-                await supabase.from('licenses').insert({
-                    user_id: userId,
-                    product_name: 'KOSMA',
-                    plan_tier: 'Production', // Höchster Plan für Trial
-                    status: 'trial',
-                    billing_cycle: 'trial',
-                    valid_until: trialEnd.toISOString()
-                });
-            }
-        }
-    }
   };
 
   const resetPassword = async (email: string) => {

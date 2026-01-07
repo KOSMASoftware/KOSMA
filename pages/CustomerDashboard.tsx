@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -62,7 +63,8 @@ const useCustomerData = (user: User) => {
             setLoading(true);
             try {
                 // REGEL 1: Supabase ist Source of Truth.
-                // Wir laden Lizenzen und Profil direkt.
+                // DEBUG: Prüfe User ID
+                console.log("[Dashboard] Fetching for User:", user.id);
 
                 // 1. Licenses & Profile
                 const { data: licData, error: licError } = await supabase
@@ -70,17 +72,22 @@ const useCustomerData = (user: User) => {
                     .select('*')
                     .eq('user_id', user.id);
 
+                if (licError) {
+                    console.error("[Dashboard] License Fetch Error:", licError);
+                } else {
+                    console.log("[Dashboard] Raw Licenses from DB:", licData);
+                }
+
                 const { data: profileData } = await supabase
                     .from('profiles')
                     .select('billing_address')
                     .eq('id', user.id)
                     .single();
 
-                if (licError) console.error("License Fetch Error:", licError);
                 if (profileData?.billing_address) setBillingAddress(profileData.billing_address);
 
                 if (licData && licData.length > 0) {
-                     setLicenses(licData.map((l: any) => ({
+                     const mappedLicenses = licData.map((l: any) => ({
                         id: l.id,
                         userId: l.user_id,
                         productName: l.product_name,
@@ -91,9 +98,27 @@ const useCustomerData = (user: User) => {
                         licenseKey: l.license_key,
                         billingProjectName: l.billing_project_name,
                         stripeSubscriptionId: l.stripe_subscription_id
-                    })));
+                    }));
+
+                    // PRIORITÄTSSORTIERUNG: Active > Trial > Past Due > ...
+                    const priority = {
+                        [SubscriptionStatus.ACTIVE]: 1,
+                        [SubscriptionStatus.TRIAL]: 2,
+                        [SubscriptionStatus.PAST_DUE]: 3,
+                        [SubscriptionStatus.CANCELED]: 4,
+                        [SubscriptionStatus.NONE]: 5
+                    };
+
+                    mappedLicenses.sort((a, b) => {
+                        const pA = priority[a.status] || 99;
+                        const pB = priority[b.status] || 99;
+                        return pA - pB;
+                    });
+
+                    setLicenses(mappedLicenses);
                 } else {
                     // Fallback (Regel 4.2): Wenn Lizenz fehlt -> Free.
+                    console.warn("[Dashboard] No license found. Falling back to FREE.");
                     setLicenses([{
                         id: 'temp', userId: user.id, productName: 'KOSMA', 
                         planTier: PlanTier.FREE, billingCycle: 'none', 
@@ -235,15 +260,12 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
 
-    // Finde die wichtigste Lizenz (Active > Trial > Free)
-    const activeLicense = licenses.find(l => l.status === SubscriptionStatus.ACTIVE) 
-                       || licenses.find(l => l.status === SubscriptionStatus.TRIAL)
-                       || licenses[0];
+    // Prioritätssortierung passiert bereits im Hook. [0] ist immer die relevanteste Lizenz.
+    const activeLicense = licenses[0];
 
     useEffect(() => {
         // REGEL 3.3: Webhook Simulation (Prototype only)
         // In Production macht das ein Backend-Webhook.
-        // Hier simulieren wir den DB-Write, wenn der User von Stripe zurückkommt.
         const stripeSuccess = searchParams.get('stripe_success');
         const tier = searchParams.get('tier') as PlanTier;
         const cycle = searchParams.get('cycle') as 'monthly' | 'yearly';
@@ -266,8 +288,8 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         .from('licenses')
                         .upsert({
                             user_id: user.id,
-                            plan_tier: tier,
-                            status: 'active',
+                            plan_tier: tier, // Enum!
+                            status: SubscriptionStatus.ACTIVE, // Enum!
                             billing_cycle: cycle,
                             valid_until: validUntil.toISOString(),
                             product_name: 'KOSMA',
@@ -329,13 +351,13 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Active Plan</h2>
                         <div className="flex items-baseline gap-2">
                             <span className="text-4xl font-black text-gray-900">{activeLicense?.planTier || 'Free'}</span>
-                            {activeLicense?.status === 'active' && (
+                            {activeLicense?.status === SubscriptionStatus.ACTIVE && (
                                 <span className="text-sm text-gray-500">{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
                             )}
                         </div>
                         <div className="mt-3">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${
-                                activeLicense?.status === 'active' ? 'bg-green-100 text-green-800' :
+                                activeLicense?.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-800' :
                                 activeLicense?.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-800' :
                                 'bg-gray-100 text-gray-800'
                             }`}>
@@ -360,7 +382,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                             <Zap className="w-4 h-4" /> 
                             {activeLicense?.status === SubscriptionStatus.TRIAL ? 'Buy Full License' : 'Upgrade Plan'}
                          </Link>
-                         {activeLicense?.status === 'active' && (
+                         {activeLicense?.status === SubscriptionStatus.ACTIVE && (
                              <button className="px-6 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
                                 Cancel Subscription
                              </button>
@@ -431,10 +453,8 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
     const { loading, licenses, invoices } = useCustomerData(user);
     if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
     
-    // Prioritize showing Active or Trial licenses
-    const activeLicense = licenses.find(l => l.status === SubscriptionStatus.ACTIVE) 
-                       || licenses.find(l => l.status === SubscriptionStatus.TRIAL)
-                       || licenses[0];
+    // Sortierung ist im Hook erledigt.
+    const activeLicense = licenses[0];
 
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
