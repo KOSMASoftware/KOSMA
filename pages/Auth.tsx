@@ -32,35 +32,37 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
 
     try {
       if (mode === 'update-password') {
-        // ANWEISUNG UMGESETZT: Explizites State-Handling in korrekter Reihenfolge
         await updatePassword(password);
-        setLoading(false); // Muss VOR setStep kommen
         setStep('success');
         return;
       } 
       
       if (isResetRequest) {
         await resetPassword(email);
-        setLoading(false);
         setStep('success');
-      } else if (mode === 'login') {
+        return;
+      } 
+      
+      if (mode === 'login') {
         await login(email, password);
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-          setLoading(false);
           navigate(profile?.role === 'admin' ? '/admin' : '/dashboard');
-        } else {
-          setLoading(false);
         }
-      } else if (mode === 'signup') {
+        return;
+      } 
+      
+      if (mode === 'signup') {
         await signup(email, 'Joachim Knaf', password);
-        setLoading(false);
         setStep('success');
+        return;
       }
     } catch (err: any) {
       console.error("Auth action error:", err);
       setError(err.message || "Ein Fehler ist aufgetreten.");
+    } finally {
+      // WICHTIG: Dies läuft immer, auch wenn oben 'return' aufgerufen wurde.
       setLoading(false);
     }
   };
