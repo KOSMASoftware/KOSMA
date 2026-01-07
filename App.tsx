@@ -44,7 +44,8 @@ const App: React.FC = () => {
 
   if (isUpdatePasswordPath) {
     return (
-      <AuthProvider>
+      // FIX: 'key' zwingt React, den AuthProvider neu zu mounten, wenn wir in diesen Modus wechseln.
+      <AuthProvider key="auth-recovery">
         <BrowserRouter>
            <AuthPage mode="update-password" />
         </BrowserRouter>
@@ -53,7 +54,9 @@ const App: React.FC = () => {
   }
 
   return (
-    <AuthProvider>
+    // FIX: 'key' zwingt React, den AuthProvider neu zu mounten, wenn wir zurück in den normalen Modus kommen.
+    // Dadurch wird 'initSession' (useEffect) erneut ausgeführt und der Login funktioniert sofort.
+    <AuthProvider key="auth-normal">
       <HashRouter>
         <Routes>
           {/* Public Routes */}
