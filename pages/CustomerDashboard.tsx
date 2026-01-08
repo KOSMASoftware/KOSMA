@@ -499,8 +499,24 @@ const SubscriptionView: React.FC<{
         const isSuccess = stripeSuccess === 'true' || checkoutStatus === 'success';
 
         if (isSuccess) {
+            // CALL DYNAMIC ENDPOINT (webhook-handler) for Immediate Sync
+            const triggerSync = async () => {
+                const stored = sessionStorage.getItem('pending_purchase');
+                if (stored) {
+                    try {
+                        const { tier, cycle } = JSON.parse(stored);
+                        // Using 'dynamic-endpoint' as specified by the mapping rules
+                        await supabase.functions.invoke('dynamic-endpoint', {
+                            body: { tier, cycle }
+                        });
+                        console.log("Immediate Sync requested via dynamic-endpoint");
+                    } catch (e) { console.error("Sync trigger failed", e); }
+                    sessionStorage.removeItem('pending_purchase');
+                }
+            };
+            triggerSync();
+
             setIsPolling(true);
-            // Clear URL params
             setSearchParams({});
         }
     }, [searchParams, setSearchParams]);
@@ -521,7 +537,6 @@ const SubscriptionView: React.FC<{
 
             if (data?.status === 'active') {
                 setIsPolling(false);
-                sessionStorage.removeItem('pending_purchase');
             }
         }, 2000); // Check every 2 seconds
 

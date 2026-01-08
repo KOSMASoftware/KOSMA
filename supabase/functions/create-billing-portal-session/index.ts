@@ -14,7 +14,6 @@ const allowedOrigins = new Set([
 ]);
 
 function cors(origin: string | null) {
-  // STRICTER: Fallback to official domain, never 'null'
   const o = origin && allowedOrigins.has(origin) ? origin : "https://kosma.io";
   return {
     "Access-Control-Allow-Origin": o,
@@ -31,21 +30,23 @@ serve(async (req) => {
   }
 
   try {
-    // 1. AUTH CHECK (USER CONTEXT)
+    // ENV VARS
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); 
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+
+    if (!supabaseUrl || !anonKey || !serviceKey || !stripeKey) {
+         throw new Error("Missing one or more required environment variables.");
+    }
+
+    // 1. AUTH CHECK
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
         return new Response(JSON.stringify({ error: "Missing auth token" }), { status: 401, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
     }
     const token = authHeader.replace("Bearer ", "");
     
-    // ENV VARS
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!; // REQUIRED FOR RLS BYPASS
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
-
-    if (!stripeKey) throw new Error("Missing STRIPE_SECRET_KEY");
-
     // VALIDATE USER JWT
     const supabaseAuth = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } });
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
@@ -55,7 +56,6 @@ serve(async (req) => {
     }
 
     // 2. GET CUSTOMER ID (USE SERVICE ROLE & CORRECT TABLE)
-    // We use Service Role to guarantee read access to the licenses table, regardless of strict RLS policies
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
     
     const { data: license, error: licError } = await supabaseAdmin
@@ -65,7 +65,6 @@ serve(async (req) => {
         .single();
 
     if (licError || !license?.stripe_customer_id) {
-         // This happens if the user has no license or sync failed
          return new Response(JSON.stringify({ error: "No active billing account found." }), { status: 404, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
     }
 
@@ -85,7 +84,6 @@ serve(async (req) => {
     }
 
     // 4. CREATE STRIPE PORTAL SESSION
-    // FIX: API Version 2023-08-16
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
     
     const session = await stripe.billingPortal.sessions.create({

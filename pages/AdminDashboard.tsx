@@ -1,11 +1,12 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
-import { Routes, Route, useNavigate, useSearchParams, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useSearchParams, Link, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -397,30 +398,33 @@ const UsersManagement: React.FC = () => {
 
           if (licError) throw licError;
 
-          // 2. CREATE AUDIT LOG
-          const { error: auditError } = await supabase.from('audit_logs').insert({
-              actor_user_id: adminUser?.id,
-              actor_email: adminUser?.email,
-              action: 'ADMIN_OVERRIDE',
-              target_user_id: selectedUser.id,
-              details: {
-                  days_added: days,
-                  new_valid_until: isoDate,
-                  reason: overrideReason,
-                  previous_valid_until: selectedUserLicense.validUntil
-              }
-          });
+          // 2. CREATE AUDIT LOG (With Error Handling for RLS)
+          try {
+             const { error: auditError } = await supabase.from('audit_logs').insert({
+                  actor_user_id: adminUser?.id,
+                  actor_email: adminUser?.email,
+                  action: 'ADMIN_OVERRIDE',
+                  target_user_id: selectedUser.id,
+                  details: {
+                      days_added: days,
+                      new_valid_until: isoDate,
+                      reason: overrideReason,
+                      previous_valid_until: selectedUserLicense.validUntil
+                  }
+             });
+             if (auditError) throw auditError;
+          } catch (auditErr: any) {
+             console.warn("Audit Log entry failed due to DB policies (RLS). License was updated regardless.", auditErr);
+          }
 
-          if (auditError) console.error("Audit Log failed", auditError);
-
-          alert(`Override applied. New access valid until: ${newDate.toLocaleDateString()}`);
+          alert(`Override applied successfully.\nNew access valid until: ${newDate.toLocaleDateString()}`);
           setOverrideReason(''); // Reset
           setManualAdjustment(0);
           refreshData(); 
           closeDetails();
-      } catch (err) {
+      } catch (err: any) {
           console.error("Extension failed", err);
-          alert("Failed to extend license.");
+          alert(`Failed to extend license: ${err.message}`);
       } finally {
           setModifying(false);
       }
@@ -754,265 +758,188 @@ const UsersManagement: React.FC = () => {
     </div>
   );
 };
-// ... rest of the file (SystemHealth, MarketingInsights, Main Component) stays the same
-const SystemHealth: React.FC = () => {
-    const [statuses, setStatuses] = useState<SystemCheckResult[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
-    const runChecks = async () => {
-        setLoading(true);
-        setStatuses([]); 
-        
-        const results = await Promise.all([
-            liveSystemService.checkDatabaseConnection(),
-            liveSystemService.checkAuthService(),
-            liveSystemService.checkStripe(),
-            liveSystemService.checkEmail(),
-            liveSystemService.checkRealtime()
-        ]);
-
-        setStatuses(results);
-        setLastChecked(new Date());
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        runChecks();
-    }, []);
-
-    const overallStatus = statuses.every(s => s.status === 'operational') ? 'operational' : statuses.some(s => s.status === 'down') ? 'down' : 'degraded';
-
-    return (
-        <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
-            <AdminTabs />
-            <div className="flex justify-between items-end mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">System Health</h1>
-                    <p className="text-gray-500">Live monitoring of system components and external APIs.</p>
-                </div>
-                <button 
-                    onClick={runChecks} 
-                    disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh Checks
-                </button>
-            </div>
-
-            {/* Overall Status Banner */}
-            <div className={`p-6 rounded-xl border flex items-center gap-6 ${
-                overallStatus === 'operational' ? 'bg-green-50 border-green-200' : 
-                overallStatus === 'down' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'
-            }`}>
-                 <div className={`p-4 rounded-full ${
-                     overallStatus === 'operational' ? 'bg-green-100 text-green-600' : 
-                     overallStatus === 'down' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'
-                 }`}>
-                     <Activity className="w-8 h-8" />
-                 </div>
-                 <div>
-                     <h2 className={`text-xl font-bold ${
-                         overallStatus === 'operational' ? 'text-green-900' : 
-                         overallStatus === 'down' ? 'text-red-900' : 'text-yellow-900'
-                     }`}>
-                         {overallStatus === 'operational' ? 'All Systems Operational' : overallStatus === 'down' ? 'System Critical' : 'Partially Degraded'}
-                     </h2>
-                     <p className="text-sm opacity-80 mt-1">
-                         Last checked: {lastChecked ? lastChecked.toLocaleTimeString() : 'Never'}
-                     </p>
-                 </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-                {statuses.map((status, idx) => (
-                    <div key={idx} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm flex items-start justify-between">
-                        <div className="flex items-start gap-4">
-                            <div className={`mt-1 p-2 rounded-lg ${
-                                status.status === 'operational' ? 'bg-green-50 text-green-600' : 
-                                status.status === 'configuring' ? 'bg-blue-50 text-blue-600' :
-                                'bg-red-50 text-red-600'
-                            }`}>
-                                {status.service.includes('DB') ? <Database className="w-5 h-5"/> : 
-                                 status.service.includes('Stripe') ? <CreditCard className="w-5 h-5"/> :
-                                 status.service.includes('Auth') ? <Lock className="w-5 h-5"/> :
-                                 <Server className="w-5 h-5"/>}
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-gray-900">{status.service}</h3>
-                                {status.message && <p className="text-sm text-gray-500 font-medium">{status.message}</p>}
-                                {status.details && (
-                                    <div className="mt-2 text-xs bg-gray-50 p-2 rounded border border-gray-100 text-gray-600 font-mono whitespace-pre-wrap">
-                                        {status.details}
-                                    </div>
-                                )}
-                                {status.actionLink && (
-                                    <a href={status.actionLink} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-brand-600 hover:underline">
-                                        Open Supabase Settings <ExternalLink className="w-3 h-3"/>
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                        <div className="text-right">
-                             <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                                status.status === 'operational' ? 'bg-green-100 text-green-800' : 
-                                status.status === 'configuring' ? 'bg-blue-100 text-blue-800' :
-                                'bg-red-100 text-red-800'
-                            }`}>
-                                {status.status.toUpperCase()}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-2 flex items-center justify-end gap-1">
-                                <Clock className="w-3 h-3" /> {status.latency}ms
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
+// --- VIEW 3: MARKETING INSIGHTS (Placeholder/Charts) ---
 const MarketingInsights: React.FC = () => {
-    const { loading, users, licenses } = useAdminData();
-
-    // 1. Growth Data
-    const growthData = useMemo(() => {
-        const monthCounts: Record<string, number> = {};
-        users.forEach(u => {
-            const date = new Date(u.registeredAt);
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            monthCounts[key] = (monthCounts[key] || 0) + 1;
-        });
-
-        const sortedKeys = Object.keys(monthCounts).sort();
-        let cumulative = 0;
-        return sortedKeys.map(key => {
-            cumulative += monthCounts[key];
-            return {
-                name: key,
-                newUsers: monthCounts[key],
-                totalUsers: cumulative
-            };
-        });
-    }, [users]);
-
-    // 2. Metrics
-    const metrics = useMemo(() => {
-        const total = users.length || 1;
-        const active = licenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length;
-        const churned = licenses.filter(l => l.status === SubscriptionStatus.CANCELED).length;
-        
-        let totalRevenue = 0;
+    const { licenses } = useAdminData();
+    
+    // Calculate Plan Distribution
+    const planData = useMemo(() => {
+        const counts: Record<string, number> = { [PlanTier.FREE]: 0, [PlanTier.BUDGET]: 0, [PlanTier.COST_CONTROL]: 0, [PlanTier.PRODUCTION]: 0 };
         licenses.forEach(l => {
-             if (l.status === SubscriptionStatus.ACTIVE) {
-                 if (l.planTier === PlanTier.BUDGET) totalRevenue += 39; 
-                 if (l.planTier === PlanTier.COST_CONTROL) totalRevenue += 59;
-                 if (l.planTier === PlanTier.PRODUCTION) totalRevenue += 69;
+             if (l.status === SubscriptionStatus.ACTIVE || l.status === SubscriptionStatus.TRIAL) {
+                 if (counts[l.planTier] !== undefined) counts[l.planTier]++;
              }
         });
-        const arpu = active > 0 ? (totalRevenue / active).toFixed(2) : "0.00";
-
-        return {
-            churnRate: ((churned / total) * 100).toFixed(1),
-            conversionRate: ((active / total) * 100).toFixed(1),
-            arpu: arpu
-        };
-    }, [users, licenses]);
-
-    if (loading) return <div className="p-12 text-center text-gray-500">Loading insights...</div>;
+        return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    }, [licenses]);
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
             <AdminTabs />
-            
-            <header className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Marketing Insights</h1>
-                    <p className="text-gray-500">Growth trends and actionable customer segments.</p>
-                </div>
-                <div className="text-right">
-                    <div className="text-sm font-medium text-gray-500">Estimated Monthly Revenue</div>
-                    <div className="text-2xl font-bold text-gray-900">~€{(parseFloat(metrics.arpu) * parseInt(metrics.conversionRate) / 100 * users.length).toFixed(0)}</div>
-                </div>
-            </header>
-
-            {/* Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-blue-50 text-brand-600 rounded">
-                            <TrendingUp className="w-5 h-5" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-500">Avg. Revenue / User</span>
-                    </div>
-                    <div className="text-3xl font-bold text-gray-900">€{metrics.arpu}</div>
-                    <p className="text-xs text-green-600 flex items-center mt-2">
-                        <ArrowUpRight className="w-3 h-3 mr-1" /> Based on active plans
-                    </p>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-green-50 text-green-600 rounded">
-                            <Target className="w-5 h-5" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-500">Conversion Rate</span>
-                    </div>
-                    <div className="text-3xl font-bold text-gray-900">{metrics.conversionRate}%</div>
-                    <p className="text-xs text-gray-400 mt-2">
-                        Active Users / Total Signups
-                    </p>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-orange-50 text-orange-600 rounded">
-                            <UserX className="w-5 h-5" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-500">Churn Rate</span>
-                    </div>
-                    <div className="text-3xl font-bold text-gray-900">{metrics.churnRate}%</div>
-                    <p className="text-xs text-orange-600 mt-2">
-                        Canceled subscriptions
-                    </p>
-                </div>
+            <div className="mb-10">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Marketing Insights</h1>
+                <p className="text-gray-500">Analysis of subscription tiers and growth.</p>
             </div>
 
-            {/* Growth Chart */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">User Acquisition Growth</h3>
-                <div className="h-72 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0093D0" stopOpacity={0.2}/>
-                                    <stop offset="95%" stopColor="#0093D0" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                            <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickMargin={10} />
-                            <YAxis stroke="#9CA3AF" fontSize={12} />
-                            <Tooltip 
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Area type="monotone" dataKey="totalUsers" stroke="#0093D0" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
-                        </AreaChart>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Plan Distribution Chart */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-[400px]">
+                    <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <PieChart className="w-5 h-5 text-gray-400" /> Active Plan Distribution
+                    </h3>
+                    <ResponsiveContainer width="100%" height="80%">
+                        <PieChart>
+                            <Pie
+                                data={planData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={100}
+                                paddingAngle={5}
+                                dataKey="value"
+                            >
+                                {planData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={TIER_COLORS[entry.name as PlanTier] || '#000'} />
+                                ))}
+                            </Pie>
+                            <RechartsTooltip />
+                            <Legend />
+                        </PieChart>
                     </ResponsiveContainer>
+                </div>
+
+                {/* Growth Placeholder */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-center text-center">
+                    <div>
+                         <BarChart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                         <h3 className="font-bold text-gray-900">Revenue Growth</h3>
+                         <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">
+                             Historical data tracking will be available in the next release once enough data points are collected.
+                         </p>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-export const AdminDashboard: React.FC = () => {
+// --- VIEW 4: SYSTEM HEALTH ---
+const SystemHealthView: React.FC = () => {
+  const [statuses, setStatuses] = useState<SystemCheckResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const checkSystem = async () => {
+    setLoading(true);
+    setStatuses([]);
+    
+    // Run checks parallel
+    const checks = [
+       liveSystemService.checkDatabaseConnection(),
+       liveSystemService.checkAuthService(),
+       liveSystemService.checkRealtime(),
+       liveSystemService.checkStripe(),
+       liveSystemService.checkEmail()
+    ];
+
+    const results = await Promise.all(checks);
+    setStatuses(results);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    checkSystem();
+  }, []);
+
   return (
-    <Routes>
-      <Route index element={<DashboardOverview />} />
-      <Route path="users" element={<UsersManagement />} />
-      <Route path="marketing" element={<MarketingInsights />} />
-      <Route path="system" element={<SystemHealth />} />
-    </Routes>
+    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
+      <AdminTabs />
+      <div className="mb-10 flex justify-between items-end">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">System Health</h1>
+            <p className="text-gray-500">Live connectivity checks to external services.</p>
+          </div>
+          <button 
+            onClick={checkSystem}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors"
+          >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Re-Run Checks
+          </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+          {loading && statuses.length === 0 && (
+              <div className="p-12 text-center text-gray-400">Running system diagnostics...</div>
+          )}
+          
+          {statuses.map((status, idx) => (
+              <div key={idx} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center">
+                  <div className={`p-4 rounded-full shrink-0 ${
+                      status.status === 'operational' ? 'bg-green-100 text-green-600' :
+                      status.status === 'degraded' ? 'bg-orange-100 text-orange-600' :
+                      status.status === 'configuring' ? 'bg-blue-100 text-blue-600' :
+                      status.status === 'deployment-needed' ? 'bg-purple-100 text-purple-600' :
+                      'bg-red-100 text-red-600'
+                  }`}>
+                      {status.status === 'operational' ? <CheckCircle className="w-6 h-6" /> : 
+                       status.status === 'configuring' ? <Monitor className="w-6 h-6" /> :
+                       <AlertTriangle className="w-6 h-6" />}
+                  </div>
+                  
+                  <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                          <h3 className="font-bold text-lg text-gray-900">{status.service}</h3>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                status.status === 'operational' ? 'bg-green-100 text-green-800' :
+                                status.status === 'degraded' ? 'bg-orange-100 text-orange-800' :
+                                status.status === 'configuring' ? 'bg-blue-100 text-blue-800' :
+                                status.status === 'deployment-needed' ? 'bg-purple-100 text-purple-800' :
+                                'bg-red-100 text-red-800'
+                          }`}>
+                              {status.status.replace('-', ' ')}
+                          </span>
+                      </div>
+                      <p className="text-sm text-gray-500">{status.message || 'Service is running optimally.'}</p>
+                      
+                      {status.details && (
+                          <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono">{status.details}</pre>
+                          </div>
+                      )}
+
+                      {status.actionLink && (
+                          <a href={status.actionLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-800 mt-2">
+                              Fix in Supabase Dashboard <ExternalLink className="w-3 h-3" />
+                          </a>
+                      )}
+                  </div>
+
+                  <div className="text-right shrink-0">
+                      <span className={`font-mono text-sm font-bold ${status.latency > 1000 ? 'text-orange-500' : 'text-gray-400'}`}>
+                          {status.latency}ms
+                      </span>
+                      <div className="text-[10px] text-gray-400 uppercase">Latency</div>
+                  </div>
+              </div>
+          ))}
+      </div>
+    </div>
   );
+};
+
+// --- MAIN ROUTING COMPONENT ---
+export const AdminDashboard: React.FC = () => {
+    return (
+        <div className="pb-20">
+            <Routes>
+                <Route index element={<DashboardOverview />} />
+                <Route path="users" element={<UsersManagement />} />
+                <Route path="marketing" element={<MarketingInsights />} />
+                <Route path="system" element={<SystemHealthView />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+        </div>
+    );
 };

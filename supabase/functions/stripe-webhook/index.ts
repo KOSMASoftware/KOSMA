@@ -36,10 +36,13 @@ function inferCycle(interval: string | undefined): 'monthly' | 'yearly' | 'none'
     return 'none';
 }
 
-// Regex for UUID v4 validation
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-console.log("Stripe Webhook Function Loaded");
+function isValidUUID(id: any): boolean {
+    return typeof id === 'string' && uuidRegex.test(id);
+}
+
+console.log("Stripe Webhook Function Loaded (v2 - Hardened)");
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -49,25 +52,25 @@ serve(async (req) => {
   try {
     const signature = req.headers.get("Stripe-Signature");
     
-    if (!signature) {
-         console.error("No Stripe-Signature header found");
-         return new Response("Missing Stripe-Signature", { status: 400, headers: corsHeaders });
-    }
-
-    const body = await req.text();
-    
+    // 1. BASIC CONFIG CHECK
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!stripeKey || !webhookSecret || !supabaseUrl || !serviceKey) {
-         console.error("Missing Environment Variables");
-         return new Response("Configuration Error", { status: 500, headers: corsHeaders });
+         console.error("CRITICAL: Missing Environment Variables");
+         return new Response("Configuration Error: Missing Envs", { status: 500, headers: corsHeaders });
     }
 
+    if (!signature) {
+         return new Response("Missing Stripe-Signature", { status: 400, headers: corsHeaders });
+    }
+
+    const body = await req.text();
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
 
+    // 2. VERIFY SIGNATURE
     let event;
     try {
         event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
@@ -76,11 +79,19 @@ serve(async (req) => {
         return new Response(`Webhook Error: ${err.message}`, { status: 400, headers: corsHeaders });
     }
 
-    console.log(`Processing Event: ${event.type} [${event.id}]`);
+    // 3. LIVE MODE MISMATCH GUARD
+    // If the event is live but our key is test (starts with sk_test), or vice versa, log and abort.
+    const isKeyLive = stripeKey.startsWith('sk_live');
+    if (event.livemode !== isKeyLive) {
+        const msg = `Mode Mismatch: Event is ${event.livemode ? 'Live' : 'Test'}, but Key is ${isKeyLive ? 'Live' : 'Test'}. Ignored.`;
+        console.error(msg);
+        return new Response(msg, { status: 200, headers: corsHeaders }); // Return 200 to satisfy Stripe retry
+    }
 
+    console.log(`Processing Event: ${event.type} [${event.id}]`);
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    // Idempotency
+    // 4. IDEMPOTENCY CHECK
     const { error: insertError } = await supabaseAdmin.from('stripe_events').insert({
         id: event.id,
         type: event.type,
@@ -88,169 +99,152 @@ serve(async (req) => {
     });
 
     if (insertError) {
+        // If row exists, we assume processed or processing.
         const { data: existing } = await supabaseAdmin.from('stripe_events').select('id').eq('id', event.id).maybeSingle();
         if (existing) {
              return new Response(JSON.stringify({ received: true, status: 'already_processed' }), { 
                 headers: { ...corsHeaders, "Content-Type": "application/json" } 
             });
         }
-        return new Response("Database Insert Error", { status: 500, headers: corsHeaders });
     }
 
     try {
-        
-        // --- A. CHECKOUT SESSION COMPLETED (MAPPING ONLY) ---
+        // --- HANDLER: CHECKOUT COMPLETED ---
         if (event.type === 'checkout.session.completed') {
              const session = event.data.object;
-             
-             // 1. RECOVER STRIPE CUSTOMER ID
              let stripeCustomerId = session.customer;
 
+             // A. Recover Customer ID (if missing in session)
              if (!stripeCustomerId) {
-                 console.log(`[WARN] Session ${session.id} has no customer.`);
-                 
-                 // Strategy A: Via Payment Intent
                  if (session.payment_intent) {
                      try {
                          const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
-                         if (pi.customer) {
-                             stripeCustomerId = pi.customer;
-                             console.log(`[INFO] Recovered customer ${stripeCustomerId} via PaymentIntent.`);
-                         }
+                         if (pi.customer) stripeCustomerId = pi.customer;
                      } catch (e) { console.error("PI fetch failed", e); }
                  }
-
-                 // Strategy B: Via Email (Only for One-Time Payments)
-                 if (!stripeCustomerId) {
-                     const email = session.customer_details?.email || session.customer_email;
-                     
-                     if (email) {
-                         // Only create new customer if NOT subscription mode
-                         if (session.mode !== 'subscription') {
-                             const existing = await stripe.customers.list({ email, limit: 1 });
-                             if (existing.data.length > 0) {
-                                 stripeCustomerId = existing.data[0].id;
-                                 console.log(`[INFO] Recovered customer ${stripeCustomerId} via Email lookup.`);
-                             } else {
-                                 const newCus = await stripe.customers.create({
-                                     email,
-                                     name: session.customer_details?.name || 'Customer',
-                                     metadata: { source: 'webhook_recovery' }
-                                 });
-                                 stripeCustomerId = newCus.id;
-                                 console.log(`[INFO] Created new customer ${stripeCustomerId} fallback (One-Time Mode).`);
-                             }
-                         } else {
-                             console.warn(`[SKIP] Subscription mode detected. Skipping fallback customer creation for ${email} to avoid duplicates.`);
-                         }
+                 // Try email lookup for existing customer (One-Time payments)
+                 if (!stripeCustomerId && session.customer_details?.email) {
+                     const email = session.customer_details.email;
+                     const existing = await stripe.customers.list({ email, limit: 1 });
+                     if (existing.data.length > 0) {
+                         stripeCustomerId = existing.data[0].id;
                      }
                  }
              }
 
              if (stripeCustomerId) {
-                 let userId = session.client_reference_id 
-                            || session.metadata?.user_id 
-                            || session.subscription_details?.metadata?.user_id;
+                 // B. Resolve User ID (Priority: Metadata > ClientRef > Email)
+                 let userId = session.metadata?.user_id; // Metadata is most reliable source if set
 
-                 // Email Fallback (Only if userId is missing or invalid UUID)
-                 if ((!userId || !uuidRegex.test(userId)) && (session.customer_details?.email || session.customer_email)) {
-                     const email = session.customer_details?.email || session.customer_email;
-                     const { data: userProfile } = await supabaseAdmin
-                        .from('profiles')
-                        .select('id')
-                        .eq('email', email)
-                        .maybeSingle();
-                     
-                     if (userProfile) userId = userProfile.id;
+                 if (!isValidUUID(userId)) {
+                     userId = session.client_reference_id; // Check Client Ref
                  }
 
-                 // STRICT UUID CHECK BEFORE DB OPS
-                 if (userId && uuidRegex.test(userId)) {
-                     let subscription: any = null;
-                     let priceId = null;
-                     let cycle = 'none';
-
-                     if (session.subscription) {
-                         subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-                         priceId = subscription.items.data[0]?.price?.id;
-                         cycle = inferCycle(subscription.items.data[0]?.price?.recurring?.interval);
-                     } else {
-                         // One-time payment logic
-                         cycle = 'none'; 
+                 // If still not valid UUID, try Email Fallback
+                 if (!isValidUUID(userId) && (session.customer_details?.email || session.customer_email)) {
+                     const email = session.customer_details?.email || session.customer_email;
+                     
+                     // Strict check: Only map if exactly ONE user exists
+                     const { data: profiles } = await supabaseAdmin
+                        .from('profiles')
+                        .select('id')
+                        .eq('email', email);
+                     
+                     if (profiles && profiles.length === 1) {
+                         userId = profiles[0].id;
+                         console.log(`[INFO] Recovered UserID ${userId} via Email ${email}`);
+                     } else if (profiles && profiles.length > 1) {
+                         console.warn(`[WARN] Ambiguous email ${email} (Multiple users). Skipping auto-map.`);
+                         userId = null; 
                      }
+                 }
 
-                     // Update Profile with verified Stripe ID
+                 if (isValidUUID(userId)) {
+                     // 1. Link Profile
                      await supabaseAdmin.from('profiles').update({
                          stripe_customer_id: stripeCustomerId
                      }).eq('id', userId);
 
-                     // UPDATE LICENSE
+                     // 2. Fetch Subscription Data (if present)
+                     let subData: any = null;
+                     let priceId = null;
+                     let cycle = 'none';
+
+                     if (session.subscription) {
+                         subData = await stripe.subscriptions.retrieve(session.subscription as string);
+                         priceId = subData.items.data[0]?.price?.id;
+                         cycle = inferCycle(subData.items.data[0]?.price?.recurring?.interval);
+                     }
+
+                     // 3. Upsert License
+                     // We do NOT treat checkout as the absolute truth for status if we have subData, 
+                     // but we do set the initial state.
                      const { error: upsertError } = await supabaseAdmin.from('licenses').upsert({
                          user_id: userId,
                          stripe_customer_id: stripeCustomerId,
                          stripe_subscription_id: session.subscription || null,
                          stripe_price_id: priceId,
-                         status: subscription ? mapStripeStatus(subscription.status) : 'active',
+                         status: subData ? mapStripeStatus(subData.status) : 'active', // One-time is active
                          billing_cycle: cycle,
-                         current_period_end: subscription ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-                         cancel_at_period_end: subscription?.cancel_at_period_end || false,
+                         current_period_end: subData ? new Date(subData.current_period_end * 1000).toISOString() : null,
+                         cancel_at_period_end: subData?.cancel_at_period_end || false,
                      }, { onConflict: 'user_id' });
 
                      if (upsertError) throw upsertError;
-                     console.log(`[SUCCESS] License updated for User ${userId}`);
-
                  } else {
-                     console.warn(`[Webhook] SKIPPED DB SYNC. Invalid or missing UUID for session ${session.id}. Value: ${userId}`);
+                     console.warn(`[SKIP] Could not resolve valid UUID for Session ${session.id}`);
                  }
              }
         }
 
-        // --- B. CUSTOMER UPDATED ---
-        if (event.type === 'customer.updated') {
-            const customer = event.data.object;
-            // Only update if we have meaningful data
-            if (customer.address || customer.name) {
-                const billingAddress = {
-                    street: customer.address?.line1 || '',
-                    city: customer.address?.city || '',
-                    zip: customer.address?.postal_code || '',
-                    country: customer.address?.country || '',
-                    companyName: customer.name || '',
-                    vatId: customer.tax_ids?.data?.[0]?.value || ''
-                };
-
-                await supabaseAdmin
-                    .from('profiles')
-                    .update({ billing_address: billingAddress })
-                    .eq('stripe_customer_id', customer.id);
-            }
-        }
-
-        // --- C. SUBSCRIPTION UPDATED / CREATED ---
+        // --- HANDLER: SUBSCRIPTION CREATED / UPDATED ---
+        // Combined handler to ensure we catch everything, even if checkout webhook fails/delays
         if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.created') {
             const sub = event.data.object;
             const priceId = sub.items.data[0]?.price?.id;
+            const cycle = inferCycle(sub.items.data[0]?.price?.recurring?.interval);
+            const stripeCustomerId = sub.customer;
 
-            const { data: license } = await supabaseAdmin
-                .from('licenses')
-                .select('user_id')
-                .eq('stripe_subscription_id', sub.id)
+            // 1. Resolve User ID via Profile (Source of Truth for Customer ID link)
+            const { data: profile } = await supabaseAdmin
+                .from('profiles')
+                .select('id')
+                .eq('stripe_customer_id', stripeCustomerId)
                 .maybeSingle();
             
-            if (license) {
-                await supabaseAdmin.from('licenses').update({
+            let userId = profile?.id;
+
+            // Fallback: If no profile link yet, check metadata on subscription
+            if (!userId && sub.metadata?.user_id && isValidUUID(sub.metadata.user_id)) {
+                userId = sub.metadata.user_id;
+                // Auto-repair profile link
+                await supabaseAdmin.from('profiles').update({ stripe_customer_id: stripeCustomerId }).eq('id', userId);
+            }
+
+            if (userId) {
+                // 2. UPSERT License (Safest approach for race conditions)
+                await supabaseAdmin.from('licenses').upsert({
+                    user_id: userId,
+                    stripe_customer_id: stripeCustomerId,
+                    stripe_subscription_id: sub.id,
+                    stripe_price_id: priceId,
                     status: mapStripeStatus(sub.status),
-                    cancel_at_period_end: sub.cancel_at_period_end,
+                    billing_cycle: cycle,
                     current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-                    canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
-                    stripe_price_id: priceId
-                }).eq('user_id', license.user_id);
+                    cancel_at_period_end: sub.cancel_at_period_end,
+                    canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null
+                }, { onConflict: 'user_id' });
+                
+                console.log(`[SUCCESS] Synced Subscription for User ${userId}`);
+            } else {
+                console.log(`[INFO] Subscription ${sub.id} orphan (No User linked to Customer ${stripeCustomerId}). Waiting for Checkout event.`);
             }
         }
 
-        // --- D. SUBSCRIPTION DELETED ---
+        // --- HANDLER: SUBSCRIPTION DELETED ---
         if (event.type === 'customer.subscription.deleted') {
             const sub = event.data.object;
+            // Find user by subscription ID
             const { data: license } = await supabaseAdmin
                 .from('licenses')
                 .select('user_id')
@@ -266,10 +260,9 @@ serve(async (req) => {
             }
         }
 
-        // --- E. INVOICE PAYMENT SUCCEEDED (SINGLE SOURCE OF TRUTH FOR INVOICES) ---
+        // --- HANDLER: INVOICE PAYMENT SUCCEEDED ---
         if (event.type === 'invoice.payment_succeeded') {
             const invoice = event.data.object;
-            // Check reasons: subscription_create, subscription_cycle, subscription_update
             if (invoice.billing_reason && invoice.billing_reason.startsWith('subscription')) {
                  const { data: license } = await supabaseAdmin
                     .from('licenses')
@@ -278,6 +271,7 @@ serve(async (req) => {
                     .maybeSingle();
 
                  if (license) {
+                     // Check if invoice exists to avoid duplicates
                      const { data: existingInv } = await supabaseAdmin
                         .from('invoices')
                         .select('id')
@@ -299,8 +293,8 @@ serve(async (req) => {
                  }
             }
         }
-        
-        // --- F. INVOICE PAYMENT FAILED ---
+
+        // --- HANDLER: INVOICE PAYMENT FAILED ---
         if (event.type === 'invoice.payment_failed') {
             const invoice = event.data.object;
              const { data: license } = await supabaseAdmin
@@ -321,17 +315,40 @@ serve(async (req) => {
                     invoice_hosted_url: invoice.hosted_invoice_url
                  });
                  
+                 // Update status to past_due immediately
                  await supabaseAdmin.from('licenses').update({
                      status: 'past_due'
                  }).eq('user_id', license.user_id);
              }
         }
 
+        // --- HANDLER: CUSTOMER UPDATED (Billing Address) ---
+        if (event.type === 'customer.updated') {
+             const customer = event.data.object;
+             if (customer.address || customer.name) {
+                const billingAddress = {
+                    street: customer.address?.line1 || '',
+                    city: customer.address?.city || '',
+                    zip: customer.address?.postal_code || '',
+                    country: customer.address?.country || '',
+                    companyName: customer.name || '',
+                    vatId: customer.tax_ids?.data?.[0]?.value || ''
+                };
+                // Only update if we can find the profile
+                await supabaseAdmin
+                    .from('profiles')
+                    .update({ billing_address: billingAddress })
+                    .eq('stripe_customer_id', customer.id);
+             }
+        }
+
+        // Mark event as processed
         await supabaseAdmin.from('stripe_events').update({ processed_at: new Date().toISOString() }).eq('id', event.id);
 
     } catch (err: any) {
         console.error(`Logic Error for Event ${event.id}:`, err);
         await supabaseAdmin.from('stripe_events').update({ processing_error: err.message }).eq('id', event.id);
+        // We still return 200 to Stripe so it doesn't retry indefinitely for logic errors
         return new Response(JSON.stringify({ error: "Processing logic failed", detail: err.message }), { status: 200, headers: corsHeaders });
     }
 

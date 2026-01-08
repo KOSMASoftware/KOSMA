@@ -5,7 +5,6 @@ import Stripe from 'https://esm.sh/stripe@14.21.0';
 
 declare const Deno: any;
 
-// PROTOTYPE FIX: Allow ALL origins to prevent Preflight/CORS issues during dev/test.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*", 
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -13,12 +12,10 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // 1. HANDLE PREFLIGHT (Browser OPTIONS check)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // 2. CHECK METHOD
   if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: "Method not allowed" }), { 
           status: 405, 
@@ -27,6 +24,15 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+
+    if (!supabaseUrl || !anonKey || !serviceKey || !stripeKey) {
+        throw new Error("Missing one or more required environment variables.");
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
         return new Response(JSON.stringify({ error: "Missing auth token" }), { 
@@ -36,13 +42,6 @@ serve(async (req) => {
     }
     const token = authHeader.replace("Bearer ", "");
     
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
-
-    if (!stripeKey) throw new Error("Missing STRIPE_SECRET_KEY");
-
     const supabaseAuth = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } });
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
 
