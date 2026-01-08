@@ -9,6 +9,19 @@ KOSMA ist ein SaaS-Prototyp für Film- und Produktionsmanagement mit rollenbasie
 
 ---
 
+# 🚨 NOTFALL-SETUP: LOGIN GEHT NICHT?
+
+Wenn der Login fehlschlägt oder Daten nicht laden, liegt es meist an fehlenden Datenbank-Rechten (RLS).
+
+1.  Öffne Datei: `supabase/setup.sql` in diesem Repo.
+2.  Kopiere den gesamten Inhalt.
+3.  Gehe zum **Supabase Dashboard > SQL Editor**.
+4.  Füge den Inhalt ein und klicke **RUN**.
+
+Damit werden alle Policies, Trigger und Views repariert.
+
+---
+
 # 🛑 WICHTIGE TO-DOS IM SUPABASE DASHBOARD (PFLICHT)
 
 Damit die Stripe-Events korrekt ankommen und verarbeitet werden, müssen diese **3 Schritte** im Dashboard durchgeführt werden (da wir keine lokale Config nutzen):
@@ -51,178 +64,6 @@ Supabase Auth is the source of truth for Identity.
 
 ### 🧩 ARCHITEKTURÜBERSICHT
 ```text
-┌──────────────────────────────────────────────────────────┐
-│                       USER (Browser)                     │
-└───────────────┬───────────────────────────┬─────────────┘
-                │                           │
-                │                           │
-                ▼                           ▼
-┌──────────────────────────┐     ┌──────────────────────────┐
-│   Frontend (React SPA)   │     │        Stripe             │
-│  Vite + React + Router   │     │ - Payment Links (Buy)     │
-│  Deployment: Vercel      │     │ - Customer Portal (Edit)  │
-│  Domain:                 │     │                          │
-│  kosma-lake.vercel.app   │     └────┬───────────┬─────────┘
-└───────────────┬──────────┘          │           │
-                │                     │           │ 1. Async
-                │ Read / Auth         │           │ Webhooks
-                ▼                     │           ▼
-┌─────────────────────────────────────┼────────────────────┐
-│                    Supabase Auth    │   Edge Function    │
-│  - Login / Signup                   │   "stripe-webhook" │
-│  - JWT Issuance                     │   (Background)     │
-└───────────────┬─────────────────────┼────────────────────┘
-                │                     │
-                │ 2. Sync Calls       │ Writes Data
-                │ (Purchase Return)   │ (Address, Inv, Sub)
-                ▼                     ▼
-┌──────────────────────────────────────────────────────────┐
-│            Supabase Edge Function                         │
-│              "dynamic-endpoint"                           │
-│                                                          │
-│  - Verifies JWT manually                                  │
-│  - Validates tier / cycle                                 │
-│  - Applies business logic (Immediate Access)              │
-└───────────────┬──────────────────────────────────────────┘
-                │
-                │ Admin DB Access
-                ▼
-┌──────────────────────────────────────────────────────────┐
-│                Supabase Postgres                          │
-│                                                          │
-│  Tables:                                                 │
-│  - profiles (billing_address via Webhook)                │
-│  - licenses (Status, ValidUntil)                         │
-│  - invoices (History)                                    │
-└──────────────────────────────────────────────────────────┘
-```
-
----
-
-# 2. PRODUKT- & LIZENZMODELL
-
-### 2.1 Produkt
-*   Produkt: **KOSMA**
-*   Es gibt kein Multi-Product-Setup.
-*   Alle Lizenzen beziehen sich immer auf KOSMA.
-
-### 2.2 Lizenz-Tiers
-
-| Tier | Beschreibung |
-| :--- | :--- |
-| **Free** | Kein aktiver Vertrag |
-| **Budget** | Einstieg, Budgetierung, Unlimited Projects |
-| **Cost Control** | Erweiterte Kostenkontrolle |
-| **Production** | Voller Funktionsumfang (Finanzierung & Cashflow) |
-
-### 2.3 Billing Cycles
-*   `monthly`
-*   `yearly`
-
-### 2.4 Lizenz-Status
-
-| Status | Bedeutung |
-| :--- | :--- |
-| `none` | Keine aktive Lizenz |
-| `trial` | Testphase |
-| `active` | Bezahlt & aktiv |
-| `past_due` | Zahlung überfällig |
-| `canceled` | Gekündigt / Abgelaufen |
-
-### 2.5 Zentrale Regel
-
-**Ein User hat immer genau eine Lizenzzeile.**
-
-Das wird erzwingend sichergestellt durch:
-*   Unique Constraint auf `licenses.user_id`
-*   `upsert`-Logik in der Edge Function
-
----
-
-# 3. DATENMODELL (SUPABASE)
-
-### 3.1 Tabellen & Schreibhoheit
-
-| Tabelle | Feld | Source of Truth | Schreibweg |
-| :--- | :--- | :--- | :--- |
-| `profiles` | `billing_address` | **Stripe** | Webhook (`customer.updated`) |
-| `licenses` | `plan_tier` | **App Logic** | `dynamic-endpoint` (Kauf) |
-| `licenses` | `status` | **Stripe** | Webhook (`customer.subscription.updated`) |
-| `invoices` | `pdf_url` | **Stripe** | Webhook (`invoice.payment_succeeded`) |
-
-### 3.2 Constraint (ESSENTIELL)
-
-```sql
-ALTER TABLE licenses
-ADD CONSTRAINT licenses_user_id_key UNIQUE (user_id);
-```
-
----
-
-# 4. AUTHENTIFIZIERUNG & SESSION-LOGIK
-
-### 4.1 Auth-Flows
-*   Login
-*   Signup
-*   Password Reset
-*   Recovery (Magic Link)
-
-### 4.2 Zentrales Problem (historisch)
-
-Nach Redirects (z. B. aus E-Mails oder von Stripe) ist:
-`supabase.auth.getSession() === null`
-für einige hundert Millisekunden bis Sekunden.
-
-### 4.3 Lösung
-*   **Retry-Logik:** Das Frontend wartet bis zu 3 Sekunden auf die Session.
-*   **Re-Mounting:** Der `AuthProvider` wird durch Key-Change neu geladen.
-
----
-
-# 5. ROUTING-ARCHITEKTUR (KRITISCH)
-
-### 5.1 Warum Hybrid Routing?
-*   **Normalbetrieb:** `HashRouter` (`/#/dashboard`)
-*   **Recovery & Reset:** `BrowserRouter` (`/update-password`)
-
-### 5.2 Grund
-*   Supabase E-Mail-Links funktionieren nicht zuverlässig mit Hash-URLs (Token Parsing).
-*   Vercel braucht SPA-Fallbacks bei direkten URL-Aufrufen.
-
----
-
-# 6. STRIPE-INTEGRATION (HYBRID MODEL)
-
-Wir nutzen eine **Hybrid-Strategie**, um UX (Geschwindigkeit) und Datenkonsistenz (Zuverlässigkeit) zu vereinen.
-
-### 6.1 Der Kauf (Immediate Access)
-Da Webhooks asynchron sind und Sekunden dauern können, nutzen wir für den **ersten Kauf** einen synchronen Return-Flow.
-
-1.  User kauft via Stripe Payment Link.
-2.  Redirect zurück zur App (`/dashboard/subscription?success=true`).
-3.  Frontend ruft **`dynamic-endpoint`** auf.
-4.  Function schreibt sofort die Lizenz ("Optimistic Write").
-5.  User kann sofort arbeiten.
-
-### 6.2 Die Datenhaltung (Async Consistency)
-Für alles andere verlassen wir uns auf **Stripe Webhooks** (`stripe-webhook`).
-
-*   **Adressänderung:** User ändert Adresse im Stripe Portal → Webhook `customer.updated` → Update `profiles.billing_address`.
-*   **Verlängerung (Renewal):** Webhook `invoice.payment_succeeded` → Insert `invoices` + Update `licenses.valid_until`.
-*   **Kündigung:** Webhook `customer.subscription.deleted` → Update `licenses.status`.
-
-### 6.3 Rechnungsdaten & Portal Flow
-Das Frontend hat **keine Formulare** für Adressen oder Kreditkarten.
-
-**Ablauf Adressänderung:**
-1.  Frontend: Klick auf „Rechnungsdaten ändern“.
-2.  Frontend: Ruft `rapid-handler` auf → erhält URL zum Stripe Billing Portal.
-3.  User: Ändert Adresse bei Stripe.
-4.  User: Klickt „Zurück zu KOSMA“.
-5.  Frontend: Erkennt Rückkehr (`?portal_return=1`) und lädt Profildaten neu (die der Webhook im Hintergrund bereits aktualisiert hat).
-
-### 🔁 DATA FLOW DIAGRAM
-```text
        [USER ACTION]                     [STRIPE]                    [SUPABASE DB]
              │                              │                              │
     1. Click "Upgrade" ────────────────► Checkout ─────────────────────────┤
@@ -246,25 +87,6 @@ Das Frontend hat **keine Formulare** für Adressen oder Kreditkarten.
 
 ---
 
-# 7. EDGE FUNCTION (dynamic-endpoint)
-
-### 7.1 Aufgabe
-Einziger Schreibzugang für:
-*   Lizenzänderungen (Initialer Kauf)
-*   Rechnungen (Initial)
-
-### 7.2 Sicherheitsmodell
-*   Läuft mit **Service Role** (Admin-Rechte).
-*   **Supabase JWT Verification:** DEAKTIVIERT (Enforce JWT Verification = OFF).
-
----
-
-# 8. INCIDENT REPORT – PASSWORD RESET „SUPER-GAU“
-
-*(Siehe Sektion in alter Dokumentation - behalten für History)*
-
----
-
 # 14. DEPLOYMENT MAPPING (DATEINAMEN VS. FUNCTION SLUGS)
 
 Achtung: Die Namen der deployten Functions im Supabase Dashboard unterscheiden sich aus Obfuskierungsgründen von den lokalen Ordnernamen.
@@ -277,83 +99,3 @@ Achtung: Die Namen der deployten Functions im Supabase Dashboard unterscheiden s
 | **`rapid-handler`** | `supabase/functions/create-billing-portal-session/` | Erstellt Stripe Customer Portal Session. |
 | **`swift-action`** | `supabase/functions/cancel-subscription/` | **WICHTIG:** Kündigungs-Logik. Muss im Dashboard `swift-action` heißen. |
 | **`swift-service`** | `supabase/functions/system-health/` | System Health Monitoring. |
-
-**Hintergrund-Funktion (nicht im Dashboard Screenshot sichtbar):**
-*   **`stripe-webhook`**: Liegt in `supabase/functions/stripe-webhook/`.
-    *   Diese Funktion wird **nicht** vom Frontend aufgerufen.
-    *   **WICHTIG:** Im Supabase Dashboard muss für diese Funktion **"Enforce JWT Verification" DEAKTIVIERT** werden, da Stripe keinen Auth-Header sendet.
-    *   **Events:** `checkout.session.completed`, `customer.updated`, `invoice.payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`.
-
----
-
-# 9. APPENDIX: SQL DEBUGGING HELPER & SYSTEM DUMP
-
-Kopiere diese Befehle in den SQL Editor von Supabase, um den aktuellen Status des Systems zu prüfen.
-
-### 9.1 Datentabellen prüfen
-Zeigt den Inhalt der wichtigsten Tabellen.
-
-```sql
--- Profile (User-Daten & Stripe IDs)
-SELECT * FROM public.profiles;
-
--- Lizenzen (Aktueller Status)
-SELECT * FROM public.licenses;
-
--- Rechnungen (Zahlungshistorie)
-SELECT * FROM public.invoices ORDER BY created_at DESC;
-
--- Webhook Events (Logs von Stripe)
-SELECT id, type, created_at, processed_at, processing_error 
-FROM public.stripe_events 
-ORDER BY created_at DESC 
-LIMIT 20;
-
--- Audit Logs (Systemänderungen)
-SELECT * FROM public.audit_logs ORDER BY created_at DESC;
-```
-
-### 9.2 Row Level Security (RLS) Policies prüfen
-Zeigt alle aktiven Sicherheitsregeln an, um Zugriffsprobleme zu debuggen.
-
-```sql
-SELECT 
-    schemaname, 
-    tablename, 
-    policyname, 
-    permissive, 
-    roles, 
-    cmd, 
-    qual, 
-    with_check 
-FROM pg_policies 
-WHERE schemaname = 'public'
-ORDER BY tablename, policyname;
-```
-
-### 9.3 Table Definitions & Extensions
-Zeigt, ob notwendige Extensions (z.B. für UUIDs) aktiviert sind und wie die Tabellen definiert sind.
-
-```sql
--- Check Extensions
-SELECT * FROM pg_extension;
-
--- Check Table Constraints (z.B. Unique License)
-SELECT conname, contype, conrelid::regclass 
-FROM pg_constraint 
-WHERE conrelid::regclass::text IN ('public.licenses', 'public.profiles');
-```
-
-### 9.4 Wichtige Logik-Trigger
-Prüft, ob der `on_auth_user_created` Trigger existiert, der neue User automatisch in `public.profiles` schreibt.
-
-```sql
-SELECT 
-    trigger_name, 
-    event_manipulation, 
-    event_object_table, 
-    action_statement 
-FROM information_schema.triggers 
-WHERE event_object_schema = 'public' 
-ORDER BY event_object_table;
-```

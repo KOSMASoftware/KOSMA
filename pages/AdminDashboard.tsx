@@ -202,6 +202,10 @@ const DebugView: React.FC = () => {
 
     useEffect(() => { refresh(); }, [logFilter]);
 
+    // Helpers for badges
+    const getBadgeClass = (count: number) => 
+        count > 0 ? "bg-gray-100 text-gray-900 px-2 py-0.5 rounded-full text-xs font-bold" : "hidden";
+
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
             <AdminTabs />
@@ -222,19 +226,22 @@ const DebugView: React.FC = () => {
                     onClick={() => setActiveTab('logs')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'logs' ? 'border-purple-500 text-purple-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
                 >
-                    <Activity className="w-4 h-4"/> System & Edge Logs
+                    <Activity className="w-4 h-4"/> System & Edge Logs 
+                    <span className={getBadgeClass(logs.length)}>{logs.length}</span>
                 </button>
                 <button 
                     onClick={() => setActiveTab('stripe')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'stripe' ? 'border-brand-500 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
                 >
                     <CreditCard className="w-4 h-4"/> Stripe Webhooks
+                    <span className={getBadgeClass(events.length)}>{events.length}</span>
                 </button>
                  <button 
                     onClick={() => setActiveTab('auth')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'auth' ? 'border-amber-500 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
                 >
                     <Key className="w-4 h-4"/> Authentication
+                    <span className={getBadgeClass(authLogs.length)}>{authLogs.length}</span>
                 </button>
             </div>
 
@@ -252,7 +259,7 @@ const DebugView: React.FC = () => {
                          </div>
                      </div>
                      <div className="overflow-y-auto max-h-[600px]">
-                         {logs.length === 0 ? <div className="p-12 text-center text-gray-400">No logs found.</div> : (
+                         {logs.length === 0 ? <div className="p-12 text-center text-gray-400">No logs found yet.</div> : (
                              <div className="divide-y divide-gray-100">
                                  {logs.map(log => {
                                      const isEdge = log.action.startsWith('EDGE_');
@@ -333,6 +340,7 @@ const DebugView: React.FC = () => {
                                  <code className="block text-purple-700 font-bold">select id, created_at, payload->>'action' as action, payload->>'actor_email' as email, payload</code>
                                  <code className="block text-purple-700 font-bold">from auth.audit_log_entries order by created_at desc;</code>
                                  <code className="block text-purple-700 font-bold mt-2">grant select on public.auth_logs_view to service_role;</code>
+                                 <code className="block text-purple-700 font-bold mt-2">grant select on public.auth_logs_view to authenticated;</code>
                              </div>
                          </div>
                      ) : authLogsError ? (
