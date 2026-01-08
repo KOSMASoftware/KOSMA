@@ -56,16 +56,17 @@ serve(async (req) => {
     }
 
     // 2. GET CUSTOMER ID (USE SERVICE ROLE & CORRECT TABLE)
+    // FIX: Look in 'profiles' table, not 'licenses'. The profile is the anchor for the customer identity.
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
     
-    const { data: license, error: licError } = await supabaseAdmin
-        .from('licenses')
+    const { data: profile, error: profError } = await supabaseAdmin
+        .from('profiles')
         .select('stripe_customer_id')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single();
 
-    if (licError || !license?.stripe_customer_id) {
-         return new Response(JSON.stringify({ error: "No active billing account found." }), { status: 404, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
+    if (profError || !profile?.stripe_customer_id) {
+         return new Response(JSON.stringify({ error: "No active billing account found. Please subscribe first." }), { status: 404, headers: { ...cors(origin), 'Content-Type': 'application/json' } });
     }
 
     // 3. VALIDATE RETURN URL
@@ -87,7 +88,7 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
     
     const session = await stripe.billingPortal.sessions.create({
-        customer: license.stripe_customer_id,
+        customer: profile.stripe_customer_id,
         return_url: safeReturnUrl,
     });
 

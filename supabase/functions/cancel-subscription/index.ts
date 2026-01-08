@@ -24,8 +24,9 @@ serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
 
-    if (!supabaseUrl || !serviceKey || !stripeKey) {
-        throw new Error("Missing Config");
+    // FIX: Added explicit check for ANON_KEY
+    if (!supabaseUrl || !serviceKey || !stripeKey || !anonKey) {
+        throw new Error("Missing Configuration (Env Vars)");
     }
 
     const authHeader = req.headers.get("Authorization");
