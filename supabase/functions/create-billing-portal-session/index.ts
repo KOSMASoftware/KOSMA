@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
 import Stripe from 'https://esm.sh/stripe@14.21.0';
@@ -84,7 +85,8 @@ serve(async (req) => {
     }
 
     // 4. CREATE STRIPE PORTAL SESSION
-    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
+    // FIX: API Version 2023-08-16
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
     
     const session = await stripe.billingPortal.sessions.create({
         customer: license.stripe_customer_id,

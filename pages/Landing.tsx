@@ -24,8 +24,13 @@ export const Landing: React.FC = () => {
     }
 
     const link = (STRIPE_LINKS as any)[planName]?.[billingInterval];
-    if (link) {
-        window.location.href = link;
+    if (link && user) {
+        // FIX: Pass User ID and Email to Stripe
+        const url = new URL(link);
+        url.searchParams.set('client_reference_id', user.id);
+        url.searchParams.set('prefilled_email', user.email);
+        
+        window.location.href = url.toString();
     } else {
         console.error("No Stripe link found for", planName, billingInterval);
         navigate('/dashboard/subscription');

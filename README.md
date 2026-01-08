@@ -8,6 +8,25 @@ KOSMA ist ein SaaS-Prototyp für Film- und Produktionsmanagement mit rollenbasie
 
 ---
 
+# 🛑 WICHTIGE TO-DOS IM SUPABASE DASHBOARD (PFLICHT)
+
+Damit die Stripe-Events korrekt ankommen und verarbeitet werden, müssen diese **3 Schritte** im Dashboard durchgeführt werden (da wir keine lokale Config nutzen):
+
+### 1. Secrets korrekt setzen (Test-Mode)
+*   Gehe zu **Edge Functions > Secrets**.
+*   `STRIPE_SECRET_KEY`: Muss mit **`sk_test_...`** beginnen (nicht live!).
+*   `STRIPE_WEBHOOK_SECRET`: Muss mit **`whsec_...`** beginnen (Stripe Dashboard > Developers > Webhooks > Endpoint > Signing Secret).
+
+### 2. JWT Verification deaktivieren
+*   Gehe zu **Edge Functions**.
+*   Klicke auf die Funktion **`stripe-webhook`**.
+*   Stelle den Schalter **"Enforce JWT Verification"** auf **OFF** (damit Stripe ohne Auth-Header zugreifen kann).
+
+### 3. Redeploy
+*   Sobald die Secrets geändert wurden, **Redeploy** auslösen (via CLI oder GitHub Action), damit die neuen Keys geladen werden.
+
+---
+
 # 1. SYSTEMÜBERBLICK (HIGH LEVEL)
 
 ### 🧠 ONE-LINE SUMMARY
@@ -260,5 +279,5 @@ Hier ist die **verbindliche Zuordnung** (Source of Truth):
 **Hintergrund-Funktion (nicht im Dashboard Screenshot sichtbar):**
 *   **`stripe-webhook`**: Liegt in `supabase/functions/stripe-webhook/`.
     *   Diese Funktion wird **nicht** vom Frontend aufgerufen.
-    *   Sie muss als Webhook-URL in Stripe hinterlegt werden (`https://[PROJECT].supabase.co/functions/v1/stripe-webhook`).
+    *   **WICHTIG:** Im Supabase Dashboard muss für diese Funktion **"Enforce JWT Verification" DEAKTIVIERT** werden, da Stripe keinen Auth-Header sendet.
     *   **Events:** `checkout.session.completed`, `customer.updated`, `invoice.payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`.

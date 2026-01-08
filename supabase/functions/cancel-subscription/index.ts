@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
 import Stripe from 'https://esm.sh/stripe@14.21.0';
@@ -13,7 +14,6 @@ const allowedOrigins = new Set([
 ]);
 
 function cors(origin: string | null) {
-  // Nur erlaubte Origins zurückgeben, sonst null (Browser blockiert dann meist eh)
   const o = origin && allowedOrigins.has(origin) ? origin : "null";
   return {
     "Access-Control-Allow-Origin": o,
@@ -30,15 +30,14 @@ serve(async (req) => {
     return new Response('ok', { headers: cors(origin) });
   }
 
-  // Echter Block, falls Origin nicht erlaubt ist
+  // Echter Block mit CORS Header
   if (origin && !allowedOrigins.has(origin)) {
       return new Response(JSON.stringify({ error: "Forbidden origin" }), { 
           status: 403,
-          headers: { "Content-Type": "application/json" }
+          headers: { ...cors(origin), "Content-Type": "application/json" }
       });
   }
 
-  // 2. METHOD GUARD
   if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: "Method not allowed" }), { 
           status: 405, 
@@ -47,7 +46,6 @@ serve(async (req) => {
   }
 
   try {
-    // 3. AUTH CHECK
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
         return new Response(JSON.stringify({ error: "Missing auth token" }), { 
@@ -74,7 +72,6 @@ serve(async (req) => {
         });
     }
 
-    // 4. GET LICENSE
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
     const { data: license, error: licError } = await supabaseAdmin
         .from('licenses')
@@ -89,7 +86,6 @@ serve(async (req) => {
         });
     }
 
-    // Idempotenz: Wenn bereits gekündigt, sofort Erfolg melden
     if (license.cancel_at_period_end) {
         return new Response(JSON.stringify({ success: true, message: "Subscription is already scheduled for cancellation." }), {
             status: 200,
@@ -97,14 +93,12 @@ serve(async (req) => {
         });
     }
 
-    // 5. CALL STRIPE
-    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
     
     const updatedSub = await stripe.subscriptions.update(license.stripe_subscription_id, {
         cancel_at_period_end: true
     });
 
-    // 6. UPDATE DB
     const { error: updateError } = await supabaseAdmin.from('licenses').update({
         cancel_at_period_end: true,
         current_period_end: new Date(updatedSub.current_period_end * 1000).toISOString()
@@ -112,7 +106,6 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // 7. AUDIT LOG
     await supabaseAdmin.from('audit_logs').insert({
         actor_user_id: user.id,
         actor_email: user.email,

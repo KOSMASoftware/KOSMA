@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, CalendarClock, XCircle, Lock } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, Lock } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -213,14 +214,8 @@ const getTierLevel = (tier: PlanTier) => {
 };
 const normalizeCycle = (c: any): 'monthly' | 'yearly' | 'none' =>
   (c === 'monthly' || c === 'yearly') ? c : 'none';
-const getStripeKey = (t: PlanTier): string | null => {
-    if (t === PlanTier.BUDGET) return 'Budget';
-    if (t === PlanTier.COST_CONTROL) return 'Cost Control';
-    if (t === PlanTier.PRODUCTION) return 'Production';
-    return null;
-};
 
-const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> = ({ currentTier, currentCycle }) => {
+const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle: string }> = ({ user, currentTier, currentCycle }) => {
     const normalizedCurrentCycle = normalizeCycle(currentCycle);
     const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>(
         normalizedCurrentCycle === 'none' ? 'yearly' : normalizedCurrentCycle
@@ -234,15 +229,19 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
 
     const handlePurchase = (planName: PlanTier, cycle: 'yearly' | 'monthly') => {
         try {
-            const key = getStripeKey(planName);
-            if (!key) return;
-            const link = STRIPE_LINKS[key as keyof typeof STRIPE_LINKS]?.[cycle];
+            const link = STRIPE_LINKS[planName]?.[cycle];
             if (!link) {
                 alert("Payment link configuration missing. Please contact support.");
                 return;
             }
+            
+            // FIX: Pass User ID and Email to Stripe via URL Parameters
+            const url = new URL(link);
+            url.searchParams.set('client_reference_id', user.id);
+            url.searchParams.set('prefilled_email', user.email);
+
             sessionStorage.setItem('pending_purchase', JSON.stringify({ tier: planName, cycle: cycle }));
-            window.location.href = link;
+            window.location.href = url.toString();
         } catch (e) {
             console.error("Redirect failed:", e);
             alert("Something went wrong initializing the checkout.");
@@ -487,8 +486,7 @@ const SubscriptionView: React.FC<{
     refresh: () => void,
 }> = ({ user, licenses, invoices, refresh }) => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [processing, setProcessing] = useState(false);
-    const [successMessage, setSuccessMessage] = useState(false);
+    const [isPolling, setIsPolling] = useState(false);
     const [canceling, setCanceling] = useState(false);
 
     const activeLicense = licenses[0];
@@ -500,63 +498,43 @@ const SubscriptionView: React.FC<{
         const checkoutStatus = searchParams.get('checkout');
         const isSuccess = stripeSuccess === 'true' || checkoutStatus === 'success';
 
-        let tier = searchParams.get('tier') as PlanTier;
-        let cycle = searchParams.get('cycle') as 'monthly' | 'yearly';
-        const rawProjectName = searchParams.get('project_name');
-        
-        if (isSuccess && (!tier || !cycle)) {
-             try {
-                const stored = sessionStorage.getItem('pending_purchase');
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    tier = parsed.tier;
-                    cycle = parsed.cycle;
-                }
-             } catch(e) { console.error("Session recovery failed", e); }
+        if (isSuccess) {
+            setIsPolling(true);
+            // Clear URL params
+            setSearchParams({});
         }
+    }, [searchParams, setSearchParams]);
 
-        if (isSuccess && tier && cycle) {
-            const updateLicense = async () => {
-                setProcessing(true);
-                try {
-                    let sessionData = await supabase.auth.getSession();
-                    let token = sessionData.data.session?.access_token;
-                    
-                    if (!token) {
-                        for (let i = 0; i < 5; i++) {
-                            await new Promise(r => setTimeout(r, 600)); 
-                            sessionData = await supabase.auth.getSession();
-                            if (sessionData.data.session?.access_token) {
-                                token = sessionData.data.session.access_token;
-                                break;
-                            }
-                        }
-                    }
+    // Polling Logic: Check for active license update
+    useEffect(() => {
+        if (!isPolling) return;
 
-                    if (!token) throw new Error("No session");
+        const intervalId = setInterval(async () => {
+            refresh(); // Triggers data refetch in parent hook
 
-                    const projectName = (rawProjectName && rawProjectName.startsWith('cs_test')) 
-                        ? `Project (Session ${rawProjectName.substring(8, 14)})` 
-                        : (rawProjectName || 'New Production');
+            // Check if license is now active or has stripe ID
+            const { data } = await supabase
+                .from('licenses')
+                .select('status')
+                .eq('user_id', user.id)
+                .single();
 
-                    await supabase.functions.invoke('dynamic-endpoint', {
-                        body: { tier, cycle, projectName },
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+            if (data?.status === 'active') {
+                setIsPolling(false);
+                sessionStorage.removeItem('pending_purchase');
+            }
+        }, 2000); // Check every 2 seconds
 
-                    sessionStorage.removeItem('pending_purchase');
-                    setSuccessMessage(true);
-                    setSearchParams({}); 
-                    refresh(); 
-                } catch (err) {
-                    console.error("Success handling failed:", err);
-                } finally {
-                    setProcessing(false);
-                }
-            };
-            updateLicense();
-        }
-    }, [searchParams, user.id, setSearchParams, refresh]);
+        // Timeout after 60 seconds to stop polling
+        const timeoutId = setTimeout(() => {
+            setIsPolling(false);
+        }, 60000);
+
+        return () => {
+            clearInterval(intervalId);
+            clearTimeout(timeoutId);
+        };
+    }, [isPolling, refresh, user.id]);
 
     // Handle Cancel (Local to Subscription View)
     const handleCancel = async () => {
@@ -583,8 +561,6 @@ const SubscriptionView: React.FC<{
         }
     };
 
-    if (processing) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
-
     // Logic for cancel button state
     const isActive = activeLicense?.status === SubscriptionStatus.ACTIVE;
     const isScheduled = activeLicense?.cancelAtPeriodEnd;
@@ -609,12 +585,22 @@ const SubscriptionView: React.FC<{
 
             <DashboardTabs />
 
-            {successMessage && (
-                <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-in zoom-in-95">
+            {isPolling && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-pulse">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                    <div>
+                        <h3 className="font-bold text-lg">Processing Payment...</h3>
+                        <p className="text-sm">We are confirming your subscription with Stripe. This may take a moment.</p>
+                    </div>
+                </div>
+            )}
+            
+            {!isPolling && activeLicense?.status === 'active' && hasStripeId && (
+                 <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-in zoom-in-95">
                     <Check className="w-8 h-8 text-green-500" />
                     <div>
-                        <h3 className="font-bold text-lg">Payment successful!</h3>
-                        <p className="text-sm">Your license is now active.</p>
+                        <h3 className="font-bold text-lg">Subscription Active</h3>
+                        <p className="text-sm">Your license is fully active.</p>
                     </div>
                 </div>
             )}
@@ -738,6 +724,7 @@ const SubscriptionView: React.FC<{
             </div>
 
             <PricingSection 
+                user={user}
                 currentTier={activeLicense?.planTier || PlanTier.FREE} 
                 currentCycle={activeLicense?.billingCycle || 'none'}
             />
@@ -745,6 +732,7 @@ const SubscriptionView: React.FC<{
     );
 };
 
+// ... SettingsView remains the same ...
 // --- VIEW 3: SETTINGS VIEW ---
 const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);

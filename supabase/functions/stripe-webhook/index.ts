@@ -1,8 +1,14 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 
 declare const Deno: any;
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
+};
 
 // --- HELPERS ---
 
@@ -30,12 +36,23 @@ function inferCycle(interval: string | undefined): 'monthly' | 'yearly' | 'none'
     return 'none';
 }
 
+console.log("Stripe Webhook Function Loaded");
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     const signature = req.headers.get("Stripe-Signature");
+    
+    if (!signature) {
+         console.error("No Stripe-Signature header found");
+         return new Response("Missing Stripe-Signature", { status: 400, headers: corsHeaders });
+    }
+
     const body = await req.text();
     
-    // SECRETS
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -43,27 +60,24 @@ serve(async (req) => {
 
     if (!stripeKey || !webhookSecret || !supabaseUrl || !serviceKey) {
          console.error("Missing Environment Variables");
-         return new Response("Configuration Error", { status: 500 });
+         return new Response("Configuration Error", { status: 500, headers: corsHeaders });
     }
 
-    if (!signature) {
-         return new Response("Missing signature", { status: 400 });
-    }
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
-
-    // 1. VERIFY SIGNATURE
     let event;
     try {
         event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     } catch (err: any) {
         console.error(`Webhook signature verification failed: ${err.message}`);
-        return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+        return new Response(`Webhook Error: ${err.message}`, { status: 400, headers: corsHeaders });
     }
+
+    console.log(`Processing Event: ${event.type} [${event.id}]`);
 
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    // 2. IDEMPOTENCY CHECK (Pattern: Optimistic Insert -> Check Conflict)
+    // Idempotency
     const { error: insertError } = await supabaseAdmin.from('stripe_events').insert({
         id: event.id,
         type: event.type,
@@ -71,38 +85,72 @@ serve(async (req) => {
     });
 
     if (insertError) {
-        // Falls Insert fehlschlägt, prüfen wir, ob das Event wirklich schon existiert.
-        const { data: existing } = await supabaseAdmin
-            .from('stripe_events')
-            .select('id')
-            .eq('id', event.id)
-            .maybeSingle();
-
+        const { data: existing } = await supabaseAdmin.from('stripe_events').select('id').eq('id', event.id).maybeSingle();
         if (existing) {
              return new Response(JSON.stringify({ received: true, status: 'already_processed' }), { 
-                headers: { "Content-Type": "application/json" } 
+                headers: { ...corsHeaders, "Content-Type": "application/json" } 
             });
         }
-        
-        // Echter DB Fehler (z.B. Connection lost) -> 500 für Retry
-        console.error("DB Insert Error:", insertError);
-        return new Response("Database Insert Error", { status: 500 });
+        return new Response("Database Insert Error", { status: 500, headers: corsHeaders });
     }
 
-    // 3. PROCESS EVENT
     try {
         
-        // --- A. CHECKOUT SESSION COMPLETED ---
+        // --- A. CHECKOUT SESSION COMPLETED (MAPPING ONLY) ---
         if (event.type === 'checkout.session.completed') {
              const session = event.data.object;
              
-             // USER MAPPING
-             let userId = session.client_reference_id || session.metadata?.user_id;
+             // 1. RECOVER STRIPE CUSTOMER ID
+             // If payment link was "payment" mode, session.customer might be null.
+             let stripeCustomerId = session.customer;
 
-             // EMAIL FALLBACK (Nur wenn profiles.email sicher existiert)
+             if (!stripeCustomerId) {
+                 console.log(`[WARN] Session ${session.id} has no customer. Attempting recovery...`);
+                 
+                 // Strategy A: Via Payment Intent
+                 if (session.payment_intent) {
+                     try {
+                         const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
+                         if (pi.customer) {
+                             stripeCustomerId = pi.customer;
+                             console.log(`[INFO] Recovered customer ${stripeCustomerId} via PaymentIntent.`);
+                         }
+                     } catch (e) { console.error("PI fetch failed", e); }
+                 }
+
+                 // Strategy B: Via Email (Find or Create)
+                 if (!stripeCustomerId) {
+                     const email = session.customer_details?.email || session.customer_email;
+                     if (email) {
+                         const existing = await stripe.customers.list({ email, limit: 1 });
+                         if (existing.data.length > 0) {
+                             stripeCustomerId = existing.data[0].id;
+                             console.log(`[INFO] Recovered customer ${stripeCustomerId} via Email lookup.`);
+                         } else {
+                             const newCus = await stripe.customers.create({
+                                 email,
+                                 name: session.customer_details?.name || 'Customer',
+                                 metadata: { source: 'webhook_recovery' }
+                             });
+                             stripeCustomerId = newCus.id;
+                             console.log(`[INFO] Created new customer ${stripeCustomerId} fallback.`);
+                         }
+                     }
+                 }
+             }
+
+             if (!stripeCustomerId) {
+                 throw new Error(`Could not determine Stripe Customer ID for session ${session.id}`);
+             }
+
+             // 2. FIND LOCAL USER ID
+             let userId = session.client_reference_id 
+                        || session.metadata?.user_id 
+                        || session.subscription_details?.metadata?.user_id;
+
+             // Email Fallback
              if (!userId && (session.customer_details?.email || session.customer_email)) {
                  const email = session.customer_details?.email || session.customer_email;
-                 console.log(`Fallback: Lookup user by email: ${email}`);
                  const { data: userProfile } = await supabaseAdmin
                     .from('profiles')
                     .select('id')
@@ -117,27 +165,29 @@ serve(async (req) => {
                  let priceId = null;
                  let cycle = 'none';
 
-                 // Fetch 'fresh' subscription data
+                 // Handle Subscription Mode vs Payment Mode
                  if (session.subscription) {
                      subscription = await stripe.subscriptions.retrieve(session.subscription as string);
                      priceId = subscription.items.data[0]?.price?.id;
                      cycle = inferCycle(subscription.items.data[0]?.price?.recurring?.interval);
+                 } else {
+                     console.warn(`[WARN] Session ${session.id} is NOT a subscription (mode=${session.mode}). treating as Active License.`);
+                     // If it's a one-time payment, we set it as Active (Lifetime or Manual Expiry)
+                     cycle = 'none'; // Or 'yearly' if you want to fake it
                  }
 
-                 // UPDATE PROFILE WITH STRIPE CUSTOMER ID
-                 // This links the Stripe Customer to the Supabase User for future syncs
-                 if (session.customer) {
-                     await supabaseAdmin.from('profiles').update({
-                         stripe_customer_id: session.customer
-                     }).eq('id', userId);
-                 }
+                 // Update Profile with verified Stripe ID
+                 await supabaseAdmin.from('profiles').update({
+                     stripe_customer_id: stripeCustomerId
+                 }).eq('id', userId);
 
-                 // Upsert License
+                 // UPDATE LICENSE
                  const { error: upsertError } = await supabaseAdmin.from('licenses').upsert({
                      user_id: userId,
-                     stripe_customer_id: session.customer,
-                     stripe_subscription_id: session.subscription,
+                     stripe_customer_id: stripeCustomerId,
+                     stripe_subscription_id: session.subscription || null,
                      stripe_price_id: priceId,
+                     // If subscription exists, use its status. If one-time payment, force 'active'.
                      status: subscription ? mapStripeStatus(subscription.status) : 'active',
                      billing_cycle: cycle,
                      current_period_end: subscription ? new Date(subscription.current_period_end * 1000).toISOString() : null,
@@ -146,45 +196,29 @@ serve(async (req) => {
 
                  if (upsertError) throw upsertError;
 
-                 // Create Invoice Record
-                 await supabaseAdmin.from('invoices').insert({
-                    user_id: userId,
-                    amount: session.amount_total ? session.amount_total / 100 : 0,
-                    currency: session.currency ? session.currency.toUpperCase() : 'EUR',
-                    status: 'paid',
-                    project_name: 'Subscription Payment',
-                    stripe_invoice_id: session.invoice || `sess_${session.id}`, // Fallback ID
-                    invoice_hosted_url: null 
-                 });
              } else {
-                 console.warn(`[Webhook] Unmapped User for Session ${session.id}. Ignoring.`);
-                 // WICHTIG: Return 200, um Retries bei Logikfehlern zu stoppen.
-                 return new Response(JSON.stringify({ received: true, status: 'ignored_no_user' }), { headers: { "Content-Type": "application/json" } });
+                 console.warn(`[Webhook] Unmapped User for Session ${session.id}.`);
              }
         }
 
-        // --- B. CUSTOMER UPDATED (Source of Truth Sync) ---
+        // --- B. CUSTOMER UPDATED ---
         if (event.type === 'customer.updated') {
             const customer = event.data.object;
-            
-            // Map Stripe Address to our BillingAddress structure
-            const billingAddress = {
-                street: customer.address?.line1 || '',
-                city: customer.address?.city || '',
-                zip: customer.address?.postal_code || '',
-                country: customer.address?.country || '',
-                companyName: customer.name || '', // Stripe 'Name' is usually Company Name for businesses
-                vatId: customer.tax_ids?.data?.[0]?.value || '' // Simplification, strictly usually requires expansion
-            };
+            // Only update if we have meaningful data
+            if (customer.address || customer.name) {
+                const billingAddress = {
+                    street: customer.address?.line1 || '',
+                    city: customer.address?.city || '',
+                    zip: customer.address?.postal_code || '',
+                    country: customer.address?.country || '',
+                    companyName: customer.name || '',
+                    vatId: customer.tax_ids?.data?.[0]?.value || ''
+                };
 
-            // Sync to Supabase Profile
-            const { error: syncError } = await supabaseAdmin
-                .from('profiles')
-                .update({ billing_address: billingAddress })
-                .eq('stripe_customer_id', customer.id);
-
-            if (syncError) {
-                console.warn(`[Webhook] Failed to sync address for customer ${customer.id}`, syncError);
+                await supabaseAdmin
+                    .from('profiles')
+                    .update({ billing_address: billingAddress })
+                    .eq('stripe_customer_id', customer.id);
             }
         }
 
@@ -228,11 +262,11 @@ serve(async (req) => {
             }
         }
 
-        // --- E. INVOICE PAYMENT SUCCEEDED ---
+        // --- E. INVOICE PAYMENT SUCCEEDED (SINGLE SOURCE OF TRUTH FOR INVOICES) ---
         if (event.type === 'invoice.payment_succeeded') {
             const invoice = event.data.object;
-            if (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_create') {
-                 
+            // Check reasons: subscription_create, subscription_cycle, subscription_update
+            if (invoice.billing_reason && invoice.billing_reason.startsWith('subscription')) {
                  const { data: license } = await supabaseAdmin
                     .from('licenses')
                     .select('user_id')
@@ -240,7 +274,6 @@ serve(async (req) => {
                     .maybeSingle();
 
                  if (license) {
-                     // Check Duplicate Invoice via ID
                      const { data: existingInv } = await supabaseAdmin
                         .from('invoices')
                         .select('id')
@@ -253,7 +286,7 @@ serve(async (req) => {
                             amount: invoice.amount_paid / 100,
                             currency: invoice.currency.toUpperCase(),
                             status: 'paid',
-                            project_name: 'Subscription Renewal',
+                            project_name: 'Subscription Payment',
                             stripe_invoice_id: invoice.id,
                             invoice_pdf_url: invoice.invoice_pdf,
                             invoice_hosted_url: invoice.hosted_invoice_url
@@ -278,7 +311,7 @@ serve(async (req) => {
                     amount: invoice.amount_due / 100,
                     currency: invoice.currency.toUpperCase(),
                     status: 'open',
-                    project_name: 'Failed Renewal',
+                    project_name: 'Failed Payment',
                     stripe_invoice_id: invoice.id,
                     invoice_pdf_url: invoice.invoice_pdf,
                     invoice_hosted_url: invoice.hosted_invoice_url
@@ -290,22 +323,18 @@ serve(async (req) => {
              }
         }
 
-        // Mark as processed
         await supabaseAdmin.from('stripe_events').update({ processed_at: new Date().toISOString() }).eq('id', event.id);
 
     } catch (err: any) {
-        console.error(`Processing Logic Error for Event ${event.id}:`, err);
+        console.error(`Logic Error for Event ${event.id}:`, err);
         await supabaseAdmin.from('stripe_events').update({ processing_error: err.message }).eq('id', event.id);
-        
-        // Strategie: Echte Processing Errors (z.B. Syntaxfehler im Code) -> 500 Return, damit Stripe es fixen kann wenn wir deployen.
-        return new Response(JSON.stringify({ error: "Processing failed, requesting retry." }), { status: 500 });
+        return new Response(JSON.stringify({ error: "Processing logic failed", detail: err.message }), { status: 200, headers: corsHeaders });
     }
 
-    return new Response(JSON.stringify({ received: true }), { headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ received: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err: any) {
     console.error("Critical Webhook Error:", err.message);
-    const status = err.message.includes("signature") ? 400 : 500;
-    return new Response(err.message, { status: status });
+    return new Response(err.message, { status: 500, headers: corsHeaders });
   }
 })
