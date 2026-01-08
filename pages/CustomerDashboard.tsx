@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, CalendarClock, XCircle } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -408,8 +408,32 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
 };
 
 // --- VIEW 1: OVERVIEW ---
-const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoice[] }> = ({ user, licenses, invoices }) => {
+const OverviewView: React.FC<{ 
+    user: User, 
+    licenses: License[], 
+    invoices: Invoice[],
+    onCancel: () => void,
+    canceling: boolean
+}> = ({ user, licenses, invoices, onCancel, canceling }) => {
     const activeLicense = licenses[0];
+
+    const daysRemaining = useMemo(() => {
+        if (!activeLicense?.validUntil) return null;
+        const end = new Date(activeLicense.validUntil).getTime();
+        const now = Date.now();
+        const diff = end - now;
+        return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    }, [activeLicense]);
+
+    const isActive = activeLicense?.status === SubscriptionStatus.ACTIVE;
+    const hasStripeSub = activeLicense?.stripeSubscriptionId?.startsWith('sub_');
+    const alreadyCanceled = activeLicense?.cancelAtPeriodEnd;
+
+    const canCancel = isActive && hasStripeSub && !alreadyCanceled;
+
+    let btnLabel = "Cancel Subscription";
+    if (alreadyCanceled) btnLabel = "Cancellation scheduled";
+    else if (isActive && !hasStripeSub) btnLabel = "Syncing...";
 
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -425,33 +449,60 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Current License</h3>
                     {activeLicense ? (
-                        <div className="flex items-center gap-4">
-                            <div className={`p-4 rounded-xl ${activeLicense.status === SubscriptionStatus.TRIAL ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                                <Zap className="w-8 h-8" />
+                        <>
+                            <div className="flex items-center gap-4">
+                                <div className={`p-4 rounded-xl ${activeLicense.status === SubscriptionStatus.TRIAL ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                                    <Zap className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-xl text-gray-900">{activeLicense.planTier}</p>
+                                    <div className="flex gap-2 items-center mt-1">
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                            activeLicense.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                                        }`}>
+                                            {activeLicense.status}
+                                        </span>
+                                        {activeLicense.cancelAtPeriodEnd && (
+                                            <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full">Expir.</span>
+                                        )}
+                                    </div>
+                                    
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        {activeLicense.validUntil ? `Valid until ${new Date(activeLicense.validUntil).toLocaleDateString()}` : 'No expiration'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="font-bold text-xl text-gray-900">{activeLicense.planTier}</p>
-                                <div className="flex gap-2 items-center mt-1">
-                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                         activeLicense.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                                     }`}>
-                                        {activeLicense.status}
-                                    </span>
-                                    {activeLicense.cancelAtPeriodEnd && (
-                                        <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full">Expir.</span>
-                                    )}
+
+                            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center gap-4">
+                                <div className="bg-gray-50 rounded-lg p-3 text-center min-w-[90px] border border-gray-100">
+                                     <span className="block text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">
+                                        {alreadyCanceled ? 'Days Left' : 'Remaining'}
+                                     </span>
+                                     <span className="block text-xl font-black text-gray-900 leading-none">
+                                         {daysRemaining !== null ? `${daysRemaining}d` : '—'}
+                                     </span>
                                 </div>
                                 
-                                <p className="text-xs text-gray-500 mt-2">
-                                    {activeLicense.validUntil ? `Valid until ${new Date(activeLicense.validUntil).toLocaleDateString()}` : 'No expiration'}
-                                </p>
+                                <button
+                                    onClick={onCancel}
+                                    disabled={!canCancel || canceling}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold border transition-colors ${
+                                        canCancel 
+                                        ? 'border-red-100 text-red-600 hover:bg-red-50' 
+                                        : 'border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50'
+                                    }`}
+                                >
+                                    {canceling ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
+                                    {alreadyCanceled ? <CalendarClock className="w-4 h-4"/> : canCancel ? <XCircle className="w-4 h-4"/> : null}
+                                    {btnLabel}
+                                </button>
                             </div>
-                        </div>
+                        </>
                     ) : (
                         <p className="text-sm text-gray-500">No active license found.</p>
                     )}
-                    <Link to="/dashboard/subscription" className="mt-8 flex items-center justify-center gap-2 w-full py-2.5 bg-gray-900 text-white rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors">
-                        Manage Subscription <ChevronRight className="w-4 h-4" />
+                    <Link to="/dashboard/subscription" className="mt-4 block text-center w-full py-2 text-brand-500 font-bold text-sm hover:underline">
+                        View Details
                     </Link>
                 </div>
 
@@ -491,11 +542,17 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
 };
 
 // --- VIEW 2: SUBSCRIPTION & INVOICES ---
-const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: Invoice[], refresh: () => void }> = ({ user, licenses, invoices, refresh }) => {
+const SubscriptionView: React.FC<{ 
+    user: User, 
+    licenses: License[], 
+    invoices: Invoice[], 
+    refresh: () => void,
+    onCancel: () => void,
+    canceling: boolean
+}> = ({ user, licenses, invoices, refresh, onCancel, canceling }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
-    const [canceling, setCanceling] = useState(false);
 
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
@@ -563,31 +620,6 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
             updateLicense();
         }
     }, [searchParams, user.id, setSearchParams, refresh]);
-
-    // Handle Cancel
-    const handleCancel = async () => {
-        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period.")) return;
-        setCanceling(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error("No session");
-
-            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
-                body: {},
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            });
-
-            if (error || !data.success) throw new Error(data?.error || "Cancellation failed");
-            
-            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
-            refresh();
-        } catch (err: any) {
-            console.error(err);
-            alert("Could not cancel subscription. Please try again.");
-        } finally {
-            setCanceling(false);
-        }
-    };
 
     if (processing) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
 
@@ -665,7 +697,7 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                     {/* Cancel Button */}
                     {activeLicense?.status === SubscriptionStatus.ACTIVE && !activeLicense?.cancelAtPeriodEnd && (
                         <button 
-                             onClick={handleCancel}
+                             onClick={onCancel}
                              disabled={canceling || !hasStripeId}
                              className={`px-6 py-2 border rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
                                 !hasStripeId 
@@ -841,6 +873,31 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
 export const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
     const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user!);
+    const [canceling, setCanceling] = useState(false);
+
+    const handleCancel = async () => {
+        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period.")) return;
+        setCanceling(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("No session");
+
+            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+                body: {},
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+
+            if (error || !data.success) throw new Error(data?.error || "Cancellation failed");
+            
+            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
+            refresh();
+        } catch (err: any) {
+            console.error(err);
+            alert("Could not cancel subscription. Please try again.");
+        } finally {
+            setCanceling(false);
+        }
+    };
 
     if (!user) return <Navigate to="/login" />;
     if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /></div>;
@@ -848,8 +905,8 @@ export const CustomerDashboard: React.FC = () => {
     return (
         <div className="pb-20">
             <Routes>
-                <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} />} />
-                <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} />} />
+                <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} onCancel={handleCancel} canceling={canceling} />} />
+                <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} onCancel={handleCancel} canceling={canceling} />} />
                 <Route path="settings" element={<SettingsView user={user} billingAddress={billingAddress} />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
