@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, Play } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -510,7 +510,6 @@ const DebugView: React.FC = () => {
             .limit(10);
         
         // 2. Audit Logs (Limit 10 as requested)
-        // This table 'audit_logs' must be created by the SQL script below for Edge Functions to write to it.
         let logQuery = supabase
             .from('audit_logs')
             .select('*')
@@ -524,7 +523,6 @@ const DebugView: React.FC = () => {
         const { data: lData, error: lError } = await logQuery;
 
         // 3. Auth Logs (Limit 10 as requested)
-        // Requires View 'auth_logs_view'
         const { data: aData, error: aError } = await supabase
             .from('auth_logs_view' as any)
             .select('*')
@@ -547,6 +545,21 @@ const DebugView: React.FC = () => {
 
         setLoading(false);
     };
+    
+    // Generates a test event by updating user metadata (triggers auth log)
+    const handleGenerateTestEvent = async () => {
+        setLoading(true);
+        try {
+            await supabase.auth.updateUser({ data: { last_debug_check: new Date().toISOString() } });
+            await new Promise(r => setTimeout(r, 1000)); // Wait for propagation
+            await refresh();
+            setActiveTab('auth');
+        } catch (e) {
+            alert("Could not trigger test event.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleCopyAll = async () => {
         setCopying(true);
@@ -568,7 +581,8 @@ const DebugView: React.FC = () => {
         count > 0 ? "bg-gray-100 text-gray-900 px-2 py-0.5 rounded-full text-xs font-bold" : "hidden";
 
     // --- SQL SETUP HELP ---
-    const showSqlHelp = authLogsError === "MISSING_VIEW" || auditLogsError === "MISSING_TABLE" || (logs.length === 0 && authLogs.length === 0 && events.length === 0);
+    // Only show help if there is a concrete ERROR (missing table), not just emptiness.
+    const showSqlHelp = authLogsError === "MISSING_VIEW" || auditLogsError === "MISSING_TABLE";
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
@@ -588,7 +602,7 @@ const DebugView: React.FC = () => {
                 </div>
             </div>
 
-            {/* SQL SETUP INSTRUCTION BOX (Visible if data missing) */}
+            {/* SQL SETUP INSTRUCTION BOX (Visible only on ERROR) */}
             {showSqlHelp && !loading && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8 text-sm text-amber-900">
                     <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Database className="w-5 h-5"/> Database Setup Required</h3>
@@ -596,7 +610,10 @@ const DebugView: React.FC = () => {
                         Supabase logs are secure by default. To make them visible here, you must run this SQL script once in your Supabase Dashboard.
                     </p>
                     <div className="bg-white border border-amber-300 rounded p-4 font-mono text-xs overflow-x-auto text-gray-600 select-all">
-<pre>{`-- 1. Create Audit Logs Table (for Edge Functions)
+<pre>{`-- 1. Tabelle reparieren (NOT NULL entfernen)
+alter table public.audit_logs alter column target_user_id drop not null;
+
+-- 2. Tabelle erstellen (falls noch nicht da)
 create table if not exists public.audit_logs (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -606,17 +623,26 @@ create table if not exists public.audit_logs (
   details jsonb,
   is_error boolean default false
 );
+
 alter table public.audit_logs enable row level security;
+
+-- WICHTIG: Alte Policies löschen
+drop policy if exists "Admins can view audit logs" on public.audit_logs;
+drop policy if exists "Service role can insert audit logs" on public.audit_logs;
+
+-- Neue Policies anlegen
 create policy "Admins can view audit logs" on public.audit_logs for select to authenticated using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
 );
+
 create policy "Service role can insert audit logs" on public.audit_logs for insert to service_role with check (true);
 
--- 2. Create Auth Logs View (for Native Supabase Auth Events)
+-- 3. Auth Logs View (Update)
 create or replace view public.auth_logs_view as
   select id, created_at, payload->>'action' as action, payload->>'actor_email' as email, payload, payload->>'type' as type
   from auth.audit_log_entries
   order by created_at desc;
+
 grant select on public.auth_logs_view to authenticated;
 grant select on public.auth_logs_view to service_role;`}</pre>
                     </div>
@@ -669,7 +695,12 @@ grant select on public.auth_logs_view to service_role;`}</pre>
                          {auditLogsError ? (
                              <div className="p-12 text-center text-red-500">Error: Table 'audit_logs' is missing. Run SQL above.</div>
                          ) : logs.length === 0 ? (
-                             <div className="p-12 text-center text-gray-400">No logs found yet. Run an action to generate logs.</div>
+                             <div className="p-12 text-center text-gray-400 flex flex-col items-center">
+                                 <p className="mb-4">No system logs found yet.</p>
+                                 <button onClick={handleGenerateTestEvent} className="bg-gray-100 text-gray-600 px-4 py-2 rounded text-sm font-bold hover:bg-gray-200 flex items-center gap-2">
+                                     <Play className="w-4 h-4"/> Generate Auth Log
+                                 </button>
+                             </div>
                          ) : (
                              <div className="divide-y divide-gray-100">
                                  {logs.map(log => {
@@ -713,7 +744,14 @@ grant select on public.auth_logs_view to service_role;`}</pre>
                          </div>
                      ) : (
                         <div className="overflow-y-auto max-h-[600px]">
-                             {authLogs.length === 0 ? <div className="p-12 text-center text-gray-400">No auth logs found.</div> : (
+                             {authLogs.length === 0 ? (
+                                <div className="p-12 text-center text-gray-400 flex flex-col items-center">
+                                    <p className="mb-4">No auth logs found.</p>
+                                    <button onClick={handleGenerateTestEvent} className="bg-brand-50 text-brand-600 px-4 py-2 rounded text-sm font-bold hover:bg-brand-100 flex items-center gap-2">
+                                        <Play className="w-4 h-4"/> Force Auth Event
+                                    </button>
+                                </div>
+                             ) : (
                                  <div className="divide-y divide-gray-100">
                                      {authLogs.map((log: any) => (
                                          <div key={log.id} className="p-4 hover:bg-gray-50 text-sm">
