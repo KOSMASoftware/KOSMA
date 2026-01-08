@@ -525,6 +525,7 @@ Da die Namen der lokalen Dateien von den deployten Funktionsnamen (Slugs) in Sup
 | :--- | :--- | :--- |
 | `supabase/functions/webhook-handler/index.ts` | **`dynamic-endpoint`** | Verarbeitet erfolgreiche Zahlungen (wird vom Frontend nach Checkout aufgerufen). |
 | `supabase/functions/cancel-subscription/index.ts` | **`swift-action`** | Logik für die Kündigung (wird beim Klick auf "Cancel" aufgerufen). |
+| `supabase/functions/create-billing-portal-session/index.ts` | **`rapid-handler`** | Erstellt Stripe Customer Portal Session (für "Manage Payment Methods"). |
 | `supabase/functions/system-health/index.ts` | **`system-health`** | Monitoring-Endpunkt für Health-Checks. |
 
 **Hinweis:** `stripe-webhook` läuft im Hintergrund und taucht in dieser spezifischen Liste der Frontend-aufrufbaren Funktionen ggf. nicht auf, muss aber als `stripe-webhook` deployed sein.

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, CheckCircle as LucideCheckCircle, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -42,13 +42,13 @@ const DashboardTabs = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
-                <Settings className="w-4 h-4" /> Account settings
+                <Settings className="w-4 h-4" /> Account Settings
             </Link>
         </div>
     );
 };
 
-// --- DATA HOOK (STRICT SUPABASE MODE) ---
+// --- DATA HOOK (No Changes to Logic) ---
 const useCustomerData = (user: User) => {
     const [loading, setLoading] = useState(true);
     const [licenses, setLicenses] = useState<License[]>([]);
@@ -70,7 +70,6 @@ const useCustomerData = (user: User) => {
 
                 if (licError) console.error("License Fetch Error:", licError);
                 
-                // RETRY LOGIC
                 if ((!licData || licData.length === 0) && retryCount < 3) {
                      await new Promise(r => setTimeout(r, 600)); 
                      return fetchData(retryCount + 1);
@@ -86,9 +85,7 @@ const useCustomerData = (user: User) => {
 
                 if (licData && licData.length > 0) {
                      const mappedLicenses = licData.map((l: any) => {
-                        // V2 LOGIC: Effective Valid Until
                         const effectiveValidUntil = l.admin_valid_until_override || l.current_period_end || l.valid_until;
-
                         return {
                             id: l.id,
                             userId: l.user_id,
@@ -142,7 +139,6 @@ const useCustomerData = (user: User) => {
                         amount: i.amount,
                         currency: 'EUR',
                         status: i.status,
-                        // Fix: Support both new PDF URL and fallback
                         pdfUrl: i.invoice_pdf_url || i.invoice_hosted_url || '#',
                         projectName: i.project_name
                     })));
@@ -162,7 +158,7 @@ const useCustomerData = (user: User) => {
 };
 
 
-// --- VIEWS ---
+// --- VIEW COMPONENTS ---
 
 const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, userId: string }> = ({ initialAddress, userId }) => {
     const [isEditing, setIsEditing] = useState(!initialAddress);
@@ -254,7 +250,7 @@ const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, user
     );
 };
 
-// ... PricingSection & Plans logic remains same ...
+// ... PricingSection Helper ...
 const getTierLevel = (tier: PlanTier) => {
     switch (tier) {
         case PlanTier.FREE: return 0;
@@ -411,8 +407,91 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
     );
 };
 
-const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
-    const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user);
+// --- VIEW 1: OVERVIEW ---
+const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoice[] }> = ({ user, licenses, invoices }) => {
+    const activeLicense = licenses[0];
+
+    return (
+        <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center mb-10">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.name}</h1>
+                <p className="text-gray-500">Your production hub overview.</p>
+            </div>
+            
+            <DashboardTabs />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* License Status Card */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Current License</h3>
+                    {activeLicense ? (
+                        <div className="flex items-center gap-4">
+                            <div className={`p-4 rounded-xl ${activeLicense.status === SubscriptionStatus.TRIAL ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                                <Zap className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-xl text-gray-900">{activeLicense.planTier}</p>
+                                <div className="flex gap-2 items-center mt-1">
+                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                         activeLicense.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                                     }`}>
+                                        {activeLicense.status}
+                                    </span>
+                                    {activeLicense.cancelAtPeriodEnd && (
+                                        <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full">Expir.</span>
+                                    )}
+                                </div>
+                                
+                                <p className="text-xs text-gray-500 mt-2">
+                                    {activeLicense.validUntil ? `Valid until ${new Date(activeLicense.validUntil).toLocaleDateString()}` : 'No expiration'}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500">No active license found.</p>
+                    )}
+                    <Link to="/dashboard/subscription" className="mt-8 flex items-center justify-center gap-2 w-full py-2.5 bg-gray-900 text-white rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors">
+                        Manage Subscription <ChevronRight className="w-4 h-4" />
+                    </Link>
+                </div>
+
+                {/* Recent Invoices Preview */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Latest Invoices</h3>
+                    {invoices.length > 0 ? (
+                        <ul className="space-y-4 flex-1">
+                            {invoices.slice(0, 2).map(inv => (
+                                <li key={inv.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-gray-500">{new Date(inv.date).toLocaleDateString()}</span>
+                                        <span className="font-bold text-gray-900">{inv.amount.toFixed(2)} €</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${
+                                            inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                        }`}>
+                                            {inv.status}
+                                        </span>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-sm text-gray-400 italic">
+                            No invoices yet.
+                        </div>
+                    )}
+                    <Link to="/dashboard/subscription" className="mt-6 block text-center py-2 border border-gray-200 rounded-lg font-bold text-sm hover:bg-gray-50 text-gray-600">
+                        View All Invoices
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- VIEW 2: SUBSCRIPTION & INVOICES ---
+const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: Invoice[], refresh: () => void }> = ({ user, licenses, invoices, refresh }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
@@ -421,37 +500,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
 
-    // --- HANDLE CANCEL SUBSCRIPTION (V2) ---
-    const handleCancel = async () => {
-        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period, but you will not be charged again.")) {
-            return;
-        }
-        setCanceling(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error("No session");
-
-            // CALL NEW EDGE FUNCTION with correct slug and EMPTY body for consistent POST
-            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
-                body: {},
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            });
-
-            if (error || !data.success) {
-                throw new Error(data?.error || error?.message || "Cancellation failed");
-            }
-
-            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
-            refresh();
-        } catch (err: any) {
-            console.error(err);
-            alert("Could not cancel subscription. Please try again or contact support.");
-        } finally {
-            setCanceling(false);
-        }
-    };
-
-    // --- HANDLE RETURN FROM STRIPE ---
+    // Handle Return from Stripe Purchase
     useEffect(() => {
         const stripeSuccess = searchParams.get('stripe_success');
         const checkoutStatus = searchParams.get('checkout');
@@ -472,8 +521,6 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
              } catch(e) { console.error("Session recovery failed", e); }
         }
 
-        if (isSuccess && (!tier || !cycle)) return;
-
         if (isSuccess && tier && cycle) {
             const updateLicense = async () => {
                 setProcessing(true);
@@ -492,29 +539,23 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         }
                     }
 
-                    if (!token) {
-                        alert("Session expired. Please log in again to activate your license.");
-                        setProcessing(false);
-                        return;
-                    }
+                    if (!token) throw new Error("No session");
 
                     const projectName = (rawProjectName && rawProjectName.startsWith('cs_test')) 
                         ? `Project (Session ${rawProjectName.substring(8, 14)})` 
                         : (rawProjectName || 'New Production');
 
-                    const { error } = await supabase.functions.invoke('dynamic-endpoint', {
+                    await supabase.functions.invoke('dynamic-endpoint', {
                         body: { tier, cycle, projectName },
                         headers: { Authorization: `Bearer ${token}` }
                     });
-
-                    if (error) throw error;
 
                     sessionStorage.removeItem('pending_purchase');
                     setSuccessMessage(true);
                     setSearchParams({}); 
                     refresh(); 
                 } catch (err) {
-                    console.error("Success handling failed via Edge Function:", err);
+                    console.error("Success handling failed:", err);
                 } finally {
                     setProcessing(false);
                 }
@@ -523,30 +564,55 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
         }
     }, [searchParams, user.id, setSearchParams, refresh]);
 
-    if (loading || processing) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
+    // Handle Cancel
+    const handleCancel = async () => {
+        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period.")) return;
+        setCanceling(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("No session");
+
+            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+                body: {},
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+
+            if (error || !data.success) throw new Error(data?.error || "Cancellation failed");
+            
+            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
+            refresh();
+        } catch (err: any) {
+            console.error(err);
+            alert("Could not cancel subscription. Please try again.");
+        } finally {
+            setCanceling(false);
+        }
+    };
+
+    if (processing) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
-            <div className="mb-10">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Billing & Subscription</h1>
-                <p className="text-gray-500">Manage your active licenses, invoices, and billing details.</p>
+        <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-10 text-center md:text-left">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Subscription & Invoices</h1>
+                <p className="text-gray-500">Manage your plan and view payment history.</p>
             </div>
 
             <DashboardTabs />
 
             {successMessage && (
                 <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-in zoom-in-95">
-                    <LucideCheckCircle className="w-8 h-8 text-green-500" />
+                    <Check className="w-8 h-8 text-green-500" />
                     <div>
-                        <h3 className="font-bold text-lg">Thank you! Your payment was successful.</h3>
-                        <p className="text-sm">Your {activeLicense?.planTier} license is now active.</p>
+                        <h3 className="font-bold text-lg">Payment successful!</h3>
+                        <p className="text-sm">Your license is now active.</p>
                     </div>
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                {/* Active Plan Card */}
-                <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-8">
+            {/* Active Plan Card */}
+            <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm mb-12">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div>
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Active Plan</h2>
                         <div className="flex items-baseline gap-2">
@@ -555,7 +621,8 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                                 <span className="text-sm text-gray-500">{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
                             )}
                         </div>
-                        <div className="mt-3 flex gap-2">
+                        
+                        <div className="mt-3 flex flex-wrap gap-2">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${
                                 activeLicense?.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-800' :
                                 activeLicense?.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-800' :
@@ -566,28 +633,28 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                             </span>
                         </div>
                         
-                        {/* CANCELLATION WARNING */}
+                        {/* Cancellation State */}
                         {activeLicense?.cancelAtPeriodEnd && (
-                            <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2">
+                            <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2 max-w-md">
                                 <AlertCircle className="w-5 h-5 text-orange-600 shrink-0" />
                                 <div>
                                     <p className="text-sm font-bold text-orange-800">Canceled</p>
-                                    <p className="text-xs text-orange-700">Access remains valid until the period ends.</p>
+                                    <p className="text-xs text-orange-700">
+                                        Access remains valid until {activeLicense.validUntil ? new Date(activeLicense.validUntil).toLocaleDateString() : 'period end'}.
+                                    </p>
                                 </div>
                             </div>
                         )}
 
-                        <p className="text-sm text-gray-500 mt-2">
-                            {activeLicense?.validUntil 
-                                ? `Valid until: ${new Date(activeLicense.validUntil).toLocaleDateString()}`
-                                : 'No expiry date.'
-                            }
-                        </p>
-                        {activeLicense?.billingProjectName && (
-                            <p className="text-xs font-bold text-brand-500 mt-2 flex items-center gap-1">
-                                <Briefcase className="w-3 h-3" /> Project: {activeLicense.billingProjectName}
+                        {!activeLicense?.cancelAtPeriodEnd && (
+                            <p className="text-sm text-gray-500 mt-2">
+                                {activeLicense?.validUntil 
+                                    ? `Renewing on: ${new Date(activeLicense.validUntil).toLocaleDateString()}`
+                                    : 'No expiry date.'
+                                }
                             </p>
                         )}
+
                         {!hasStripeId && activeLicense?.status === SubscriptionStatus.ACTIVE && (
                             <p className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1">
                                 <Loader2 className="w-3 h-3 animate-spin" /> Syncing with payment provider...
@@ -595,6 +662,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         )}
                     </div>
                     
+                    {/* Cancel Button */}
                     {activeLicense?.status === SubscriptionStatus.ACTIVE && !activeLicense?.cancelAtPeriodEnd && (
                         <button 
                              onClick={handleCancel}
@@ -610,13 +678,11 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         </button>
                     )}
                 </div>
-
-                <BillingAddressCard initialAddress={billingAddress} userId={user.id} />
             </div>
 
             {/* Invoices Table */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-12">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <div className="p-6 border-b border-gray-100">
                     <h3 className="font-bold text-gray-900 flex items-center gap-2">
                         <FileText className="w-5 h-5 text-gray-400" /> Invoice History
                     </h3>
@@ -637,7 +703,9 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                                     <td className="px-6 py-4 text-gray-600">{new Date(inv.date).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 font-bold">{inv.amount.toFixed(2)} {inv.currency}</td>
                                     <td className="px-6 py-4">
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                            inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                        }`}>
                                             {inv.status.toUpperCase()}
                                         </span>
                                     </td>
@@ -666,83 +734,123 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                 currentTier={activeLicense?.planTier || PlanTier.FREE} 
                 currentCycle={activeLicense?.billingCycle || 'none'}
             />
+        </div>
+    );
+};
+
+// --- VIEW 3: SETTINGS VIEW ---
+const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null }> = ({ user, billingAddress }) => {
+    const [loadingPortal, setLoadingPortal] = useState(false);
+
+    const handleManagePaymentMethods = async () => {
+        setLoadingPortal(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Please log in again.");
+                return;
+            }
+
+            // --- CORRECTED: Use 'rapid-handler' slug ---
+            const { data, error } = await supabase.functions.invoke('rapid-handler', {
+                body: { returnUrl: window.location.href },
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+
+            if (error || !data?.url) {
+                console.error("Portal Error:", error || data);
+                alert("Could not open payment settings. You might not have an active Stripe customer account yet.");
+                return;
+            }
+
+            // Redirect to Stripe
+            window.location.href = data.url;
+        } catch (err) {
+            console.error(err);
+            alert("Something went wrong. Please try again later.");
+        } finally {
+            setLoadingPortal(false);
+        }
+    };
+
+    return (
+        <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-10 text-center md:text-left">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Account Settings</h1>
+                <p className="text-gray-500">Manage your address and payment methods.</p>
+            </div>
+
+            <DashboardTabs />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Billing Address (Moved here) */}
+                <div className="h-full">
+                    <BillingAddressCard initialAddress={billingAddress} userId={user.id} />
+                </div>
+
+                {/* Account & Payment Info */}
+                <div className="space-y-8">
+                    {/* Account Info */}
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+                            <Briefcase className="w-5 h-5 text-gray-400" /> Account Info
+                        </h3>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between border-b border-gray-50 pb-2">
+                                <span className="text-gray-500">Name</span>
+                                <span className="font-medium text-gray-900">{user.name}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-gray-50 pb-2">
+                                <span className="text-gray-500">Email</span>
+                                <span className="font-medium text-gray-900">{user.email}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Role</span>
+                                <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-xs">{user.role}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Payment Method - Portal Link */}
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-2">
+                            <CreditCard className="w-5 h-5 text-gray-400" /> Payment Method
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                            Update your credit card or payment details securely via Stripe.
+                        </p>
+
+                        <button 
+                            onClick={handleManagePaymentMethods}
+                            disabled={loadingPortal}
+                            className="w-full py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                            {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                            Change Payment Method
+                        </button>
+                    </div>
+                </div>
+            </div>
             
             <div className="h-20"></div>
         </div>
     );
 };
 
-// ... Overview & CustomerDashboard Wrapper ...
-const Overview: React.FC<{ user: User }> = ({ user }) => {
-    const { loading, licenses, invoices } = useCustomerData(user);
-    if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
-    const activeLicense = licenses[0];
-
-    return (
-        <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center mb-10">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.name}</h1>
-                <p className="text-gray-500">Your production hub.</p>
-            </div>
-            <DashboardTabs />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">License Status</h3>
-                    {activeLicense ? (
-                        <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-lg ${activeLicense.status === SubscriptionStatus.TRIAL ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                                <Zap className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="font-bold text-gray-900">{activeLicense.planTier} Plan</p>
-                                <p className="text-xs font-bold uppercase tracking-wider text-brand-500 mb-1">
-                                    {activeLicense.status}
-                                </p>
-                                {activeLicense.cancelAtPeriodEnd && (
-                                    <p className="text-[10px] text-orange-600 font-bold">Expires at period end</p>
-                                )}
-                                <p className="text-xs text-gray-500">
-                                    {activeLicense.validUntil ? `Valid until ${new Date(activeLicense.validUntil).toLocaleDateString()}` : 'No expiration'}
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="text-sm text-gray-500">No active license.</p>
-                    )}
-                    <Link to="/dashboard/subscription" className="mt-6 block text-center py-2 bg-brand-500 text-white rounded font-bold text-sm hover:bg-brand-600 transition-colors">
-                        {activeLicense?.status === SubscriptionStatus.TRIAL ? 'Upgrade Now' : 'Manage Subscription'}
-                    </Link>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Invoices</h3>
-                    {invoices.length > 0 ? (
-                        <ul className="space-y-2">
-                            {invoices.slice(0, 2).map(inv => (
-                                <li key={inv.id} className="text-sm flex justify-between">
-                                    <span className="text-gray-500">{new Date(inv.date).toLocaleDateString()}</span>
-                                    <span className="font-bold">{inv.amount} €</span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-gray-400">No invoices yet.</p>
-                    )}
-                    <Link to="/dashboard/subscription" className="mt-6 block text-center py-2 border border-gray-200 rounded font-bold text-sm hover:bg-gray-50">View All</Link>
-                </div>
-            </div>
-        </div>
-    );
-};
-
+// --- MAIN ROUTER COMPONENT ---
 export const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
+    const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user!);
+
     if (!user) return <Navigate to="/login" />;
+    if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /></div>;
+
     return (
         <div className="pb-20">
             <Routes>
-                <Route index element={<Overview user={user} />} />
-                <Route path="subscription" element={<SubscriptionView user={user} />} />
-                <Route path="settings" element={<div className="text-center py-20 text-gray-500">Account settings view</div>} />
+                <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} />} />
+                <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} />} />
+                <Route path="settings" element={<SettingsView user={user} billingAddress={billingAddress} />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </div>
