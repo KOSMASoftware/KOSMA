@@ -12,101 +12,76 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // 1. CORS Preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), { 
-          status: 405, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-  }
-
   try {
+    // 2. Setup & Auth Check
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
 
-    if (!supabaseUrl || !anonKey || !serviceKey || !stripeKey) {
-        throw new Error("Missing one or more required environment variables.");
+    if (!supabaseUrl || !serviceKey || !stripeKey) {
+        throw new Error("Missing Config");
     }
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-        return new Response(JSON.stringify({ error: "Missing auth token" }), { 
-            status: 401, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        });
-    }
-    const token = authHeader.replace("Bearer ", "");
+    if (!authHeader) throw new Error("Missing Token");
     
+    const token = authHeader.replace("Bearer ", "");
     const supabaseAuth = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } });
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
 
-    if (authError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { 
-            status: 401, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        });
-    }
+    if (authError || !user) throw new Error("Unauthorized");
 
+    // 3. Get License Info (Need Stripe Sub ID)
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
     const { data: license, error: licError } = await supabaseAdmin
         .from('licenses')
-        .select('stripe_subscription_id, cancel_at_period_end')
+        .select('stripe_subscription_id')
         .eq('user_id', user.id)
         .single();
 
-    if (licError || !license || !license.stripe_subscription_id) {
-        return new Response(JSON.stringify({ error: "No active subscription found or sync pending." }), { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        });
+    if (licError || !license?.stripe_subscription_id) {
+        throw new Error("No active subscription linked to this account.");
     }
 
-    if (license.cancel_at_period_end) {
-        return new Response(JSON.stringify({ success: true, message: "Subscription is already scheduled for cancellation." }), {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-    }
-
+    // 4. Call Stripe API (The ONLY action this function performs)
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
+    
+    console.log(`[Cancel] Requesting cancellation for Sub ID: ${license.stripe_subscription_id}`);
     
     const updatedSub = await stripe.subscriptions.update(license.stripe_subscription_id, {
         cancel_at_period_end: true
     });
 
-    const { error: updateError } = await supabaseAdmin.from('licenses').update({
-        cancel_at_period_end: true,
-        current_period_end: new Date(updatedSub.current_period_end * 1000).toISOString()
-    }).eq('user_id', user.id);
-
-    if (updateError) throw updateError;
-
+    // 5. Audit Log (We allow this write for tracking purposes, but NOT license state)
     await supabaseAdmin.from('audit_logs').insert({
         actor_user_id: user.id,
         actor_email: user.email,
-        action: 'CUSTOMER_CANCEL',
+        action: 'CANCEL_REQUEST_SENT',
         target_user_id: user.id,
         details: { 
-            stripe_subscription_id: license.stripe_subscription_id,
-            previous_cancel_state: false,
-            new_cancel_state: true,
-            period_end: new Date(updatedSub.current_period_end * 1000).toISOString()
+            stripe_id: license.stripe_subscription_id,
+            result: 'sent_to_stripe'
         }
     });
 
-    return new Response(JSON.stringify({ success: true }), {
+    // 6. Return Success (Frontend will now poll for the Webhook effect)
+    return new Response(JSON.stringify({ 
+        success: true, 
+        message: "Cancellation requested. Syncing with Stripe..." 
+    }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error: any) {
-    console.error("Cancel Error:", error);
+    console.error("Cancel Function Error:", error);
     return new Response(JSON.stringify({ success: false, error: error.message }), {
-        status: 500,
+        status: 400, // Client error usually
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

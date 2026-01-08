@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, Lock } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, Lock, RefreshCw } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -63,7 +63,7 @@ const useCustomerData = (user: User) => {
         const fetchData = async (retryCount = 0) => {
             if (retryCount === 0) setLoading(true);
             try {
-                // 1. Licenses & Profile
+                // 1. Licenses
                 const { data: licData, error: licError } = await supabase
                     .from('licenses')
                     .select('*')
@@ -71,11 +71,6 @@ const useCustomerData = (user: User) => {
 
                 if (licError) console.error("License Fetch Error:", licError);
                 
-                if ((!licData || licData.length === 0) && retryCount < 3) {
-                     await new Promise(r => setTimeout(r, 600)); 
-                     return fetchData(retryCount + 1);
-                }
-
                 const { data: profileData } = await supabase
                     .from('profiles')
                     .select('billing_address')
@@ -101,21 +96,6 @@ const useCustomerData = (user: User) => {
                             cancelAtPeriodEnd: l.cancel_at_period_end
                         };
                     });
-
-                    const priority = {
-                        [SubscriptionStatus.ACTIVE]: 1,
-                        [SubscriptionStatus.TRIAL]: 2,
-                        [SubscriptionStatus.PAST_DUE]: 3,
-                        [SubscriptionStatus.CANCELED]: 4,
-                        [SubscriptionStatus.NONE]: 5
-                    };
-
-                    mappedLicenses.sort((a, b) => {
-                        const pA = priority[a.status] || 99;
-                        const pB = priority[b.status] || 99;
-                        return pA - pB;
-                    });
-
                     setLicenses(mappedLicenses);
                 } else {
                     setLicenses([{
@@ -161,7 +141,6 @@ const useCustomerData = (user: User) => {
 
 // --- VIEW COMPONENTS ---
 
-// READ-ONLY Billing Address (Stripe is Source of Truth)
 const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null }> = ({ initialAddress }) => {
     const address = initialAddress || { street: '', city: '', zip: '', country: 'Germany', companyName: '', vatId: '' };
 
@@ -202,7 +181,6 @@ const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null }> = 
     );
 };
 
-// ... PricingSection Helper ...
 const getTierLevel = (tier: PlanTier) => {
     switch (tier) {
         case PlanTier.FREE: return 0;
@@ -235,12 +213,11 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                 return;
             }
             
-            // FIX: Pass User ID and Email to Stripe via URL Parameters
             const url = new URL(link);
             url.searchParams.set('client_reference_id', user.id);
             url.searchParams.set('prefilled_email', user.email);
 
-            sessionStorage.setItem('pending_purchase', JSON.stringify({ tier: planName, cycle: cycle }));
+            // Removed optimistic storage. Trusting the webhook.
             window.location.href = url.toString();
         } catch (e) {
             console.error("Redirect failed:", e);
@@ -371,7 +348,6 @@ const OverviewView: React.FC<{
         const validUntil = new Date(activeLicense.validUntil);
         const now = new Date();
 
-        // Normalize to Start of Day (00:00:00) to ensure strict day comparison
         const startOfValid = new Date(validUntil.getFullYear(), validUntil.getMonth(), validUntil.getDate());
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -389,7 +365,6 @@ const OverviewView: React.FC<{
             <DashboardTabs />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* License Status Card */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Current License</h3>
                     {activeLicense ? (
@@ -418,7 +393,6 @@ const OverviewView: React.FC<{
                             </div>
 
                             <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
-                                {/* DAYS REMAINING BOX */}
                                 <div className="bg-gray-50 rounded-lg p-3 text-center min-w-[120px] border border-gray-100">
                                      <span className="block text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">
                                         Remaining
@@ -443,7 +417,6 @@ const OverviewView: React.FC<{
                     )}
                 </div>
 
-                {/* Recent Invoices Preview */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Latest Invoices</h3>
                     {invoices.length > 0 ? (
@@ -499,85 +472,58 @@ const SubscriptionView: React.FC<{
         const isSuccess = stripeSuccess === 'true' || checkoutStatus === 'success';
 
         if (isSuccess) {
-            // CALL DYNAMIC ENDPOINT (webhook-handler) for Immediate Sync
-            const triggerSync = async () => {
-                const stored = sessionStorage.getItem('pending_purchase');
-                if (stored) {
-                    try {
-                        const { tier, cycle } = JSON.parse(stored);
-                        // Using 'dynamic-endpoint' as specified by the mapping rules
-                        await supabase.functions.invoke('dynamic-endpoint', {
-                            body: { tier, cycle }
-                        });
-                        console.log("Immediate Sync requested via dynamic-endpoint");
-                    } catch (e) { console.error("Sync trigger failed", e); }
-                    sessionStorage.removeItem('pending_purchase');
-                }
-            };
-            triggerSync();
-
+            // Start polling when returning from Stripe
             setIsPolling(true);
-            setSearchParams({});
+            
+            // Just trigger the "dummy" endpoint to acknowledge return, but we rely on the webhook
+             const { data: { session } } = supabase.auth.getSession().then(({data}) => {
+                 if(data.session) {
+                    supabase.functions.invoke('dynamic-endpoint', {
+                        body: { tier: 'na', cycle: 'na' }, // Dummy data, not used
+                        headers: { Authorization: `Bearer ${data.session.access_token}` }
+                    });
+                 }
+             });
         }
-    }, [searchParams, setSearchParams]);
+    }, [searchParams]);
 
-    // Polling Logic: Check for active license update
     useEffect(() => {
         if (!isPolling) return;
-
         const intervalId = setInterval(async () => {
-            refresh(); // Triggers data refetch in parent hook
-
-            // Check if license is now active or has stripe ID
-            const { data } = await supabase
-                .from('licenses')
-                .select('status')
-                .eq('user_id', user.id)
-                .single();
-
-            if (data?.status === 'active') {
+            refresh();
+            // Stop polling if we see a real stripe ID confirmed
+            if (activeLicense?.status === 'active' && activeLicense.stripeSubscriptionId?.startsWith('sub_')) {
                 setIsPolling(false);
+                setSearchParams({}); // Clear query params
             }
-        }, 2000); // Check every 2 seconds
+        }, 3000); // Check every 3 seconds
 
-        // Timeout after 60 seconds to stop polling
-        const timeoutId = setTimeout(() => {
-            setIsPolling(false);
-        }, 60000);
+        // Stop polling after 2 minutes max
+        const timeoutId = setTimeout(() => setIsPolling(false), 120000);
+        return () => { clearInterval(intervalId); clearTimeout(timeoutId); };
+    }, [isPolling, refresh, activeLicense, setSearchParams]);
 
-        return () => {
-            clearInterval(intervalId);
-            clearTimeout(timeoutId);
-        };
-    }, [isPolling, refresh, user.id]);
-
-    // Handle Cancel (Local to Subscription View)
     const handleCancel = async () => {
-        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period.")) return;
+        if (!confirm("Are you sure you want to cancel?")) return;
         setCanceling(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error("No session");
-
-            // CHANGE: 'cancel-subscription' renamed to 'swift-action' in deployment
             const { data, error } = await supabase.functions.invoke('swift-action', {
                 body: {},
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
-
             if (error || !data.success) throw new Error(data?.error || "Cancellation failed");
-            
-            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
+            alert("Subscription canceled.");
             refresh();
         } catch (err: any) {
             console.error(err);
-            alert("Could not cancel subscription. Please try again.");
+            alert("Could not cancel subscription. Please try again or contact support.");
         } finally {
             setCanceling(false);
         }
     };
 
-    // Logic for cancel button state
     const isActive = activeLicense?.status === SubscriptionStatus.ACTIVE;
     const isScheduled = activeLicense?.cancelAtPeriodEnd;
     
@@ -601,22 +547,13 @@ const SubscriptionView: React.FC<{
 
             <DashboardTabs />
 
+            {/* Syncing Banner */}
             {isPolling && (
-                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-pulse">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-in zoom-in-95 shadow-sm">
+                    <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
                     <div>
-                        <h3 className="font-bold text-lg">Processing Payment...</h3>
-                        <p className="text-sm">We are confirming your subscription with Stripe. This may take a moment.</p>
-                    </div>
-                </div>
-            )}
-            
-            {!isPolling && activeLicense?.status === 'active' && hasStripeId && (
-                 <div className="bg-green-50 border border-green-200 text-green-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-in zoom-in-95">
-                    <Check className="w-8 h-8 text-green-500" />
-                    <div>
-                        <h3 className="font-bold text-lg">Subscription Active</h3>
-                        <p className="text-sm">Your license is fully active.</p>
+                        <h3 className="font-bold text-lg">Payment Successful</h3>
+                        <p className="text-sm">We are syncing your data from Stripe. This may take a few seconds...</p>
                     </div>
                 </div>
             )}
@@ -665,15 +602,8 @@ const SubscriptionView: React.FC<{
                                 }
                             </p>
                         )}
-
-                        {!hasStripeId && activeLicense?.status === SubscriptionStatus.ACTIVE && (
-                            <p className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1">
-                                <Loader2 className="w-3 h-3 animate-spin" /> Syncing with payment provider...
-                            </p>
-                        )}
                     </div>
                     
-                    {/* Cancel Button (Always Visible, disabled via logic) */}
                     <button 
                             onClick={handleCancel}
                             disabled={canceling || cancelBtnDisabled}
@@ -873,7 +803,17 @@ export const CustomerDashboard: React.FC = () => {
         <div className="pb-20">
             <Routes>
                 <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} />} />
-                <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} />} />
+                <Route 
+                    path="subscription" 
+                    element={
+                        <SubscriptionView 
+                            user={user} 
+                            licenses={licenses} 
+                            invoices={invoices} 
+                            refresh={refresh} 
+                        />
+                    } 
+                />
                 <Route path="settings" element={<SettingsView user={user} billingAddress={billingAddress} refresh={refresh} />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
