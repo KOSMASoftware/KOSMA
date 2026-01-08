@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -67,6 +67,16 @@ const AdminTabs = () => {
                 }`}
             >
                 <Server className="w-4 h-4" /> System
+            </Link>
+            <Link 
+                to="/admin/debug" 
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    location.pathname === '/admin/debug' 
+                    ? 'border-brand-500 text-brand-600 bg-brand-50' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+                <Bug className="w-4 h-4" /> Debug
             </Link>
         </div>
     );
@@ -759,11 +769,9 @@ const UsersManagement: React.FC = () => {
   );
 };
 
-// --- VIEW 3: MARKETING INSIGHTS (Placeholder/Charts) ---
+// --- VIEW 3: MARKETING INSIGHTS ---
 const MarketingInsights: React.FC = () => {
     const { licenses } = useAdminData();
-    
-    // Calculate Plan Distribution
     const planData = useMemo(() => {
         const counts: Record<string, number> = { [PlanTier.FREE]: 0, [PlanTier.BUDGET]: 0, [PlanTier.COST_CONTROL]: 0, [PlanTier.PRODUCTION]: 0 };
         licenses.forEach(l => {
@@ -781,42 +789,23 @@ const MarketingInsights: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">Marketing Insights</h1>
                 <p className="text-gray-500">Analysis of subscription tiers and growth.</p>
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Plan Distribution Chart */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-[400px]">
-                    <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <PieChart className="w-5 h-5 text-gray-400" /> Active Plan Distribution
-                    </h3>
+                    <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2"><PieChart className="w-5 h-5 text-gray-400" /> Active Plan Distribution</h3>
                     <ResponsiveContainer width="100%" height="80%">
                         <PieChart>
-                            <Pie
-                                data={planData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={100}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {planData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={TIER_COLORS[entry.name as PlanTier] || '#000'} />
-                                ))}
+                            <Pie data={planData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value">
+                                {planData.map((entry, index) => (<Cell key={`cell-${index}`} fill={TIER_COLORS[entry.name as PlanTier] || '#000'} />))}
                             </Pie>
-                            <RechartsTooltip />
-                            <Legend />
+                            <RechartsTooltip /><Legend />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
-
-                {/* Growth Placeholder */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-center text-center">
                     <div>
                          <BarChart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                          <h3 className="font-bold text-gray-900">Revenue Growth</h3>
-                         <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">
-                             Historical data tracking will be available in the next release once enough data points are collected.
-                         </p>
+                         <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">Historical data tracking will be available in the next release once enough data points are collected.</p>
                     </div>
                 </div>
             </div>
@@ -832,8 +821,6 @@ const SystemHealthView: React.FC = () => {
   const checkSystem = async () => {
     setLoading(true);
     setStatuses([]);
-    
-    // Run checks parallel
     const checks = [
        liveSystemService.checkDatabaseConnection(),
        liveSystemService.checkAuthService(),
@@ -841,85 +828,42 @@ const SystemHealthView: React.FC = () => {
        liveSystemService.checkStripe(),
        liveSystemService.checkEmail()
     ];
-
     const results = await Promise.all(checks);
     setStatuses(results);
     setLoading(false);
   };
 
-  useEffect(() => {
-    checkSystem();
-  }, []);
+  useEffect(() => { checkSystem(); }, []);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
       <AdminTabs />
       <div className="mb-10 flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">System Health</h1>
-            <p className="text-gray-500">Live connectivity checks to external services.</p>
-          </div>
-          <button 
-            onClick={checkSystem}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors"
-          >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Re-Run Checks
+          <div><h1 className="text-2xl font-bold text-gray-900 mb-2">System Health</h1><p className="text-gray-500">Live connectivity checks to external services.</p></div>
+          <button onClick={checkSystem} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Re-Run Checks
           </button>
       </div>
-
       <div className="grid grid-cols-1 gap-4">
-          {loading && statuses.length === 0 && (
-              <div className="p-12 text-center text-gray-400">Running system diagnostics...</div>
-          )}
-          
+          {loading && statuses.length === 0 && <div className="p-12 text-center text-gray-400">Running system diagnostics...</div>}
           {statuses.map((status, idx) => (
               <div key={idx} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center">
-                  <div className={`p-4 rounded-full shrink-0 ${
-                      status.status === 'operational' ? 'bg-green-100 text-green-600' :
-                      status.status === 'degraded' ? 'bg-orange-100 text-orange-600' :
-                      status.status === 'configuring' ? 'bg-blue-100 text-blue-600' :
-                      status.status === 'deployment-needed' ? 'bg-purple-100 text-purple-600' :
-                      'bg-red-100 text-red-600'
-                  }`}>
-                      {status.status === 'operational' ? <CheckCircle className="w-6 h-6" /> : 
-                       status.status === 'configuring' ? <Monitor className="w-6 h-6" /> :
-                       <AlertTriangle className="w-6 h-6" />}
+                  <div className={`p-4 rounded-full shrink-0 ${status.status === 'operational' ? 'bg-green-100 text-green-600' : status.status === 'degraded' ? 'bg-orange-100 text-orange-600' : status.status === 'configuring' ? 'bg-blue-100 text-blue-600' : status.status === 'deployment-needed' ? 'bg-purple-100 text-purple-600' : 'bg-red-100 text-red-600'}`}>
+                      {status.status === 'operational' ? <CheckCircle className="w-6 h-6" /> : status.status === 'configuring' ? <Monitor className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
                   </div>
-                  
                   <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
                           <h3 className="font-bold text-lg text-gray-900">{status.service}</h3>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                status.status === 'operational' ? 'bg-green-100 text-green-800' :
-                                status.status === 'degraded' ? 'bg-orange-100 text-orange-800' :
-                                status.status === 'configuring' ? 'bg-blue-100 text-blue-800' :
-                                status.status === 'deployment-needed' ? 'bg-purple-100 text-purple-800' :
-                                'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${status.status === 'operational' ? 'bg-green-100 text-green-800' : status.status === 'degraded' ? 'bg-orange-100 text-orange-800' : status.status === 'configuring' ? 'bg-blue-100 text-blue-800' : status.status === 'deployment-needed' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'}`}>
                               {status.status.replace('-', ' ')}
                           </span>
                       </div>
                       <p className="text-sm text-gray-500">{status.message || 'Service is running optimally.'}</p>
-                      
-                      {status.details && (
-                          <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono">{status.details}</pre>
-                          </div>
-                      )}
-
-                      {status.actionLink && (
-                          <a href={status.actionLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-800 mt-2">
-                              Fix in Supabase Dashboard <ExternalLink className="w-3 h-3" />
-                          </a>
-                      )}
+                      {status.details && <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100"><pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono">{status.details}</pre></div>}
+                      {status.actionLink && <a href={status.actionLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-800 mt-2">Fix in Supabase Dashboard <ExternalLink className="w-3 h-3" /></a>}
                   </div>
-
                   <div className="text-right shrink-0">
-                      <span className={`font-mono text-sm font-bold ${status.latency > 1000 ? 'text-orange-500' : 'text-gray-400'}`}>
-                          {status.latency}ms
-                      </span>
+                      <span className={`font-mono text-sm font-bold ${status.latency > 1000 ? 'text-orange-500' : 'text-gray-400'}`}>{status.latency}ms</span>
                       <div className="text-[10px] text-gray-400 uppercase">Latency</div>
                   </div>
               </div>
@@ -927,6 +871,112 @@ const SystemHealthView: React.FC = () => {
       </div>
     </div>
   );
+};
+
+// --- VIEW 5: DEBUG VIEW (For Cloud Environments) ---
+const DebugView: React.FC = () => {
+    const [events, setEvents] = useState<any[]>([]);
+    const [logs, setLogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    const refresh = async () => {
+        setLoading(true);
+        // Fetch last 10 Webhook events
+        const { data: eData } = await supabase
+            .from('stripe_events')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(10);
+        
+        // Fetch last 10 Audit logs
+        const { data: lData } = await supabase
+            .from('audit_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(10);
+        
+        if (eData) setEvents(eData);
+        if (lData) setLogs(lData);
+        setLoading(false);
+    };
+
+    useEffect(() => { refresh(); }, []);
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
+            <AdminTabs />
+            <div className="mb-10 flex justify-between items-end">
+                <div>
+                   <h1 className="text-2xl font-bold text-gray-900 mb-2">Debug Console</h1>
+                   <p className="text-gray-500">Inspect server events without terminal access.</p>
+                </div>
+                <button onClick={refresh} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white border border-gray-900 rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors">
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Data
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 {/* STRIPE EVENTS */}
+                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                     <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 flex justify-between">
+                         <span>Stripe Webhooks (stripe_events)</span>
+                         <span className="text-xs bg-gray-200 px-2 py-1 rounded">Last 10</span>
+                     </div>
+                     <div className="overflow-y-auto max-h-[500px]">
+                         {events.length === 0 ? <div className="p-8 text-center text-gray-400">No events found yet.</div> : (
+                             <div className="divide-y divide-gray-100">
+                                 {events.map(ev => (
+                                     <div key={ev.id} className="p-4 hover:bg-gray-50 text-sm">
+                                         <div className="flex justify-between items-start mb-1">
+                                             <span className="font-mono font-bold text-brand-600">{ev.type}</span>
+                                             <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${ev.processing_error ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                                 {ev.processing_error ? 'ERROR' : 'OK'}
+                                             </span>
+                                         </div>
+                                         <div className="text-xs text-gray-500 mb-2">{new Date(ev.created_at).toLocaleString()}</div>
+                                         <pre className="text-[10px] bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto">
+                                             {JSON.stringify(ev.payload, null, 2)}
+                                         </pre>
+                                         {ev.processing_error && (
+                                              <div className="mt-2 text-xs text-red-600 font-mono bg-red-50 p-2 rounded border border-red-100">
+                                                  Error: {ev.processing_error}
+                                              </div>
+                                         )}
+                                     </div>
+                                 ))}
+                             </div>
+                         )}
+                     </div>
+                 </div>
+
+                 {/* AUDIT LOGS */}
+                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                     <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 flex justify-between">
+                         <span>Audit Logs (audit_logs)</span>
+                         <span className="text-xs bg-gray-200 px-2 py-1 rounded">Last 10</span>
+                     </div>
+                     <div className="overflow-y-auto max-h-[500px]">
+                         {logs.length === 0 ? <div className="p-8 text-center text-gray-400">No logs found yet.</div> : (
+                             <div className="divide-y divide-gray-100">
+                                 {logs.map(log => (
+                                     <div key={log.id} className="p-4 hover:bg-gray-50 text-sm">
+                                         <div className="flex justify-between items-start mb-1">
+                                             <span className="font-bold text-gray-900">{log.action}</span>
+                                             <span className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</span>
+                                         </div>
+                                         <div className="text-xs text-gray-500 mb-2">By: {log.actor_email}</div>
+                                         <pre className="text-[10px] bg-gray-100 text-gray-600 p-2 rounded overflow-x-auto border border-gray-200">
+                                             {JSON.stringify(log.details, null, 2)}
+                                         </pre>
+                                     </div>
+                                 ))}
+                             </div>
+                         )}
+                     </div>
+                 </div>
+            </div>
+        </div>
+    );
 };
 
 // --- MAIN ROUTING COMPONENT ---
@@ -938,6 +988,7 @@ export const AdminDashboard: React.FC = () => {
                 <Route path="users" element={<UsersManagement />} />
                 <Route path="marketing" element={<MarketingInsights />} />
                 <Route path="system" element={<SystemHealthView />} />
+                <Route path="debug" element={<DebugView />} />
                 <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>
         </div>
