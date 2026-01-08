@@ -275,8 +275,8 @@ Achtung: Die Namen der deployten Functions im Supabase Dashboard unterscheiden s
 | :--- | :--- | :--- |
 | **`dynamic-endpoint`** | `supabase/functions/webhook-handler/` | Verarbeitet erfolgreiche Zahlungen (Checkout Return). |
 | **`rapid-handler`** | `supabase/functions/create-billing-portal-session/` | Erstellt Stripe Customer Portal Session. |
-| **`cancel-subscription`** | `supabase/functions/cancel-subscription/` | **WICHTIG:** Kündigungs-Logik. Muss im Dashboard `cancel-subscription` heißen. |
-| **`system-health`** | `supabase/functions/system-health/` | System Health Monitoring. |
+| **`swift-action`** | `supabase/functions/cancel-subscription/` | **WICHTIG:** Kündigungs-Logik. Muss im Dashboard `swift-action` heißen. |
+| **`swift-service`** | `supabase/functions/system-health/` | System Health Monitoring. |
 
 **Hintergrund-Funktion (nicht im Dashboard Screenshot sichtbar):**
 *   **`stripe-webhook`**: Liegt in `supabase/functions/stripe-webhook/`.

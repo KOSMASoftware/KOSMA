@@ -109,7 +109,7 @@ serve(async (req) => {
              if (!stripeCustomerId) {
                  console.log(`[WARN] Session ${session.id} has no customer.`);
                  
-                 // Strategy A: Via Payment Intent (Common for one-time payments)
+                 // Strategy A: Via Payment Intent
                  if (session.payment_intent) {
                      try {
                          const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
@@ -120,20 +120,18 @@ serve(async (req) => {
                      } catch (e) { console.error("PI fetch failed", e); }
                  }
 
-                 // Strategy B: Via Email (Only for One-Time Payments or Legacy)
-                 // FIX: Do NOT create a new customer via email if this is a subscription.
-                 // Stripe always creates customers for subscriptions. If it's missing here, it's a timing issue, not a missing record.
+                 // Strategy B: Via Email (Only for One-Time Payments)
                  if (!stripeCustomerId) {
                      const email = session.customer_details?.email || session.customer_email;
                      
                      if (email) {
-                         const existing = await stripe.customers.list({ email, limit: 1 });
-                         if (existing.data.length > 0) {
-                             stripeCustomerId = existing.data[0].id;
-                             console.log(`[INFO] Recovered customer ${stripeCustomerId} via Email lookup.`);
-                         } else {
-                             // Only create new customer if NOT subscription mode
-                             if (session.mode !== 'subscription') {
+                         // Only create new customer if NOT subscription mode
+                         if (session.mode !== 'subscription') {
+                             const existing = await stripe.customers.list({ email, limit: 1 });
+                             if (existing.data.length > 0) {
+                                 stripeCustomerId = existing.data[0].id;
+                                 console.log(`[INFO] Recovered customer ${stripeCustomerId} via Email lookup.`);
+                             } else {
                                  const newCus = await stripe.customers.create({
                                      email,
                                      name: session.customer_details?.name || 'Customer',
@@ -141,26 +139,14 @@ serve(async (req) => {
                                  });
                                  stripeCustomerId = newCus.id;
                                  console.log(`[INFO] Created new customer ${stripeCustomerId} fallback (One-Time Mode).`);
-                             } else {
-                                 console.warn(`[SKIP] Subscription mode detected. Skipping fallback customer creation for ${email} to avoid duplicates.`);
                              }
+                         } else {
+                             console.warn(`[SKIP] Subscription mode detected. Skipping fallback customer creation for ${email} to avoid duplicates.`);
                          }
                      }
                  }
              }
 
-             if (!stripeCustomerId) {
-                 // If we still don't have it in subscription mode, we log an error but don't crash.
-                 // The 'invoice.payment_succeeded' event will handle the heavy lifting.
-                 if (session.mode === 'subscription') {
-                     console.error(`[CRITICAL] Subscription Session ${session.id} missing customer ID. Relying on invoice event.`);
-                 } else {
-                     throw new Error(`Could not determine Stripe Customer ID for session ${session.id}`);
-                 }
-             }
-
-             // 2. FIND LOCAL USER ID & SYNC
-             // We only proceed if we actually found a stripeCustomerId
              if (stripeCustomerId) {
                  let userId = session.client_reference_id 
                             || session.metadata?.user_id 
@@ -169,7 +155,6 @@ serve(async (req) => {
                  // Email Fallback (Only if userId is missing or invalid UUID)
                  if ((!userId || !uuidRegex.test(userId)) && (session.customer_details?.email || session.customer_email)) {
                      const email = session.customer_details?.email || session.customer_email;
-                     console.log(`[INFO] Looking up user by email: ${email}`);
                      const { data: userProfile } = await supabaseAdmin
                         .from('profiles')
                         .select('id')
@@ -241,8 +226,8 @@ serve(async (req) => {
             }
         }
 
-        // --- C. SUBSCRIPTION UPDATED ---
-        if (event.type === 'customer.subscription.updated') {
+        // --- C. SUBSCRIPTION UPDATED / CREATED ---
+        if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.created') {
             const sub = event.data.object;
             const priceId = sub.items.data[0]?.price?.id;
 

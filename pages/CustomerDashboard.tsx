@@ -544,7 +544,8 @@ const SubscriptionView: React.FC<{
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error("No session");
 
-            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+            // CHANGE: 'cancel-subscription' renamed to 'swift-action' in deployment
+            const { data, error } = await supabase.functions.invoke('swift-action', {
                 body: {},
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
@@ -732,7 +733,6 @@ const SubscriptionView: React.FC<{
     );
 };
 
-// ... SettingsView remains the same ...
 // --- VIEW 3: SETTINGS VIEW ---
 const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
@@ -760,7 +760,7 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
             const returnUrl = new URL(window.location.href);
             returnUrl.searchParams.set('portal_return', '1');
 
-            // Calls rapid-handler which creates a Stripe Portal Session
+            // CHANGE: 'create-billing-portal-session' renamed to 'rapid-handler' in deployment
             const { data, error } = await supabase.functions.invoke('rapid-handler', {
                 body: { returnUrl: returnUrl.toString() },
                 headers: { Authorization: `Bearer ${session.access_token}` }
