@@ -124,6 +124,14 @@ serve(async (req) => {
                      cycle = inferCycle(subscription.items.data[0]?.price?.recurring?.interval);
                  }
 
+                 // UPDATE PROFILE WITH STRIPE CUSTOMER ID
+                 // This links the Stripe Customer to the Supabase User for future syncs
+                 if (session.customer) {
+                     await supabaseAdmin.from('profiles').update({
+                         stripe_customer_id: session.customer
+                     }).eq('id', userId);
+                 }
+
                  // Upsert License
                  const { error: upsertError } = await supabaseAdmin.from('licenses').upsert({
                      user_id: userId,
@@ -155,7 +163,32 @@ serve(async (req) => {
              }
         }
 
-        // --- B. SUBSCRIPTION UPDATED ---
+        // --- B. CUSTOMER UPDATED (Source of Truth Sync) ---
+        if (event.type === 'customer.updated') {
+            const customer = event.data.object;
+            
+            // Map Stripe Address to our BillingAddress structure
+            const billingAddress = {
+                street: customer.address?.line1 || '',
+                city: customer.address?.city || '',
+                zip: customer.address?.postal_code || '',
+                country: customer.address?.country || '',
+                companyName: customer.name || '', // Stripe 'Name' is usually Company Name for businesses
+                vatId: customer.tax_ids?.data?.[0]?.value || '' // Simplification, strictly usually requires expansion
+            };
+
+            // Sync to Supabase Profile
+            const { error: syncError } = await supabaseAdmin
+                .from('profiles')
+                .update({ billing_address: billingAddress })
+                .eq('stripe_customer_id', customer.id);
+
+            if (syncError) {
+                console.warn(`[Webhook] Failed to sync address for customer ${customer.id}`, syncError);
+            }
+        }
+
+        // --- C. SUBSCRIPTION UPDATED ---
         if (event.type === 'customer.subscription.updated') {
             const sub = event.data.object;
             const priceId = sub.items.data[0]?.price?.id;
@@ -177,7 +210,7 @@ serve(async (req) => {
             }
         }
 
-        // --- C. SUBSCRIPTION DELETED ---
+        // --- D. SUBSCRIPTION DELETED ---
         if (event.type === 'customer.subscription.deleted') {
             const sub = event.data.object;
             const { data: license } = await supabaseAdmin
@@ -195,7 +228,7 @@ serve(async (req) => {
             }
         }
 
-        // --- D. INVOICE PAYMENT SUCCEEDED ---
+        // --- E. INVOICE PAYMENT SUCCEEDED ---
         if (event.type === 'invoice.payment_succeeded') {
             const invoice = event.data.object;
             if (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_create') {
@@ -230,7 +263,7 @@ serve(async (req) => {
             }
         }
         
-        // --- E. INVOICE PAYMENT FAILED ---
+        // --- F. INVOICE PAYMENT FAILED ---
         if (event.type === 'invoice.payment_failed') {
             const invoice = event.data.object;
              const { data: license } = await supabaseAdmin

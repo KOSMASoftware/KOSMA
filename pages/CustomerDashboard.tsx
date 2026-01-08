@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, CalendarClock, XCircle } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, CalendarClock, XCircle, Lock } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -48,7 +48,7 @@ const DashboardTabs = () => {
     );
 };
 
-// --- DATA HOOK (No Changes to Logic) ---
+// --- DATA HOOK ---
 const useCustomerData = (user: User) => {
     const [loading, setLoading] = useState(true);
     const [licenses, setLicenses] = useState<License[]>([]);
@@ -160,92 +160,43 @@ const useCustomerData = (user: User) => {
 
 // --- VIEW COMPONENTS ---
 
-const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, userId: string }> = ({ initialAddress, userId }) => {
-    const [isEditing, setIsEditing] = useState(!initialAddress);
-    const [address, setAddress] = useState<BillingAddress>(initialAddress || { street: '', city: '', zip: '', country: 'Germany' });
-    const [saving, setSaving] = useState(false);
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ billing_address: address })
-                .eq('id', userId);
-            if (error) throw error;
-            setIsEditing(false);
-        } catch (err) {
-            console.error(err);
-            alert("Error saving address.");
-        } finally {
-            setSaving(false);
-        }
-    };
+// READ-ONLY Billing Address (Stripe is Source of Truth)
+const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null }> = ({ initialAddress }) => {
+    const address = initialAddress || { street: '', city: '', zip: '', country: 'Germany', companyName: '', vatId: '' };
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-full">
-            <div className="flex justify-between items-center mb-6">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-full flex flex-col">
+            <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <Building className="w-5 h-5 text-gray-400" /> Billing Address
                 </h3>
-                {!isEditing && (
-                    <button onClick={() => setIsEditing(true)} className="text-xs font-bold text-brand-500 hover:underline">
-                        Edit
-                    </button>
-                )}
+                <span className="bg-gray-100 text-gray-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded">Read Only</span>
             </div>
 
-            {isEditing ? (
-                <div className="space-y-4">
-                    <input 
-                        className="w-full p-2 border border-gray-200 rounded text-sm" 
-                        placeholder="Company Name (Optional)" 
-                        value={address.companyName || ''} 
-                        onChange={e => setAddress({...address, companyName: e.target.value})}
-                    />
-                    <input 
-                        className="w-full p-2 border border-gray-200 rounded text-sm" 
-                        placeholder="VAT ID / USt-IdNr (Optional)" 
-                        value={address.vatId || ''} 
-                        onChange={e => setAddress({...address, vatId: e.target.value})}
-                    />
-                    <input 
-                        className="w-full p-2 border border-gray-200 rounded text-sm" 
-                        placeholder="Street & House Number" 
-                        value={address.street} 
-                        onChange={e => setAddress({...address, street: e.target.value})}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                        <input 
-                            className="p-2 border border-gray-200 rounded text-sm" 
-                            placeholder="ZIP" 
-                            value={address.zip} 
-                            onChange={e => setAddress({...address, zip: e.target.value})}
-                        />
-                        <input 
-                            className="p-2 border border-gray-200 rounded text-sm" 
-                            placeholder="City" 
-                            value={address.city} 
-                            onChange={e => setAddress({...address, city: e.target.value})}
-                        />
-                    </div>
-                    <button 
-                        onClick={handleSave} 
-                        disabled={saving}
-                        className="w-full py-2 bg-gray-900 text-white rounded font-bold text-sm flex items-center justify-center gap-2"
-                    >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Details'}
-                    </button>
-                </div>
-            ) : (
-                <div className="text-sm text-gray-600 space-y-1">
-                    {address.companyName && <p className="font-bold text-gray-900">{address.companyName}</p>}
-                    {address.vatId && <p className="text-xs text-gray-400 mb-2">VAT: {address.vatId}</p>}
-                    <p>{address.street}</p>
-                    <p>{address.zip} {address.city}</p>
-                    <p>{address.country}</p>
-                </div>
-            )}
+            <div className="text-sm text-gray-600 space-y-1 flex-1">
+                {address.companyName ? (
+                    <p className="font-bold text-gray-900">{address.companyName}</p>
+                ) : (
+                    <p className="italic text-gray-400">No company name stored</p>
+                )}
+                {address.vatId && <p className="text-xs text-gray-400 mb-2">VAT: {address.vatId}</p>}
+                
+                {address.street ? (
+                    <>
+                        <p>{address.street}</p>
+                        <p>{address.zip} {address.city}</p>
+                        <p>{address.country}</p>
+                    </>
+                ) : (
+                    <p className="text-gray-400 italic mt-2">No address details synchronized yet.</p>
+                )}
+            </div>
+            
+            <div className="mt-6 pt-4 border-t border-gray-50">
+                 <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Managed via Payment Provider
+                 </p>
+            </div>
         </div>
     );
 };
@@ -299,7 +250,7 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
     };
 
     const handleDowngrade = () => {
-        alert("Dein Downgrade wird zum Ende deiner aktuellen Laufzeit wirksam. Bitte kontaktiere den Support, um dies einzurichten.");
+        alert("Your plan will remain active until the end of the billing period. Please contact support if you need assistance.");
     };
 
     const plans = [
@@ -345,7 +296,7 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
             <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
                 <div>
                     <h3 className="text-2xl font-bold text-gray-900">Change Subscription</h3>
-                    <p className="text-gray-500 mt-1">Upgrade or downgrade your license instantly.</p>
+                    <p className="text-gray-500 mt-1">Upgrade or switch plans easily.</p>
                 </div>
                 <div className="inline-flex bg-gray-100 rounded-full p-1">
                     <button onClick={() => setBillingInterval('yearly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Yearly</button>
@@ -411,29 +362,23 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
 const OverviewView: React.FC<{ 
     user: User, 
     licenses: License[], 
-    invoices: Invoice[],
-    onCancel: () => void,
-    canceling: boolean
-}> = ({ user, licenses, invoices, onCancel, canceling }) => {
+    invoices: Invoice[]
+}> = ({ user, licenses, invoices }) => {
     const activeLicense = licenses[0];
 
     const daysRemaining = useMemo(() => {
         if (!activeLicense?.validUntil) return null;
-        const end = new Date(activeLicense.validUntil).getTime();
-        const now = Date.now();
-        const diff = end - now;
-        return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+        
+        const validUntil = new Date(activeLicense.validUntil);
+        const now = new Date();
+
+        // Normalize to Start of Day (00:00:00) to ensure strict day comparison
+        const startOfValid = new Date(validUntil.getFullYear(), validUntil.getMonth(), validUntil.getDate());
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const diff = startOfValid.getTime() - startOfToday.getTime();
+        return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
     }, [activeLicense]);
-
-    const isActive = activeLicense?.status === SubscriptionStatus.ACTIVE;
-    const hasStripeSub = activeLicense?.stripeSubscriptionId?.startsWith('sub_');
-    const alreadyCanceled = activeLicense?.cancelAtPeriodEnd;
-
-    const canCancel = isActive && hasStripeSub && !alreadyCanceled;
-
-    let btnLabel = "Cancel Subscription";
-    if (alreadyCanceled) btnLabel = "Cancellation scheduled";
-    else if (isActive && !hasStripeSub) btnLabel = "Syncing...";
 
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -473,37 +418,30 @@ const OverviewView: React.FC<{
                                 </div>
                             </div>
 
-                            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center gap-4">
-                                <div className="bg-gray-50 rounded-lg p-3 text-center min-w-[90px] border border-gray-100">
+                            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
+                                {/* DAYS REMAINING BOX */}
+                                <div className="bg-gray-50 rounded-lg p-3 text-center min-w-[120px] border border-gray-100">
                                      <span className="block text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">
-                                        {alreadyCanceled ? 'Days Left' : 'Remaining'}
+                                        Remaining
                                      </span>
                                      <span className="block text-xl font-black text-gray-900 leading-none">
-                                         {daysRemaining !== null ? `${daysRemaining}d` : '—'}
+                                         {daysRemaining !== null ? `${daysRemaining} days` : '—'}
                                      </span>
                                 </div>
                                 
-                                <button
-                                    onClick={onCancel}
-                                    disabled={!canCancel || canceling}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold border transition-colors ${
-                                        canCancel 
-                                        ? 'border-red-100 text-red-600 hover:bg-red-50' 
-                                        : 'border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50'
-                                    }`}
-                                >
-                                    {canceling ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
-                                    {alreadyCanceled ? <CalendarClock className="w-4 h-4"/> : canCancel ? <XCircle className="w-4 h-4"/> : null}
-                                    {btnLabel}
-                                </button>
+                                <Link to="/dashboard/subscription" className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                                    View Subscription Details <ChevronRight className="w-4 h-4"/>
+                                </Link>
                             </div>
                         </>
                     ) : (
-                        <p className="text-sm text-gray-500">No active license found.</p>
+                        <div className="text-center py-6">
+                            <p className="text-sm text-gray-500 mb-4">No active license found.</p>
+                            <Link to="/dashboard/subscription" className="inline-flex items-center text-brand-500 font-bold text-sm hover:underline">
+                                Get Started
+                            </Link>
+                        </div>
                     )}
-                    <Link to="/dashboard/subscription" className="mt-4 block text-center w-full py-2 text-brand-500 font-bold text-sm hover:underline">
-                        View Details
-                    </Link>
                 </div>
 
                 {/* Recent Invoices Preview */}
@@ -547,12 +485,11 @@ const SubscriptionView: React.FC<{
     licenses: License[], 
     invoices: Invoice[], 
     refresh: () => void,
-    onCancel: () => void,
-    canceling: boolean
-}> = ({ user, licenses, invoices, refresh, onCancel, canceling }) => {
+}> = ({ user, licenses, invoices, refresh }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
+    const [canceling, setCanceling] = useState(false);
 
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
@@ -621,7 +558,47 @@ const SubscriptionView: React.FC<{
         }
     }, [searchParams, user.id, setSearchParams, refresh]);
 
+    // Handle Cancel (Local to Subscription View)
+    const handleCancel = async () => {
+        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period.")) return;
+        setCanceling(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("No session");
+
+            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+                body: {},
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+
+            if (error || !data.success) throw new Error(data?.error || "Cancellation failed");
+            
+            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
+            refresh();
+        } catch (err: any) {
+            console.error(err);
+            alert("Could not cancel subscription. Please try again.");
+        } finally {
+            setCanceling(false);
+        }
+    };
+
     if (processing) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
+
+    // Logic for cancel button state
+    const isActive = activeLicense?.status === SubscriptionStatus.ACTIVE;
+    const isScheduled = activeLicense?.cancelAtPeriodEnd;
+    
+    let cancelBtnText = "Cancel Subscription";
+    let cancelBtnDisabled = false;
+
+    if (isScheduled) {
+        cancelBtnText = "Cancellation Scheduled";
+        cancelBtnDisabled = true;
+    } else if (!hasStripeId || !isActive) {
+        cancelBtnText = isActive ? "Syncing..." : "No active subscription";
+        cancelBtnDisabled = true;
+    }
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -694,21 +671,19 @@ const SubscriptionView: React.FC<{
                         )}
                     </div>
                     
-                    {/* Cancel Button */}
-                    {activeLicense?.status === SubscriptionStatus.ACTIVE && !activeLicense?.cancelAtPeriodEnd && (
-                        <button 
-                             onClick={onCancel}
-                             disabled={canceling || !hasStripeId}
-                             className={`px-6 py-2 border rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
-                                !hasStripeId 
-                                ? 'border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50'
-                                : 'border-red-200 text-red-600 hover:bg-red-50'
-                             }`}
-                        >
-                           {canceling ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
-                           {hasStripeId ? 'Cancel Subscription' : 'Syncing...'}
-                        </button>
-                    )}
+                    {/* Cancel Button (Always Visible, disabled via logic) */}
+                    <button 
+                            onClick={handleCancel}
+                            disabled={canceling || cancelBtnDisabled}
+                            className={`px-6 py-2 border rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
+                            (!cancelBtnDisabled)
+                            ? 'border-red-200 text-red-600 hover:bg-red-50'
+                            : 'border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50'
+                            }`}
+                    >
+                        {canceling ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
+                        {cancelBtnText}
+                    </button>
                 </div>
             </div>
 
@@ -771,8 +746,18 @@ const SubscriptionView: React.FC<{
 };
 
 // --- VIEW 3: SETTINGS VIEW ---
-const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null }> = ({ user, billingAddress }) => {
+const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Trigger data refresh if returning from Stripe Portal
+    useEffect(() => {
+        if (searchParams.get('portal_return') === '1') {
+            refresh();
+            searchParams.delete('portal_return');
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [searchParams, setSearchParams, refresh]);
 
     const handleManagePaymentMethods = async () => {
         setLoadingPortal(true);
@@ -783,9 +768,13 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
                 return;
             }
 
-            // --- CORRECTED: Use 'rapid-handler' slug ---
+            // Construct return URL with query param
+            const returnUrl = new URL(window.location.href);
+            returnUrl.searchParams.set('portal_return', '1');
+
+            // Calls rapid-handler which creates a Stripe Portal Session
             const { data, error } = await supabase.functions.invoke('rapid-handler', {
-                body: { returnUrl: window.location.href },
+                body: { returnUrl: returnUrl.toString() },
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
 
@@ -815,9 +804,9 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
             <DashboardTabs />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Billing Address (Moved here) */}
+                {/* Billing Address (READ ONLY) */}
                 <div className="h-full">
-                    <BillingAddressCard initialAddress={billingAddress} userId={user.id} />
+                    <BillingAddressCard initialAddress={billingAddress} />
                 </div>
 
                 {/* Account & Payment Info */}
@@ -846,19 +835,19 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
                     {/* Payment Method - Portal Link */}
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-2">
-                            <CreditCard className="w-5 h-5 text-gray-400" /> Payment Method
+                            <CreditCard className="w-5 h-5 text-gray-400" /> Billing & Payment
                         </h3>
                         <p className="text-sm text-gray-500 mb-6">
-                            Update your credit card or payment details securely via Stripe.
+                            Securely update your payment methods and billing address via our payment provider.
                         </p>
 
                         <button 
                             onClick={handleManagePaymentMethods}
                             disabled={loadingPortal}
-                            className="w-full py-3 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                            className="w-full py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                         >
                             {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                            Change Payment Method
+                            Rechnungs- & Zahlungsdaten ändern
                         </button>
                     </div>
                 </div>
@@ -873,31 +862,6 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
 export const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
     const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user!);
-    const [canceling, setCanceling] = useState(false);
-
-    const handleCancel = async () => {
-        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period.")) return;
-        setCanceling(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error("No session");
-
-            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
-                body: {},
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            });
-
-            if (error || !data.success) throw new Error(data?.error || "Cancellation failed");
-            
-            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
-            refresh();
-        } catch (err: any) {
-            console.error(err);
-            alert("Could not cancel subscription. Please try again.");
-        } finally {
-            setCanceling(false);
-        }
-    };
 
     if (!user) return <Navigate to="/login" />;
     if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /></div>;
@@ -905,9 +869,9 @@ export const CustomerDashboard: React.FC = () => {
     return (
         <div className="pb-20">
             <Routes>
-                <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} onCancel={handleCancel} canceling={canceling} />} />
-                <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} onCancel={handleCancel} canceling={canceling} />} />
-                <Route path="settings" element={<SettingsView user={user} billingAddress={billingAddress} />} />
+                <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} />} />
+                <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} />} />
+                <Route path="settings" element={<SettingsView user={user} billingAddress={billingAddress} refresh={refresh} />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </div>
