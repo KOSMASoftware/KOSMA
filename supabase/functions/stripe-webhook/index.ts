@@ -31,29 +31,14 @@ function inferCycle(interval: string | undefined): 'monthly' | 'yearly' | 'none'
     return 'none';
 }
 
-// Logic to infer Plan Tier based on Amount (since we use Payment Links without metadata in this prototype)
-function inferTierFromPrice(amount: number): string | null {
-    // Pricing: Budget (39/390), Cost (59/590), Prod (69/690)
-    // Stripe amounts are in smallest currency unit (cents)
-    const a = amount; 
-    
-    if (a === 3900 || a === 39000) return 'Budget';
-    if (a === 5900 || a === 59000) return 'Cost Control';
-    if (a === 6900 || a === 69000) return 'Production';
-    
-    return null; // Keep existing if unknown
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   
-  // Init Admin Client
   const supabaseAdmin = (supabaseUrl && serviceKey) ? createClient(supabaseUrl, serviceKey) : null;
 
-  // Helper to log to Audit Logs
   const logToDb = async (action: string, details: any, isError = false) => {
      if (!supabaseAdmin) return;
      try {
@@ -66,7 +51,6 @@ serve(async (req) => {
      } catch (e) { console.error("Logging failed", e); }
   };
 
-  // Helper to update the raw Stripe Event with error status
   const markEventError = async (eventId: string, errorMsg: string) => {
       if (!supabaseAdmin) return;
       try {
@@ -99,15 +83,13 @@ serve(async (req) => {
 
     console.log(`[Webhook] Processing ${event.type} (${event.id})`);
 
-    // 1. LOG RAW EVENT (Idempotency)
+    // 1. LOG RAW EVENT
     const { error: insertError } = await supabaseAdmin!.from('stripe_events').insert({
         id: event.id,
         type: event.type,
         payload: event
     });
-    // Ignore duplicate key errors (idempotency)
     
-    // 2. LOG FUNCTION START
     await logToDb('START_PROCESS', { type: event.type, id: event.id });
 
     // --- A. SUBSCRIPTION UPDATES ---
@@ -115,21 +97,17 @@ serve(async (req) => {
         const sub = event.data.object;
         const customerId = sub.customer as string;
 
-        // HEALING LOGIC: Find user
+        // Find user by Stripe ID or fallback to email
         let { data: profile } = await supabaseAdmin!
             .from('profiles')
             .select('id, email')
             .eq('stripe_customer_id', customerId)
             .maybeSingle();
 
-        // ORPHAN RECOVERY: If not found by ID, try finding by email from Stripe Customer
         if (!profile) {
-            console.log(`[Webhook] Profile not found for Stripe ID ${customerId}. Attempting email recovery...`);
             try {
-                // Fetch full customer object from Stripe to get email
                 const stripeCustomer = await stripe.customers.retrieve(customerId);
                 if (!stripeCustomer.deleted && stripeCustomer.email) {
-                    // Search DB by email
                     const { data: emailProfile } = await supabaseAdmin!
                         .from('profiles')
                         .select('id, email')
@@ -137,8 +115,6 @@ serve(async (req) => {
                         .maybeSingle();
                     
                     if (emailProfile) {
-                        // FOUND! Link them now.
-                        console.log(`[Webhook] Recovery successful. Linking ${customerId} to ${emailProfile.email}`);
                         await supabaseAdmin!.from('profiles').update({ stripe_customer_id: customerId }).eq('id', emailProfile.id);
                         profile = emailProfile;
                     }
@@ -151,14 +127,12 @@ serve(async (req) => {
         if (profile) {
             const status = event.type === 'customer.subscription.deleted' ? 'canceled' : mapStripeStatus(sub.status);
             
-            // DOUBLE BILLING PREVENTION (Only on Creation)
-            // If a new subscription is created, cancel all OTHER active subscriptions for this customer
+            // Double Billing Prevention
             if (event.type === 'customer.subscription.created') {
                 try {
                     const subs = await stripe.subscriptions.list({ customer: customerId, status: 'active' });
                     for (const otherSub of subs.data) {
                         if (otherSub.id !== sub.id) {
-                            console.log(`[Webhook] Auto-cancelling old subscription: ${otherSub.id}`);
                             await stripe.subscriptions.cancel(otherSub.id);
                             await logToDb('AUTO_CANCEL_OLD', { old_sub: otherSub.id, new_sub: sub.id });
                         }
@@ -168,9 +142,23 @@ serve(async (req) => {
                 }
             }
 
-            // TIER INFERENCE
+            // TIER MAPPING VIA DB TABLE (Required change)
             const priceItem = sub.items.data[0]?.price;
-            const newPlanTier = priceItem?.unit_amount ? inferTierFromPrice(priceItem.unit_amount) : null;
+            let newPlanTier = null;
+
+            if (priceItem?.id) {
+                const { data: mapping } = await supabaseAdmin!
+                    .from('stripe_price_map')
+                    .select('plan_tier')
+                    .eq('price_id', priceItem.id)
+                    .maybeSingle();
+                
+                if (mapping) {
+                    newPlanTier = mapping.plan_tier;
+                } else {
+                    await logToDb('MAPPING_MISSING', { price_id: priceItem.id });
+                }
+            }
 
             const updateData: any = {
                 stripe_subscription_id: sub.id,
@@ -182,11 +170,10 @@ serve(async (req) => {
                 canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null
             };
 
-            // Only update Plan Tier/Product Name if we successfully inferred it, 
-            // otherwise keep existing (don't overwrite with null)
             if (newPlanTier) {
                 updateData.plan_tier = newPlanTier;
-                updateData.product_name = 'KOSMA'; // Reset product name to standard
+                // Only reset product name if we found a mapping, implies it's a valid KOSMA plan
+                updateData.product_name = 'KOSMA'; 
             }
 
             const { error } = await supabaseAdmin!.from('licenses').update(updateData).eq('user_id', profile.id);
@@ -199,9 +186,7 @@ serve(async (req) => {
             }
 
         } else {
-            const msg = `Orphan Subscription: ${sub.id} (Customer ${customerId} not found in DB)`;
             await logToDb('ORPHAN_SUB', { customer: sub.customer, sub_id: sub.id }, true);
-            await markEventError(event.id, msg);
         }
     }
 
@@ -209,9 +194,6 @@ serve(async (req) => {
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         let userId = session.metadata?.user_id || session.client_reference_id;
-        
-        // Validation: Ensure client_reference_id looks like a UUID if possible, 
-        // or rely on email match if UUID is missing/invalid format
         
         if (!userId && session.customer_details?.email) {
              const { data: p } = await supabaseAdmin!.from('profiles').select('id').eq('email', session.customer_details.email).maybeSingle();
@@ -221,10 +203,6 @@ serve(async (req) => {
         if (userId) {
             await supabaseAdmin!.from('profiles').update({ stripe_customer_id: session.customer }).eq('id', userId);
             await logToDb('CHECKOUT_LINKED', { user_id: userId, customer: session.customer });
-        } else {
-            const msg = `Unlinked Checkout: ${session.id} (No User ID found for ${session.customer_details?.email})`;
-            await logToDb('CHECKOUT_UNLINKED', { session_id: session.id, email: session.customer_details?.email }, true);
-            await markEventError(event.id, msg);
         }
     }
 
@@ -245,7 +223,6 @@ serve(async (req) => {
                     invoice_hosted_url: inv.hosted_invoice_url,
                     project_name: 'KOSMA Subscription'
                 });
-                await logToDb('INVOICE_SAVED', { user_id: profile.id, amount: inv.amount_paid, currency: inv.currency });
             }
         }
     }
@@ -264,16 +241,12 @@ serve(async (req) => {
                 vatId: cust.tax_ids?.data?.[0]?.value
             }
         }).eq('stripe_customer_id', cust.id);
-        await logToDb('PROFILE_SYNCED', { customer: cust.id });
     }
 
     return new Response(JSON.stringify({ received: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err: any) {
-    console.error("Webhook Critical Error:", err);
-    await logToDb('CRITICAL_FAIL', { error: err.message }, true);
-    // Try to update event error if we can parse the ID from body, but raw body might be consumed.
-    // Simpler to just return 400.
+    console.error("Webhook Error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: corsHeaders });
   }
 })

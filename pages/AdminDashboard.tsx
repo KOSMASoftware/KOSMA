@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, Play } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, Play, Wifi, Edit } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -76,7 +76,7 @@ const AdminTabs = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
-                <Bug className="w-4 h-4" /> Debug
+                <Bug className="w-4 h-4" /> Debug Stripe
             </Link>
         </div>
     );
@@ -96,6 +96,7 @@ const useAdminData = () => {
         const fetchAll = async () => {
             setLoading(true);
             try {
+                // RLS: Admin can see all profiles and licenses
                 const { data: profiles } = await supabase.from('profiles').select('*');
                 const { data: licData } = await supabase.from('licenses').select('*');
                 const { data: invData } = await supabase.from('invoices').select('amount, status');
@@ -225,14 +226,85 @@ const DashboardOverview: React.FC = () => {
 };
 
 // --- VIEW 2: USERS MANAGEMENT ---
+const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onClose: () => void, onUpdate: () => void }> = ({ user, license, onClose, onUpdate }) => {
+    const [tier, setTier] = useState<PlanTier>(license?.planTier || PlanTier.FREE);
+    const [status, setStatus] = useState<SubscriptionStatus>(license?.status || SubscriptionStatus.NONE);
+    const [overrideDate, setOverrideDate] = useState(license?.adminValidUntilOverride ? new Date(license.adminValidUntilOverride).toISOString().split('T')[0] : '');
+    const [updating, setUpdating] = useState(false);
+
+    const handleSave = async () => {
+        setUpdating(true);
+        try {
+            // CALL ADMIN EDGE FUNCTION
+            const { data: { session } } = await supabase.auth.getSession();
+            const { data, error } = await supabase.functions.invoke('admin-action', {
+                body: { 
+                    action: 'update_license', 
+                    userId: user.id,
+                    payload: {
+                        plan_tier: tier,
+                        status: status,
+                        admin_override_date: overrideDate || null
+                    }
+                },
+                headers: { Authorization: `Bearer ${session?.access_token}` }
+            });
+
+            if (error || !data.success) throw new Error(data?.error || error?.message);
+            onUpdate();
+            onClose();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update license. Check console.");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+                <h3 className="text-xl font-bold mb-4">Edit License: {user.name}</h3>
+                
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Plan Tier</label>
+                        <select value={tier} onChange={e => setTier(e.target.value as PlanTier)} className="w-full p-2 border rounded">
+                            {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                        <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-2 border rounded">
+                            {Object.values(SubscriptionStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Override End Date (Optional)</label>
+                        <input type="date" value={overrideDate} onChange={e => setOverrideDate(e.target.value)} className="w-full p-2 border rounded"/>
+                        <p className="text-xs text-gray-400 mt-1">Leave empty to use Stripe period.</p>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                    <button onClick={handleSave} disabled={updating} className="px-4 py-2 text-sm bg-brand-500 text-white rounded hover:bg-brand-600 flex items-center gap-2">
+                        {updating && <RefreshCw className="w-3 h-3 animate-spin"/>} Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const UsersManagement: React.FC = () => {
-    const { loading, users, licenses } = useAdminData();
+    const { loading, users, licenses, refreshData } = useAdminData();
     const [searchTerm, setSearchTerm] = useState('');
+    const [editingUser, setEditingUser] = useState<User | null>(null);
 
     const filteredUsers = users.filter(u => 
         u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.stripeCustomerId && u.stripeCustomerId.toLowerCase().includes(searchTerm.toLowerCase()))
+        u.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const getLicenseForUser = (userId: string) => licenses.find(l => l.userId === userId);
@@ -243,6 +315,15 @@ const UsersManagement: React.FC = () => {
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <AdminTabs />
             
+            {editingUser && (
+                <EditLicenseModal 
+                    user={editingUser} 
+                    license={getLicenseForUser(editingUser.id)} 
+                    onClose={() => setEditingUser(null)} 
+                    onUpdate={refreshData} 
+                />
+            )}
+
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <div className="relative w-full md:w-96">
                     <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -265,10 +346,9 @@ const UsersManagement: React.FC = () => {
                         <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                             <tr>
                                 <th className="px-6 py-4">User</th>
-                                <th className="px-6 py-4">Role</th>
                                 <th className="px-6 py-4">Current Plan</th>
                                 <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Stripe ID</th>
+                                <th className="px-6 py-4 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -279,13 +359,6 @@ const UsersManagement: React.FC = () => {
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-gray-900">{user.name}</div>
                                             <div className="text-xs text-gray-500">{user.email}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                                                user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
-                                            }`}>
-                                                {user.role}
-                                            </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             {license ? (
@@ -312,8 +385,10 @@ const UsersManagement: React.FC = () => {
                                                 <span className="text-gray-300">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                                            {user.stripeCustomerId || '-'}
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={() => setEditingUser(user)} className="text-brand-500 hover:bg-brand-50 p-2 rounded">
+                                                <Edit className="w-4 h-4" />
+                                            </button>
                                         </td>
                                     </tr>
                                 );
@@ -406,18 +481,34 @@ const MarketingInsights: React.FC = () => {
 const SystemHealthView: React.FC = () => {
     const [checks, setChecks] = useState<SystemCheckResult[]>([]);
     const [loading, setLoading] = useState(true);
+    const [lastWebhook, setLastWebhook] = useState<string | null>(null);
 
     const runChecks = async () => {
         setLoading(true);
-        const results = await Promise.all([
-            liveSystemService.checkDatabaseConnection(),
-            liveSystemService.checkAuthService(),
-            liveSystemService.checkRealtime(),
-            liveSystemService.checkStripe(),
-            liveSystemService.checkEmail()
-        ]);
-        setChecks(results);
-        setLoading(false);
+        try {
+            const results = await Promise.all([
+                liveSystemService.checkDatabaseConnection(),
+                liveSystemService.checkAuthService(),
+                liveSystemService.checkRealtime(),
+                liveSystemService.checkStripe(),
+                liveSystemService.checkEmail()
+            ]);
+            setChecks(results);
+
+             // Check last webhook for "Heartbeat" display
+             // This is the ONLY Stripe check we keep here.
+             const { data } = await supabase
+                .from('stripe_events')
+                .select('created_at')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            
+            if (data) setLastWebhook(data.created_at);
+
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { runChecks(); }, []);
@@ -434,6 +525,27 @@ const SystemHealthView: React.FC = () => {
                 <button onClick={runChecks} disabled={loading} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                     <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
                 </button>
+            </div>
+
+            {/* STRIPE HEARTBEAT CARD */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-brand-50 text-brand-600 rounded-full">
+                        <Activity className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-gray-900">Stripe Webhook Heartbeat</h4>
+                        <p className="text-sm text-gray-500">
+                            {lastWebhook 
+                                ? `Last signal received: ${new Date(lastWebhook).toLocaleString()}` 
+                                : "No webhooks received yet."}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-mono">LIVE</span>
+                    <div className={`w-3 h-3 rounded-full ${lastWebhook ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -484,78 +596,37 @@ const SystemHealthView: React.FC = () => {
 };
 
 
-// --- VIEW 5: DEBUG VIEW (ENHANCED) ---
+// --- VIEW 5: DEBUG VIEW (SIMPLIFIED TO STRIPE ONLY) ---
 const DebugView: React.FC = () => {
     const { user } = useAuth();
     const [events, setEvents] = useState<any[]>([]);
-    const [logs, setLogs] = useState<any[]>([]);
-    const [authLogs, setAuthLogs] = useState<any[]>([]);
-    const [authLogsError, setAuthLogsError] = useState<string | null>(null);
-    const [auditLogsError, setAuditLogsError] = useState<string | null>(null);
-    const [logFilter, setLogFilter] = useState<'all' | 'edge' | 'system'>('all');
-    const [activeTab, setActiveTab] = useState<'stripe' | 'logs' | 'auth'>('logs');
+    
+    // Error States
+    const [stripeError, setStripeError] = useState<string | null>(null);
+
     const [loading, setLoading] = useState(false);
     const [copying, setCopying] = useState(false);
 
     const refresh = async () => {
         setLoading(true);
-        setAuthLogsError(null);
-        setAuditLogsError(null);
+        setStripeError(null);
 
-        // 1. Stripe Events (Limit 10 as requested)
-        const { data: eData } = await supabase
-            .from('stripe_events')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(10);
-        
-        // 2. Audit Logs (Limit 10 as requested)
-        let logQuery = supabase
-            .from('audit_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(10);
-        
-        if (logFilter === 'edge') {
-            logQuery = logQuery.ilike('action', 'EDGE_%');
-        }
-
-        const { data: lData, error: lError } = await logQuery;
-
-        // 3. Auth Logs (Limit 10 as requested)
-        const { data: aData, error: aError } = await supabase
-            .from('auth_logs_view' as any)
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-        if (eData) setEvents(eData);
-        if (lData) setLogs(lData);
-        if (aData) setAuthLogs(aData);
-        
-        // Error Handling
-        if (aError) {
-             if (aError.code === '42P01') setAuthLogsError("MISSING_VIEW");
-             else setAuthLogsError(aError.message);
-        }
-        if (lError) {
-             if (lError.code === '42P01') setAuditLogsError("MISSING_TABLE");
-             else setAuditLogsError(lError.message);
-        }
-
-        setLoading(false);
-    };
-    
-    // Generates a test event by updating user metadata (triggers auth log)
-    const handleGenerateTestEvent = async () => {
-        setLoading(true);
         try {
-            await supabase.auth.updateUser({ data: { last_debug_check: new Date().toISOString() } });
-            await new Promise(r => setTimeout(r, 1000)); // Wait for propagation
-            await refresh();
-            setActiveTab('auth');
-        } catch (e) {
-            alert("Could not trigger test event.");
+            // 1. Stripe Events (Limit 20)
+            const { data: eData, error: eError } = await supabase
+                .from('stripe_events')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(20);
+            
+            if (eError) {
+                 if (eError.code === '42P01') setStripeError("MISSING_TABLE");
+                 else setStripeError(eError.message);
+            } else if (eData) {
+                setEvents(eData);
+            }
+        } catch (err) {
+            console.error("Refresh Error:", err);
         } finally {
             setLoading(false);
         }
@@ -567,7 +638,7 @@ const DebugView: React.FC = () => {
             timestamp: new Date().toISOString(),
             environment: 'production',
             currentUser: user?.email,
-            data: { stripeEvents: events, systemLogs: logs, authLogs: authLogs }
+            data: { stripeEvents: events }
         };
         try {
             await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
@@ -575,26 +646,19 @@ const DebugView: React.FC = () => {
         } catch (err) { setCopying(false); }
     };
 
-    useEffect(() => { refresh(); }, [logFilter]);
-
-    const getBadgeClass = (count: number) => 
-        count > 0 ? "bg-gray-100 text-gray-900 px-2 py-0.5 rounded-full text-xs font-bold" : "hidden";
-
-    // --- SQL SETUP HELP ---
-    // Only show help if there is a concrete ERROR (missing table), not just emptiness.
-    const showSqlHelp = authLogsError === "MISSING_VIEW" || auditLogsError === "MISSING_TABLE";
+    useEffect(() => { refresh(); }, []);
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
             <AdminTabs />
             <div className="mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
                 <div>
-                   <h1 className="text-2xl font-bold text-gray-900 mb-2">Debug Console</h1>
-                   <p className="text-gray-500">Live view of the last 10 events from System, Edge Functions & Auth.</p>
+                   <h1 className="text-2xl font-bold text-gray-900 mb-2">Stripe Event Log</h1>
+                   <p className="text-gray-500">Live view of incoming webhooks from the payment provider.</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={handleCopyAll} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-bold hover:bg-gray-50">
-                         {copying ? <Check className="w-4 h-4 text-green-600"/> : <Copy className="w-4 h-4"/>} Copy All
+                         {copying ? <Check className="w-4 h-4 text-green-600"/> : <Copy className="w-4 h-4"/>} Copy JSON
                     </button>
                     <button onClick={refresh} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white border border-gray-900 rounded-lg text-sm font-bold hover:bg-gray-800">
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
@@ -602,209 +666,64 @@ const DebugView: React.FC = () => {
                 </div>
             </div>
 
-            {/* SQL SETUP INSTRUCTION BOX (Visible only on ERROR) */}
-            {showSqlHelp && !loading && (
+            {/* SQL SETUP INSTRUCTION BOX (Visible only on STRIPE ERROR) */}
+            {stripeError && !loading && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8 text-sm text-amber-900">
-                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Database className="w-5 h-5"/> Database Setup Required</h3>
+                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Database className="w-5 h-5"/> Stripe Table Missing</h3>
                     <p className="mb-4">
-                        Supabase logs are secure by default. To make them visible here, you must run this SQL script once in your Supabase Dashboard.
+                        The 'stripe_events' table is missing. Run this script in Supabase:
                     </p>
                     <div className="bg-white border border-amber-300 rounded p-4 font-mono text-xs overflow-x-auto text-gray-600 select-all">
-<pre>{`-- 1. Tabelle reparieren (NOT NULL entfernen)
-alter table public.audit_logs alter column target_user_id drop not null;
-
--- 2. Tabelle erstellen (falls noch nicht da)
-create table if not exists public.audit_logs (
-  id uuid default gen_random_uuid() primary key,
+<pre>{`create table if not exists public.stripe_events (
+  id text primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  action text not null,
-  actor_email text,
-  target_user_id text,
-  details jsonb,
-  is_error boolean default false
+  type text not null,
+  payload jsonb,
+  processing_error text
 );
-
-alter table public.audit_logs enable row level security;
-
--- WICHTIG: Alte Policies löschen
-drop policy if exists "Admins can view audit logs" on public.audit_logs;
-drop policy if exists "Service role can insert audit logs" on public.audit_logs;
-
--- Neue Policies anlegen
-create policy "Admins can view audit logs" on public.audit_logs for select to authenticated using (
+alter table public.stripe_events enable row level security;
+create policy "Admins can view stripe events" on public.stripe_events for select to authenticated using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
 );
-
-create policy "Service role can insert audit logs" on public.audit_logs for insert to service_role with check (true);
-
--- 3. Auth Logs View (Update)
-create or replace view public.auth_logs_view as
-  select id, created_at, payload->>'action' as action, payload->>'actor_email' as email, payload, payload->>'type' as type
-  from auth.audit_log_entries
-  order by created_at desc;
-
-grant select on public.auth_logs_view to authenticated;
-grant select on public.auth_logs_view to service_role;`}</pre>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                        <a href="https://supabase.com/dashboard/project/_/sql/new" target="_blank" rel="noreferrer" className="bg-amber-100 text-amber-800 px-4 py-2 rounded font-bold hover:bg-amber-200 inline-flex items-center gap-2">
-                            Open Supabase SQL Editor <ExternalLink className="w-4 h-4"/>
-                        </a>
+create policy "Service role can insert stripe events" on public.stripe_events for insert to service_role with check (true);
+create policy "Service role can update stripe events" on public.stripe_events for update to service_role using (true);`}</pre>
                     </div>
                 </div>
             )}
 
-            <div className="flex gap-2 mb-6 border-b border-gray-200">
-                <button 
-                    onClick={() => setActiveTab('logs')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'logs' ? 'border-purple-500 text-purple-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                >
-                    <Activity className="w-4 h-4"/> Edge & System Logs 
-                    <span className={getBadgeClass(logs.length)}>{logs.length}</span>
-                </button>
-                <button 
-                    onClick={() => setActiveTab('auth')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'auth' ? 'border-amber-500 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                >
-                    <Key className="w-4 h-4"/> Auth Logs
-                    <span className={getBadgeClass(authLogs.length)}>{authLogs.length}</span>
-                </button>
-                <button 
-                    onClick={() => setActiveTab('stripe')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'stripe' ? 'border-brand-500 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
-                >
-                    <CreditCard className="w-4 h-4"/> Stripe Events
-                    <span className={getBadgeClass(events.length)}>{events.length}</span>
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-8">
-                 {/* TAB: SYSTEM & EDGE LOGS */}
-                 {activeTab === 'logs' && (
-                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
-                     <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 flex justify-between items-center">
-                         <div className="flex items-center gap-2">
-                            <span>Application Logs (audit_logs)</span>
-                            <div className="flex gap-1 ml-4 text-[10px]">
-                                <button onClick={() => setLogFilter('all')} className={`px-2 py-0.5 rounded border ${logFilter === 'all' ? 'bg-white border-gray-300 shadow-sm' : 'border-transparent text-gray-500'}`}>All</button>
-                                <button onClick={() => setLogFilter('edge')} className={`px-2 py-0.5 rounded border ${logFilter === 'edge' ? 'bg-white border-gray-300 shadow-sm' : 'border-transparent text-gray-500'}`}>Edge Only</button>
-                            </div>
-                         </div>
-                     </div>
-                     <div className="overflow-y-auto max-h-[600px]">
-                         {auditLogsError ? (
-                             <div className="p-12 text-center text-red-500">Error: Table 'audit_logs' is missing. Run SQL above.</div>
-                         ) : logs.length === 0 ? (
-                             <div className="p-12 text-center text-gray-400 flex flex-col items-center">
-                                 <p className="mb-4">No system logs found yet.</p>
-                                 <button onClick={handleGenerateTestEvent} className="bg-gray-100 text-gray-600 px-4 py-2 rounded text-sm font-bold hover:bg-gray-200 flex items-center gap-2">
-                                     <Play className="w-4 h-4"/> Generate Auth Log
-                                 </button>
-                             </div>
-                         ) : (
-                             <div className="divide-y divide-gray-100">
-                                 {logs.map(log => {
-                                     const isEdge = log.action.startsWith('EDGE_');
-                                     const isError = log.details?.is_error;
-                                     return (
-                                     <div key={log.id} className="p-4 hover:bg-gray-50 text-sm group">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <div className="flex items-center gap-2">
-                                                 {isEdge ? <Globe className="w-4 h-4 text-purple-500"/> : <Database className="w-4 h-4 text-gray-400"/>}
-                                                 <span className={`font-mono font-bold ${isError ? 'text-red-600' : isEdge ? 'text-purple-700' : 'text-gray-800'}`}>
-                                                     {log.action}
-                                                 </span>
-                                             </div>
-                                             <span className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</span>
-                                         </div>
-                                         <div className="text-xs text-gray-500 mb-2 pl-6">Actor: {log.actor_email || 'System'}</div>
-                                         <div className="pl-6">
-                                            <pre className={`text-[10px] p-2 rounded overflow-x-auto border ${isError ? 'bg-red-50 border-red-100 text-red-700' : 'bg-gray-50 border-gray-100 text-gray-600'}`}>
-                                                {JSON.stringify(log.details, null, 2)}
-                                            </pre>
-                                         </div>
-                                     </div>
-                                 )})}
-                             </div>
-                         )}
-                     </div>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
+                 <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700">
+                     <span>Stripe Webhooks (stripe_events)</span>
                  </div>
-                 )}
-
-                 {/* TAB: AUTH LOGS */}
-                 {activeTab === 'auth' && (
-                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
-                     <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700 flex justify-between">
-                         <span>Authentication Events (auth.audit_log_entries)</span>
-                     </div>
-                     
-                     {authLogsError ? (
-                         <div className="p-12 text-center text-amber-500">
-                            {authLogsError === "MISSING_VIEW" ? "View 'auth_logs_view' is missing. Run SQL above." : `Error: ${authLogsError}`}
-                         </div>
+                 <div className="overflow-y-auto max-h-[600px]">
+                     {stripeError ? (
+                         <div className="p-12 text-center text-red-500">Error: {stripeError === "MISSING_TABLE" ? "Table 'stripe_events' is missing." : stripeError}</div>
+                     ) : events.length === 0 ? (
+                         <div className="p-12 text-center text-gray-400">No events found yet.</div> 
                      ) : (
-                        <div className="overflow-y-auto max-h-[600px]">
-                             {authLogs.length === 0 ? (
-                                <div className="p-12 text-center text-gray-400 flex flex-col items-center">
-                                    <p className="mb-4">No auth logs found.</p>
-                                    <button onClick={handleGenerateTestEvent} className="bg-brand-50 text-brand-600 px-4 py-2 rounded text-sm font-bold hover:bg-brand-100 flex items-center gap-2">
-                                        <Play className="w-4 h-4"/> Force Auth Event
-                                    </button>
-                                </div>
-                             ) : (
-                                 <div className="divide-y divide-gray-100">
-                                     {authLogs.map((log: any) => (
-                                         <div key={log.id} className="p-4 hover:bg-gray-50 text-sm">
-                                             <div className="flex justify-between items-start mb-1">
-                                                 <span className="font-bold text-gray-900">{log.action || log.type}</span>
-                                                 <span className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</span>
-                                             </div>
-                                             <div className="text-xs text-gray-500 mb-2">User: {log.email || 'N/A'}</div>
-                                             <pre className="text-[10px] bg-gray-50 text-gray-600 p-2 rounded overflow-x-auto border border-gray-200">
-                                                 {JSON.stringify(log.payload, null, 2)}
-                                             </pre>
-                                         </div>
-                                     ))}
+                         <div className="divide-y divide-gray-100">
+                             {events.map(ev => (
+                                 <div key={ev.id} className="p-4 hover:bg-gray-50 text-sm">
+                                     <div className="flex justify-between items-start mb-1">
+                                         <span className="font-mono font-bold text-brand-600">{ev.type}</span>
+                                         <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${ev.processing_error ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                             {ev.processing_error ? 'ERROR' : 'OK'}
+                                         </span>
+                                     </div>
+                                     <div className="text-xs text-gray-500 mb-2">{new Date(ev.created_at).toLocaleString()}</div>
+                                     <pre className="text-[10px] bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto">
+                                         {JSON.stringify(ev.payload, null, 2)}
+                                     </pre>
+                                     {ev.processing_error && (
+                                          <div className="mt-2 text-xs text-red-600 font-mono bg-red-50 p-2 rounded border border-red-100">
+                                              Error: {ev.processing_error}
+                                          </div>
+                                     )}
                                  </div>
-                             )}
-                        </div>
+                             ))}
+                         </div>
                      )}
                  </div>
-                 )}
-
-                 {/* TAB: STRIPE EVENTS */}
-                 {activeTab === 'stripe' && (
-                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
-                     <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700">
-                         <span>Stripe Webhooks (stripe_events)</span>
-                     </div>
-                     <div className="overflow-y-auto max-h-[600px]">
-                         {events.length === 0 ? <div className="p-12 text-center text-gray-400">No events found yet.</div> : (
-                             <div className="divide-y divide-gray-100">
-                                 {events.map(ev => (
-                                     <div key={ev.id} className="p-4 hover:bg-gray-50 text-sm">
-                                         <div className="flex justify-between items-start mb-1">
-                                             <span className="font-mono font-bold text-brand-600">{ev.type}</span>
-                                             <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${ev.processing_error ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                                 {ev.processing_error ? 'ERROR' : 'OK'}
-                                             </span>
-                                         </div>
-                                         <div className="text-xs text-gray-500 mb-2">{new Date(ev.created_at).toLocaleString()}</div>
-                                         <pre className="text-[10px] bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto">
-                                             {JSON.stringify(ev.payload, null, 2)}
-                                         </pre>
-                                         {ev.processing_error && (
-                                              <div className="mt-2 text-xs text-red-600 font-mono bg-red-50 p-2 rounded border border-red-100">
-                                                  Error: {ev.processing_error}
-                                              </div>
-                                         )}
-                                     </div>
-                                 ))}
-                             </div>
-                         )}
-                     </div>
-                 </div>
-                 )}
             </div>
         </div>
     );
