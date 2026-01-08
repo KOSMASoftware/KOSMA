@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, CheckCircle as LucideCheckCircle, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, CheckCircle as LucideCheckCircle, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -85,18 +85,24 @@ const useCustomerData = (user: User) => {
                 if (profileData?.billing_address) setBillingAddress(profileData.billing_address);
 
                 if (licData && licData.length > 0) {
-                     const mappedLicenses = licData.map((l: any) => ({
-                        id: l.id,
-                        userId: l.user_id,
-                        productName: l.product_name,
-                        planTier: l.plan_tier as PlanTier,
-                        billingCycle: l.billing_cycle || 'none',
-                        status: l.status as SubscriptionStatus,
-                        validUntil: l.valid_until,
-                        licenseKey: l.license_key,
-                        billingProjectName: l.billing_project_name,
-                        stripeSubscriptionId: l.stripe_subscription_id
-                    }));
+                     const mappedLicenses = licData.map((l: any) => {
+                        // V2 LOGIC: Effective Valid Until
+                        const effectiveValidUntil = l.admin_valid_until_override || l.current_period_end || l.valid_until;
+
+                        return {
+                            id: l.id,
+                            userId: l.user_id,
+                            productName: l.product_name,
+                            planTier: l.plan_tier as PlanTier,
+                            billingCycle: l.billing_cycle || 'none',
+                            status: l.status as SubscriptionStatus,
+                            validUntil: effectiveValidUntil,
+                            licenseKey: l.license_key,
+                            billingProjectName: l.billing_project_name,
+                            stripeSubscriptionId: l.stripe_subscription_id,
+                            cancelAtPeriodEnd: l.cancel_at_period_end
+                        };
+                    });
 
                     const priority = {
                         [SubscriptionStatus.ACTIVE]: 1,
@@ -136,7 +142,8 @@ const useCustomerData = (user: User) => {
                         amount: i.amount,
                         currency: 'EUR',
                         status: i.status,
-                        pdfUrl: i.invoice_pdf_url,
+                        // Fix: Support both new PDF URL and fallback
+                        pdfUrl: i.invoice_pdf_url || i.invoice_hosted_url || '#',
                         projectName: i.project_name
                     })));
                  }
@@ -247,7 +254,7 @@ const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null, user
     );
 };
 
-// Helper to determine Hierarchy: Free < Budget < Cost Control < Production
+// ... PricingSection & Plans logic remains same ...
 const getTierLevel = (tier: PlanTier) => {
     switch (tier) {
         case PlanTier.FREE: return 0;
@@ -257,12 +264,8 @@ const getTierLevel = (tier: PlanTier) => {
         default: return 0;
     }
 };
-
-// FIX 1: Normalize Helper to avoid "none" / null comparisons causing logic bugs
 const normalizeCycle = (c: any): 'monthly' | 'yearly' | 'none' =>
   (c === 'monthly' || c === 'yearly') ? c : 'none';
-
-// FIX 2: Explicit Key Mapping for Stripe Config
 const getStripeKey = (t: PlanTier): string | null => {
     if (t === PlanTier.BUDGET) return 'Budget';
     if (t === PlanTier.COST_CONTROL) return 'Cost Control';
@@ -271,52 +274,31 @@ const getStripeKey = (t: PlanTier): string | null => {
 };
 
 const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> = ({ currentTier, currentCycle }) => {
-    
-    // Normalize logic immediately
     const normalizedCurrentCycle = normalizeCycle(currentCycle);
-
-    // Initialize State - Default to 'yearly' if no paid cycle is active, otherwise sync.
     const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>(
         normalizedCurrentCycle === 'none' ? 'yearly' : normalizedCurrentCycle
     );
 
-    // Sync state if props change (data loaded)
     useEffect(() => {
         if (normalizedCurrentCycle !== 'none') {
             setBillingInterval(normalizedCurrentCycle);
         }
     }, [normalizedCurrentCycle]);
 
-    // FIX 3: Safe Stripe Link Lookup with Debugging
     const handlePurchase = (planName: PlanTier, cycle: 'yearly' | 'monthly') => {
         try {
             const key = getStripeKey(planName);
-            
-            if (!key) {
-                console.error(`[Stripe] Invalid PlanTier: ${planName}`);
-                alert("Invalid plan selected.");
-                return;
-            }
-
-            // Explicit cast not needed if we access via string key, but good for TS
+            if (!key) return;
             const link = STRIPE_LINKS[key as keyof typeof STRIPE_LINKS]?.[cycle];
-            
-            console.log(`[Stripe] Redirecting: Tier=${planName} Key=${key} Cycle=${cycle} Link=${link}`);
-
             if (!link) {
-                console.error(`[Stripe] Missing link configuration`);
                 alert("Payment link configuration missing. Please contact support.");
                 return;
             }
-
-            // FIX 4: Store Pending Purchase for robust return flow (if URL params missing)
             sessionStorage.setItem('pending_purchase', JSON.stringify({ tier: planName, cycle: cycle }));
-
-            // HARD REDIRECT
             window.location.href = link;
         } catch (e) {
             console.error("Redirect failed:", e);
-            alert("Something went wrong initializing the checkout. Please try again.");
+            alert("Something went wrong initializing the checkout.");
         }
     };
 
@@ -329,7 +311,6 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
           name: PlanTier.BUDGET,
           title: "Budget",
           Icon: Calculator,
-          subtitle: "For production managers focused on budget creation.",
           price: billingInterval === 'yearly' ? 390 : 39,
           colorClass: "border-amber-500",
           textClass: "text-amber-500",
@@ -341,7 +322,6 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
           name: PlanTier.COST_CONTROL,
           title: "Cost Control",
           Icon: BarChart3,
-          subtitle: "For production managers monitoring production costs.",
           price: billingInterval === 'yearly' ? 590 : 59,
           colorClass: "border-purple-600",
           textClass: "text-purple-600",
@@ -353,7 +333,6 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
           name: PlanTier.PRODUCTION,
           title: "Production",
           Icon: Clapperboard,
-          subtitle: "For producers seeking full project control.",
           price: billingInterval === 'yearly' ? 690 : 69,
           colorClass: "border-green-600",
           textClass: "text-green-600",
@@ -372,7 +351,6 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                     <h3 className="text-2xl font-bold text-gray-900">Change Subscription</h3>
                     <p className="text-gray-500 mt-1">Upgrade or downgrade your license instantly.</p>
                 </div>
-                {/* TOGGLE: Updates local state to show correct prices */}
                 <div className="inline-flex bg-gray-100 rounded-full p-1">
                     <button onClick={() => setBillingInterval('yearly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Yearly</button>
                     <button onClick={() => setBillingInterval('monthly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Monthly</button>
@@ -382,27 +360,13 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {plans.map((plan) => {
                     const planLevel = getTierLevel(plan.name);
-                    
-                    // Logic Definition
                     const isSameTier = plan.name === currentTier;
-                    
-                    // CLEANER LOGIC: avoid type overlap errors by checking for 'none' first
                     const isSameCycle = normalizedCurrentCycle !== 'none' ? billingInterval === normalizedCurrentCycle : false;
-                    
-                    // Case A: Active Plan (Same Tier + Same Cycle + Valid Cycle) -> DISABLED
                     const isCurrentActive = normalizedCurrentCycle !== 'none' && isSameTier && isSameCycle;
-
-                    // Case B: Cycle Switch (Same Tier + Diff Cycle) -> PURCHASE (Stripe)
-                    // Allowed even if tier is same, as long as cycle is different OR current is 'none'
                     const isCycleSwitch = isSameTier && (!isSameCycle || normalizedCurrentCycle === 'none');
-
-                    // Case C: Upgrade (Higher Tier) -> PURCHASE (Stripe)
                     const isUpgrade = planLevel > currentLevel;
-
-                    // Case D: Downgrade (Lower Tier) -> ALERT
                     const isDowngrade = planLevel < currentLevel;
                     
-                    // Button Label Logic
                     let btnLabel = "Select";
                     if (isCurrentActive) btnLabel = "Active Plan";
                     else if (isCycleSwitch && normalizedCurrentCycle !== 'none') btnLabel = `Switch to ${billingInterval === 'yearly' ? 'Yearly' : 'Monthly'}`;
@@ -416,50 +380,26 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                                     CURRENT
                                 </div>
                             )}
-                            
                             <h4 className={`text-2xl font-bold ${plan.textClass} mb-4`}>{plan.title}</h4>
-                            
-                            <div className="flex justify-center mb-6">
-                                <plan.Icon className={`w-12 h-12 ${plan.textClass} opacity-90`} />
-                            </div>
-
+                            <div className="flex justify-center mb-6"><plan.Icon className={`w-12 h-12 ${plan.textClass} opacity-90`} /></div>
                             <div className="mb-2">
                                 <span className={`text-4xl font-bold ${plan.textClass}`}>{plan.price} €</span>
                                 <span className="text-sm text-gray-400">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
                             </div>
-
                             <div className="h-6 mb-8">
-                                {plan.save && (
-                                    <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                                        Save {plan.save}€ per year
-                                    </span>
-                                )}
+                                {plan.save && <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded">Save {plan.save}€ per year</span>}
                             </div>
-
                             <button
-                                onClick={() => {
-                                    if (isDowngrade) handleDowngrade();
-                                    else handlePurchase(plan.name, billingInterval); // IMPORTANT: Pass the SELECTED cycle
-                                }}
+                                onClick={() => { if (isDowngrade) handleDowngrade(); else handlePurchase(plan.name, billingInterval); }}
                                 disabled={isCurrentActive}
-                                className={`w-full py-3 rounded-lg border-2 text-sm font-bold transition-all mb-8 ${
-                                    isCurrentActive
-                                    ? 'border-gray-100 text-gray-300 cursor-not-allowed' 
-                                    : isDowngrade
-                                        ? 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700' // Downgrade Grey
-                                        : `${plan.btnClass}` // Upgrade/Switch Colored
-                                }`}
+                                className={`w-full py-3 rounded-lg border-2 text-sm font-bold transition-all mb-8 ${isCurrentActive ? 'border-gray-100 text-gray-300 cursor-not-allowed' : isDowngrade ? 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700' : `${plan.btnClass}`}`}
                             >
                                 {btnLabel}
                             </button>
-
                             <div className="border-t border-gray-100 pt-6 flex-1">
                                 <ul className="space-y-3 text-left text-sm text-gray-600">
                                     {plan.features.map((f, i) => (
-                                        <li key={i} className="flex gap-3 items-start">
-                                            <Check className={`w-4 h-4 ${plan.textClass} shrink-0 mt-0.5`} /> 
-                                            <span className="leading-tight">{f}</span>
-                                        </li>
+                                        <li key={i} className="flex gap-3 items-start"><Check className={`w-4 h-4 ${plan.textClass} shrink-0 mt-0.5`} /> <span className="leading-tight">{f}</span></li>
                                     ))}
                                 </ul>
                             </div>
@@ -467,9 +407,6 @@ const PricingSection: React.FC<{ currentTier: PlanTier, currentCycle: string }> 
                     );
                 })}
             </div>
-             <p className="text-center text-xs text-gray-400 mt-8">
-                All payments are processed securely via Stripe. You can cancel your subscription at any time.
-            </p>
         </div>
     );
 };
@@ -479,20 +416,51 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [processing, setProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState(false);
+    const [canceling, setCanceling] = useState(false);
 
     const activeLicense = licenses[0];
+    const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
 
+    // --- HANDLE CANCEL SUBSCRIPTION (V2) ---
+    const handleCancel = async () => {
+        if (!confirm("Are you sure you want to cancel? Your subscription will remain active until the end of the current billing period, but you will not be charged again.")) {
+            return;
+        }
+        setCanceling(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("No session");
+
+            // CALL NEW EDGE FUNCTION with correct slug and EMPTY body for consistent POST
+            const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+                body: {},
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+
+            if (error || !data.success) {
+                throw new Error(data?.error || error?.message || "Cancellation failed");
+            }
+
+            alert("Subscription canceled successfully. It will expire at the end of the billing period.");
+            refresh();
+        } catch (err: any) {
+            console.error(err);
+            alert("Could not cancel subscription. Please try again or contact support.");
+        } finally {
+            setCanceling(false);
+        }
+    };
+
+    // --- HANDLE RETURN FROM STRIPE ---
     useEffect(() => {
-        // REGEL: Webhook Simulation (SECURE PRODUCTION MODE)
         const stripeSuccess = searchParams.get('stripe_success');
-        const checkoutStatus = searchParams.get('checkout'); // Support checkout=success
+        const checkoutStatus = searchParams.get('checkout');
         const isSuccess = stripeSuccess === 'true' || checkoutStatus === 'success';
 
         let tier = searchParams.get('tier') as PlanTier;
         let cycle = searchParams.get('cycle') as 'monthly' | 'yearly';
         const rawProjectName = searchParams.get('project_name');
         
-        // RECOVERY FROM SESSION STORAGE (Falls Stripe keine Params liefert)
         if (isSuccess && (!tier || !cycle)) {
              try {
                 const stored = sessionStorage.getItem('pending_purchase');
@@ -500,31 +468,22 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     const parsed = JSON.parse(stored);
                     tier = parsed.tier;
                     cycle = parsed.cycle;
-                    console.log("Recovered purchase info from session:", tier, cycle);
                 }
              } catch(e) { console.error("Session recovery failed", e); }
         }
 
-        // HARDENED RETURN FLOW:
-        // If we still miss tier or cycle after recovery attempt, stop here.
-        if (isSuccess && (!tier || !cycle)) {
-             console.warn("Detected success param but missing tier/cycle info. Cannot activate.");
-             return;
-        }
+        if (isSuccess && (!tier || !cycle)) return;
 
         if (isSuccess && tier && cycle) {
             const updateLicense = async () => {
                 setProcessing(true);
                 try {
-                    // FIX: Race Condition Handling & Explicit Auth Token
-                    // 1. Wait for session to be ready (Retry Logic)
                     let sessionData = await supabase.auth.getSession();
                     let token = sessionData.data.session?.access_token;
                     
                     if (!token) {
-                        console.log("Session not ready immediately after redirect. Retrying...");
                         for (let i = 0; i < 5; i++) {
-                            await new Promise(r => setTimeout(r, 600)); // Wait 600ms
+                            await new Promise(r => setTimeout(r, 600)); 
                             sessionData = await supabase.auth.getSession();
                             if (sessionData.data.session?.access_token) {
                                 token = sessionData.data.session.access_token;
@@ -534,7 +493,6 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                     }
 
                     if (!token) {
-                        console.error("No access token found after retries. User might need to login again.");
                         alert("Session expired. Please log in again to activate your license.");
                         setProcessing(false);
                         return;
@@ -544,30 +502,19 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                         ? `Project (Session ${rawProjectName.substring(8, 14)})` 
                         : (rawProjectName || 'New Production');
 
-                    // AUFRUF DER SECURE EDGE FUNCTION
-                    // Rule: Explicitly pass Authorization header to avoid 401
-                    // CHANGE: Reverted to 'dynamic-endpoint' to match manual dashboard setup
-                    const { data, error } = await supabase.functions.invoke('dynamic-endpoint', {
-                        body: {
-                            tier: tier,
-                            cycle: cycle,
-                            projectName: projectName
-                        },
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
+                    const { error } = await supabase.functions.invoke('dynamic-endpoint', {
+                        body: { tier, cycle, projectName },
+                        headers: { Authorization: `Bearer ${token}` }
                     });
 
                     if (error) throw error;
 
-                    // Clean up
                     sessionStorage.removeItem('pending_purchase');
                     setSuccessMessage(true);
-                    setSearchParams({}); // Clean URL
-                    refresh(); // Reload Data from DB
+                    setSearchParams({}); 
+                    refresh(); 
                 } catch (err) {
                     console.error("Success handling failed via Edge Function:", err);
-                    // alert("Activation failed. Please contact support if your payment was processed.");
                 } finally {
                     setProcessing(false);
                 }
@@ -608,7 +555,7 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                                 <span className="text-sm text-gray-500">{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
                             )}
                         </div>
-                        <div className="mt-3">
+                        <div className="mt-3 flex gap-2">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${
                                 activeLicense?.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-800' :
                                 activeLicense?.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-800' :
@@ -618,6 +565,18 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                                  activeLicense?.status === SubscriptionStatus.TRIAL ? 'Free Trial' : 'Free Tier'}
                             </span>
                         </div>
+                        
+                        {/* CANCELLATION WARNING */}
+                        {activeLicense?.cancelAtPeriodEnd && (
+                            <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2">
+                                <AlertCircle className="w-5 h-5 text-orange-600 shrink-0" />
+                                <div>
+                                    <p className="text-sm font-bold text-orange-800">Canceled</p>
+                                    <p className="text-xs text-orange-700">Access remains valid until the period ends.</p>
+                                </div>
+                            </div>
+                        )}
+
                         <p className="text-sm text-gray-500 mt-2">
                             {activeLicense?.validUntil 
                                 ? `Valid until: ${new Date(activeLicense.validUntil).toLocaleDateString()}`
@@ -629,19 +588,29 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                                 <Briefcase className="w-3 h-3" /> Project: {activeLicense.billingProjectName}
                             </p>
                         )}
+                        {!hasStripeId && activeLicense?.status === SubscriptionStatus.ACTIVE && (
+                            <p className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1">
+                                <Loader2 className="w-3 h-3 animate-spin" /> Syncing with payment provider...
+                            </p>
+                        )}
                     </div>
                     
-                    {activeLicense?.status === SubscriptionStatus.ACTIVE && (
+                    {activeLicense?.status === SubscriptionStatus.ACTIVE && !activeLicense?.cancelAtPeriodEnd && (
                         <button 
-                             onClick={() => alert("Please contact support to cancel your subscription. It will remain active until the end of the billing period.")}
-                             className="px-6 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors"
+                             onClick={handleCancel}
+                             disabled={canceling || !hasStripeId}
+                             className={`px-6 py-2 border rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
+                                !hasStripeId 
+                                ? 'border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50'
+                                : 'border-red-200 text-red-600 hover:bg-red-50'
+                             }`}
                         >
-                           Cancel Subscription
+                           {canceling ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
+                           {hasStripeId ? 'Cancel Subscription' : 'Syncing...'}
                         </button>
                     )}
                 </div>
 
-                {/* Billing Address Card */}
                 <BillingAddressCard initialAddress={billingAddress} userId={user.id} />
             </div>
 
@@ -693,7 +662,6 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
                 </div>
             </div>
 
-            {/* PRICING SELECTION (Integrated Here) */}
             <PricingSection 
                 currentTier={activeLicense?.planTier || PlanTier.FREE} 
                 currentCycle={activeLicense?.billingCycle || 'none'}
@@ -704,11 +672,10 @@ const SubscriptionView: React.FC<{ user: User }> = ({ user }) => {
     );
 };
 
+// ... Overview & CustomerDashboard Wrapper ...
 const Overview: React.FC<{ user: User }> = ({ user }) => {
     const { loading, licenses, invoices } = useCustomerData(user);
     if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brand-500" /></div>;
-    
-    // Sortierung ist im Hook erledigt.
     const activeLicense = licenses[0];
 
     return (
@@ -731,6 +698,9 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
                                 <p className="text-xs font-bold uppercase tracking-wider text-brand-500 mb-1">
                                     {activeLicense.status}
                                 </p>
+                                {activeLicense.cancelAtPeriodEnd && (
+                                    <p className="text-[10px] text-orange-600 font-bold">Expires at period end</p>
+                                )}
                                 <p className="text-xs text-gray-500">
                                     {activeLicense.validUntil ? `Valid until ${new Date(activeLicense.validUntil).toLocaleDateString()}` : 'No expiration'}
                                 </p>
@@ -767,7 +737,6 @@ const Overview: React.FC<{ user: User }> = ({ user }) => {
 export const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
     if (!user) return <Navigate to="/login" />;
-
     return (
         <div className="pb-20">
             <Routes>

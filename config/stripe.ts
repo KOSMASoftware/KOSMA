@@ -3,10 +3,18 @@
  * STRIPE CONFIGURATION
  * 
  * Source of Truth for Payment Links.
- * Keys match the PlanTier enum values: "Budget", "Cost Control", "Production".
+ * Supports switching between Test and Live modes via VITE_STRIPE_MODE env var.
  */
 
-export const STRIPE_LINKS = {
+// Define structure for links
+type StripeLinks = {
+  [key in "Budget" | "Cost Control" | "Production"]: {
+    monthly: string;
+    yearly: string;
+  }
+};
+
+const TEST_LINKS: StripeLinks = {
   "Budget": {
     monthly: 'https://buy.stripe.com/test_6oU5kD690gMt18Bgaw93y05', 
     yearly: 'https://buy.stripe.com/test_dRmaEX9lceElg3v7E093y04'
@@ -16,12 +24,35 @@ export const STRIPE_LINKS = {
     yearly: 'https://buy.stripe.com/test_6oU5kD40SgMt3gJ2jG93y02'
   },
   "Production": {
-  monthly: 'https://buy.stripe.com/test_5kQ8wPfJA67PeZr8I493y01',
-  yearly:  'https://buy.stripe.com/test_00waEX7d42VD6sVf6s93y00'
+    monthly: 'https://buy.stripe.com/test_5kQ8wPfJA67PeZr8I493y01',
+    yearly:  'https://buy.stripe.com/test_00waEX7d42VD6sVf6s93y00'
   }
-} as const;
+};
+
+const LIVE_LINKS: StripeLinks = {
+  // TODO: Replace with real live links before switching VITE_STRIPE_MODE to 'live'
+  "Budget": {
+    monthly: 'https://buy.stripe.com/live_...', 
+    yearly: 'https://buy.stripe.com/live_...'
+  },
+  "Cost Control": {
+    monthly: 'https://buy.stripe.com/live_...',
+    yearly: 'https://buy.stripe.com/live_...'
+  },
+  "Production": {
+    monthly: 'https://buy.stripe.com/live_...',
+    yearly:  'https://buy.stripe.com/live_...'
+  }
+};
+
+// Determine mode from Env or default to 'test'
+// Casting import.meta to any to avoid TS errors in some environments
+const env = (import.meta as any).env || {};
+const MODE = (env.VITE_STRIPE_MODE as string) || 'test';
+
+export const STRIPE_LINKS = MODE === 'live' ? LIVE_LINKS : TEST_LINKS;
 
 export const STRIPE_CONFIG = {
-  isLive: false,
+  isLive: MODE === 'live',
   links: STRIPE_LINKS
 };

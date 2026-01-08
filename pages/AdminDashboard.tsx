@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { Routes, Route, useNavigate, useSearchParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -5,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -108,18 +109,28 @@ const useAdminData = () => {
                 }
 
                 if (licData && licData.length > 0) {
-                    realLicenses = licData.map((l: any) => ({
-                        id: l.id,
-                        userId: l.user_id,
-                        productName: l.product_name,
-                        planTier: l.plan_tier as PlanTier,
-                        billingCycle: l.billing_cycle || 'none',
-                        status: l.status as SubscriptionStatus,
-                        validUntil: l.valid_until,
-                        licenseKey: l.license_key,
-                        billingProjectName: l.billing_project_name,
-                        stripeSubscriptionId: l.stripe_subscription_id
-                    }));
+                    realLicenses = licData.map((l: any) => {
+                        // Logic for ValidUntil: Prefer Admin Override, then Current Period, then basic valid_until
+                        const effectiveValidUntil = l.admin_valid_until_override || l.current_period_end || l.valid_until;
+
+                        return {
+                            id: l.id,
+                            userId: l.user_id,
+                            productName: l.product_name,
+                            planTier: l.plan_tier as PlanTier,
+                            billingCycle: l.billing_cycle || 'none',
+                            status: l.status as SubscriptionStatus,
+                            validUntil: effectiveValidUntil,
+                            licenseKey: l.license_key,
+                            billingProjectName: l.billing_project_name,
+                            stripeSubscriptionId: l.stripe_subscription_id,
+                            stripeCustomerId: l.stripe_customer_id,
+                            cancelAtPeriodEnd: l.cancel_at_period_end,
+                            canceledAt: l.canceled_at,
+                            adminValidUntilOverride: l.admin_valid_until_override,
+                            adminOverrideReason: l.admin_override_reason
+                        };
+                    });
                 }
 
                 if (invData && invData.length > 0) {
@@ -163,11 +174,6 @@ const DashboardOverview: React.FC = () => {
     }
     return acc;
   }, {} as Record<string, number>);
-
-  const cycleChartData = [
-    { name: 'Yearly', value: cycleCounts['yearly'] || 0 },
-    { name: 'Monthly', value: cycleCounts['monthly'] || 0 }
-  ];
 
   if (loading) return <div className="p-12 text-center text-gray-500">Loading metrics...</div>;
 
@@ -234,11 +240,12 @@ const DashboardOverview: React.FC = () => {
   );
 };
 
-// --- VIEW 2: USER MANAGEMENT (With Manual Extension) ---
+// --- VIEW 2: USER MANAGEMENT (With Enhanced V2 Logic) ---
 type SortKey = 'name' | 'planTier' | 'validUntil' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 const UsersManagement: React.FC = () => {
+  const { user: adminUser } = useAuth();
   const { loading, users, licenses, refreshData } = useAdminData();
   
   const [searchParams, setSearchParams] = useSearchParams();
@@ -246,10 +253,12 @@ const UsersManagement: React.FC = () => {
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'name', direction: 'asc' });
-  const [modifying, setModifying] = useState(false);
-
+  
+  // Modal States
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserLicense, setSelectedUserLicense] = useState<License | null>(null);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [modifying, setModifying] = useState(false);
 
   const tableData = useMemo(() => {
     return users.map(u => {
@@ -305,23 +314,54 @@ const UsersManagement: React.FC = () => {
         : <ChevronDown className="w-3 h-3 text-brand-600 ml-1" />;
   };
 
-  // REGEL 6.2: Manuelle Verlängerung
+  // REGEL E1: Admin Override „Tage“ sauber machen
   const extendLicense = async (days: number) => {
       if (!selectedUser || !selectedUserLicense) return;
+      if (!overrideReason.trim()) {
+          alert("Please provide a reason for this manual override (required for audit logs).");
+          return;
+      }
+
       setModifying(true);
       try {
+          // Basis: Current valid date or now
           const currentValid = selectedUserLicense.validUntil ? new Date(selectedUserLicense.validUntil) : new Date();
           const newDate = new Date(currentValid);
           newDate.setDate(newDate.getDate() + days);
 
-          await supabase.from('licenses').upsert({
+          const isoDate = newDate.toISOString();
+
+          // 1. UPDATE LICENSE (Write to admin_valid_until_override)
+          const { error: licError } = await supabase.from('licenses').upsert({
               user_id: selectedUser.id,
-              valid_until: newDate.toISOString(),
-              status: 'active' // Re-activate if expired
+              admin_valid_until_override: isoDate,
+              admin_override_reason: overrideReason,
+              admin_override_by: adminUser?.id,
+              admin_override_at: new Date().toISOString(),
+              status: 'active' // Ensure user has access
           }, { onConflict: 'user_id' });
 
-          alert(`Successfully extended license for ${selectedUser.name} by ${days} days.`);
-          refreshData(); // Refresh UI
+          if (licError) throw licError;
+
+          // 2. CREATE AUDIT LOG
+          const { error: auditError } = await supabase.from('audit_logs').insert({
+              actor_user_id: adminUser?.id,
+              actor_email: adminUser?.email,
+              action: 'ADMIN_OVERRIDE',
+              target_user_id: selectedUser.id,
+              details: {
+                  days_added: days,
+                  new_valid_until: isoDate,
+                  reason: overrideReason,
+                  previous_valid_until: selectedUserLicense.validUntil
+              }
+          });
+
+          if (auditError) console.error("Audit Log failed", auditError);
+
+          alert(`Override applied. New access valid until: ${newDate.toLocaleDateString()}`);
+          setOverrideReason(''); // Reset
+          refreshData(); 
           closeDetails();
       } catch (err) {
           console.error("Extension failed", err);
@@ -334,6 +374,7 @@ const UsersManagement: React.FC = () => {
   const handleUserClick = (row: typeof tableData[0]) => {
     setSelectedUser(row.user);
     setSelectedUserLicense(row.license || null);
+    setOverrideReason('');
   };
 
   const closeDetails = () => {
@@ -430,6 +471,7 @@ const UsersManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-gray-600">
                     {row.license?.validUntil ? new Date(row.license.validUntil).toLocaleDateString() : '—'}
+                    {row.license?.adminValidUntilOverride && <span className="ml-1 text-orange-500" title="Admin Override Active">*</span>}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -440,6 +482,9 @@ const UsersManagement: React.FC = () => {
                     }`}>
                       {row.status === SubscriptionStatus.ACTIVE ? 'Active' : row.status === SubscriptionStatus.TRIAL ? 'Trial' : row.status === SubscriptionStatus.PAST_DUE ? 'Past Due' : 'Inactive'}
                     </span>
+                    {row.license?.cancelAtPeriodEnd && (
+                        <div className="text-[10px] text-orange-600 font-bold mt-1">Cancels at period end</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button 
@@ -495,37 +540,67 @@ const UsersManagement: React.FC = () => {
                                <span className="text-sm text-gray-500">Valid Until</span>
                                <span className="font-medium">{selectedUserLicense?.validUntil ? new Date(selectedUserLicense.validUntil).toLocaleDateString() : 'N/A'}</span>
                            </div>
+                           {selectedUserLicense?.adminValidUntilOverride && (
+                               <div className="flex justify-between bg-orange-50 p-2 rounded border border-orange-100 mt-2">
+                                   <span className="text-sm text-orange-700 font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Admin Override</span>
+                                   <span className="text-xs text-orange-600 italic">{selectedUserLicense.adminOverrideReason || 'No reason provided'}</span>
+                               </div>
+                           )}
                            {selectedUserLicense?.billingProjectName && (
                                <div className="flex justify-between">
                                    <span className="text-sm text-gray-500">Billing Project</span>
                                    <span className="font-medium">{selectedUserLicense.billingProjectName}</span>
                                </div>
                            )}
+                           <div className="flex justify-between">
+                               <span className="text-sm text-gray-500">Stripe ID</span>
+                               <span className="font-mono text-xs">{selectedUserLicense?.stripeSubscriptionId || 'N/A'}</span>
+                           </div>
                        </div>
                    </section>
 
                    <section>
                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">Admin Actions</h3>
-                       <p className="text-xs text-gray-500 mb-4">Manual override of license validity. Does not affect Stripe.</p>
+                       <p className="text-xs text-gray-500 mb-4">Manual override of license validity. Writes to audit logs.</p>
                        
-                       <div className="grid grid-cols-2 gap-3">
-                           <button 
-                                onClick={() => extendLicense(14)}
-                                disabled={modifying}
-                                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
-                           >
-                               <CalendarPlus className="w-4 h-4 text-green-600" />
-                               Extend 14 Days
-                           </button>
-                           
-                           <button 
-                                onClick={() => extendLicense(30)}
-                                disabled={modifying}
-                                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
-                           >
-                               <CalendarPlus className="w-4 h-4 text-green-600" />
-                               Extend 30 Days
-                           </button>
+                       <div className="space-y-4">
+                           <div className="space-y-1">
+                               <label className="text-xs font-bold text-gray-500">Reason for Override (Required)</label>
+                               <input 
+                                    type="text" 
+                                    value={overrideReason}
+                                    onChange={(e) => setOverrideReason(e.target.value)}
+                                    placeholder="e.g. Good will extension, Payment issue fix..."
+                                    className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                               />
+                           </div>
+
+                           <div className="grid grid-cols-2 gap-3">
+                               <button 
+                                    onClick={() => extendLicense(14)}
+                                    disabled={modifying}
+                                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
+                               >
+                                   <CalendarPlus className="w-4 h-4 text-green-600" />
+                                   Extend 14 Days
+                               </button>
+                               
+                               <button 
+                                    onClick={() => extendLicense(30)}
+                                    disabled={modifying}
+                                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"
+                               >
+                                   <CalendarPlus className="w-4 h-4 text-green-600" />
+                                   Extend 30 Days
+                               </button>
+                           </div>
+
+                           {/* MANUAL FIX PLACEHOLDER */}
+                           <div className="pt-4 border-t border-gray-100">
+                                <button className="w-full py-2 bg-gray-50 text-gray-400 border border-dashed border-gray-300 rounded text-xs hover:bg-gray-100 hover:text-gray-600 transition-colors flex items-center justify-center gap-2">
+                                    <History className="w-3 h-3"/> View Audit Logs (Future Feature)
+                                </button>
+                           </div>
                        </div>
                    </section>
                </div>
@@ -535,8 +610,7 @@ const UsersManagement: React.FC = () => {
     </div>
   );
 };
-
-// --- VIEW 3: SYSTEM HEALTH ---
+// ... rest of the file (SystemHealth, MarketingInsights, Main Component) stays the same
 const SystemHealth: React.FC = () => {
     const [statuses, setStatuses] = useState<SystemCheckResult[]>([]);
     const [loading, setLoading] = useState(false);
@@ -655,7 +729,6 @@ const SystemHealth: React.FC = () => {
     );
 };
 
-// --- VIEW 4: MARKETING INSIGHTS ---
 const MarketingInsights: React.FC = () => {
     const { loading, users, licenses } = useAdminData();
 
@@ -789,10 +862,7 @@ const MarketingInsights: React.FC = () => {
     );
 };
 
-// --- MAIN ADMIN DASHBOARD ---
 export const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
-  
   return (
     <Routes>
       <Route index element={<DashboardOverview />} />

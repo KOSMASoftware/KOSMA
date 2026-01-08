@@ -517,14 +517,14 @@ Diese Sektion ist Pflichtlektüre, bevor jemand „mal kurz was aufräumt“.
 
 ---
 
-### 🧠 GOLDENE REGEL
+# 14. DEPLOYMENT MAPPING (DATEINAMEN VS. FUNCTION SLUGS)
 
-Wenn etwas im Auth-, Stripe- oder Routing-Code „kompliziert aussieht“,
-dann ist es das aus gutem Grund.
+Da die Namen der lokalen Dateien von den deployten Funktionsnamen (Slugs) in Supabase abweichen, hier die exakte Zuordnung für das Deployment:
 
-**Erst:**
-1.  README lesen
-2.  Incident verstehen
-3.  Flow vollständig nachvollziehen
+| Lokaler Pfad | Deployed Function Name (Slug) | Beschreibung |
+| :--- | :--- | :--- |
+| `supabase/functions/webhook-handler/index.ts` | **`dynamic-endpoint`** | Verarbeitet erfolgreiche Zahlungen (wird vom Frontend nach Checkout aufgerufen). |
+| `supabase/functions/cancel-subscription/index.ts` | **`swift-action`** | Logik für die Kündigung (wird beim Klick auf "Cancel" aufgerufen). |
+| `supabase/functions/system-health/index.ts` | **`system-health`** | Monitoring-Endpunkt für Health-Checks. |
 
-**Dann ändern.**
+**Hinweis:** `stripe-webhook` läuft im Hintergrund und taucht in dieser spezifischen Liste der Frontend-aufrufbaren Funktionen ggf. nicht auf, muss aber als `stripe-webhook` deployed sein.

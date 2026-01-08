@@ -50,11 +50,37 @@ export interface License {
   productName: string; 
   planTier: PlanTier;
   stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
   billingCycle: 'monthly' | 'yearly' | 'none' | 'trial';
   status: SubscriptionStatus;
+  
+  // The logic 'validUntil' displayed to user. 
+  // Should be calculated as COALESCE(adminOverride, currentPeriodEnd, originalValidUntil)
   validUntil: string | null; 
+  
   licenseKey: string | null;
   billingProjectName?: string; 
+
+  // V2 Fields
+  cancelAtPeriodEnd?: boolean;
+  canceledAt?: string;
+  currentPeriodEnd?: string;
+  
+  // Admin Overrides
+  adminValidUntilOverride?: string;
+  adminOverrideReason?: string;
+  adminOverrideBy?: string;
+  adminOverrideAt?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  createdAt: string;
+  actorUserId?: string;
+  actorEmail?: string;
+  action: string;
+  targetUserId: string;
+  details: any;
 }
 
 export interface Invoice {

@@ -21,6 +21,7 @@ function cors(origin: string | null) {
     "Access-Control-Allow-Origin": o,
     "Vary": "Origin",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    // HINWEIS: Header erweitert um Client-spezifische Keys
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, hx-request, hx-current-url",
   };
 }
@@ -95,6 +96,7 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
     // A) Lizenz Update
+    // WICHTIG: Hier wird KEINE stripe_subscription_id gesetzt, da diese erst über den Webhook kommt.
     const { error: licError } = await supabaseAdmin
       .from('licenses')
       .upsert({
