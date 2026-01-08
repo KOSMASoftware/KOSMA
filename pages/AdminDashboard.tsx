@@ -226,11 +226,33 @@ const DashboardOverview: React.FC = () => {
 };
 
 // --- VIEW 2: USERS MANAGEMENT ---
+
 const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onClose: () => void, onUpdate: () => void }> = ({ user, license, onClose, onUpdate }) => {
     const [tier, setTier] = useState<PlanTier>(license?.planTier || PlanTier.FREE);
     const [status, setStatus] = useState<SubscriptionStatus>(license?.status || SubscriptionStatus.NONE);
-    const [overrideDate, setOverrideDate] = useState(license?.adminValidUntilOverride ? new Date(license.adminValidUntilOverride).toISOString().split('T')[0] : '');
+    
+    // Logic for Override
+    const initialOverride = license?.adminValidUntilOverride 
+        ? new Date(license.adminValidUntilOverride).toISOString().split('T')[0] 
+        : '';
+    const [overrideDate, setOverrideDate] = useState(initialOverride);
+    
     const [updating, setUpdating] = useState(false);
+    
+    // Day calculation
+    const currentValidUntil = useMemo(() => {
+        if (overrideDate) return new Date(overrideDate);
+        if (license?.validUntil) return new Date(license.validUntil);
+        return new Date();
+    }, [overrideDate, license]);
+
+    const hasStripeSub = license?.stripeSubscriptionId?.startsWith('sub_');
+
+    const handleAddDays = (days: number) => {
+        const newDate = new Date(currentValidUntil);
+        newDate.setDate(newDate.getDate() + days);
+        setOverrideDate(newDate.toISOString().split('T')[0]);
+    };
 
     const handleSave = async () => {
         setUpdating(true);
@@ -251,6 +273,11 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
             });
 
             if (error || !data.success) throw new Error(data?.error || error?.message);
+            
+            if (data.message) {
+                alert(data.message); // Feedback from backend (e.g. "Stripe cycle shifted")
+            }
+            
             onUpdate();
             onClose();
         } catch (err) {
@@ -263,33 +290,73 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
-                <h3 className="text-xl font-bold mb-4">Edit License: {user.name}</h3>
+            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl animate-in zoom-in-95">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900">Edit License</h3>
+                        <p className="text-sm text-gray-500">{user.name} ({user.email})</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button>
+                </div>
                 
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Plan Tier</label>
-                        <select value={tier} onChange={e => setTier(e.target.value as PlanTier)} className="w-full p-2 border rounded">
+                        <select value={tier} onChange={e => setTier(e.target.value as PlanTier)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
                             {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                        <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-2 border rounded">
+                        <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
                             {Object.values(SubscriptionStatus).map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Override End Date (Optional)</label>
-                        <input type="date" value={overrideDate} onChange={e => setOverrideDate(e.target.value)} className="w-full p-2 border rounded"/>
-                        <p className="text-xs text-gray-400 mt-1">Leave empty to use Stripe period.</p>
-                    </div>
                 </div>
 
-                <div className="flex justify-end gap-2 mt-6">
-                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-                    <button onClick={handleSave} disabled={updating} className="px-4 py-2 text-sm bg-brand-500 text-white rounded hover:bg-brand-600 flex items-center gap-2">
-                        {updating && <RefreshCw className="w-3 h-3 animate-spin"/>} Save
+                <div className="border-t border-gray-100 pt-4 mb-6">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extend / Reduce Access</label>
+                    <div className="flex items-center gap-2 mb-4">
+                         <div className="relative flex-1">
+                             <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                             <input 
+                                type="date" 
+                                value={overrideDate} 
+                                onChange={e => setOverrideDate(e.target.value)} 
+                                className="w-full pl-9 pr-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                             />
+                         </div>
+                         <button onClick={() => setOverrideDate('')} className="text-xs text-gray-400 hover:text-gray-600 underline px-2">
+                             Reset to Stripe
+                         </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button onClick={() => handleAddDays(7)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-xs font-bold text-gray-700">+ 7 Days</button>
+                        <button onClick={() => handleAddDays(30)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-xs font-bold text-gray-700">+ 30 Days</button>
+                        <button onClick={() => handleAddDays(365)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-xs font-bold text-gray-700">+ 1 Year</button>
+                        <div className="w-px bg-gray-300 mx-1"></div>
+                        <button onClick={() => handleAddDays(-7)} className="px-3 py-1.5 bg-red-50 hover:bg-red-100 rounded text-xs font-bold text-red-600">- 7 Days</button>
+                    </div>
+                    
+                    {overrideDate && (
+                         <div className={`mt-3 border p-3 rounded-lg text-sm flex items-start gap-2 ${
+                             hasStripeSub ? 'bg-blue-50 border-blue-100 text-blue-800' : 'bg-orange-50 border-orange-100 text-orange-800'
+                         }`}>
+                             {hasStripeSub ? <RefreshCw className="w-4 h-4 shrink-0 mt-0.5 animate-spin-slow" /> : <Info className="w-4 h-4 shrink-0 mt-0.5" />}
+                             <span>
+                                 {hasStripeSub 
+                                     ? `This will also shift the Stripe billing cycle to ${new Date(overrideDate).toLocaleDateString()}.` 
+                                     : `Only database updated. No Stripe subscription found to sync.`}
+                             </span>
+                         </div>
+                    )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
+                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-bold">Cancel</button>
+                    <button onClick={handleSave} disabled={updating} className="px-4 py-2 text-sm bg-brand-500 text-white rounded-lg hover:bg-brand-600 flex items-center gap-2 font-bold shadow-sm">
+                        {updating && <RefreshCw className="w-3 h-3 animate-spin"/>} Save Changes
                     </button>
                 </div>
             </div>
@@ -300,14 +367,36 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
 const UsersManagement: React.FC = () => {
     const { loading, users, licenses, refreshData } = useAdminData();
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | SubscriptionStatus>('ALL');
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
-    const filteredUsers = users.filter(u => 
-        u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        u.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users.filter(u => {
+        const license = licenses.find(l => l.userId === u.id);
+        
+        // Text Search (Name, Email, Company)
+        const lowerTerm = searchTerm.toLowerCase();
+        const matchesText = 
+            u.email.toLowerCase().includes(lowerTerm) || 
+            u.name.toLowerCase().includes(lowerTerm) || 
+            (u.billingAddress?.companyName || '').toLowerCase().includes(lowerTerm);
+
+        // Status Filter
+        const matchesStatus = statusFilter === 'ALL' 
+            ? true 
+            : license?.status === statusFilter || (!license && statusFilter === SubscriptionStatus.NONE);
+
+        return matchesText && matchesStatus;
+    });
 
     const getLicenseForUser = (userId: string) => licenses.find(l => l.userId === userId);
+
+    const getDaysRemaining = (dateStr: string | null | undefined) => {
+        if (!dateStr) return null;
+        const now = new Date();
+        const target = new Date(dateStr);
+        const diff = target.getTime() - now.getTime();
+        return Math.ceil(diff / (1000 * 3600 * 24));
+    };
 
     if (loading) return <div className="p-8 text-center"><RefreshCw className="w-8 h-8 animate-spin mx-auto text-gray-400"/></div>;
 
@@ -324,19 +413,36 @@ const UsersManagement: React.FC = () => {
                 />
             )}
 
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div className="relative w-full md:w-96">
-                    <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                        type="text" 
-                        placeholder="Search users..." 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                    />
-                </div>
-                <div className="text-sm text-gray-500">
-                    Showing {filteredUsers.length} of {users.length} users
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                 <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative flex-1 md:w-80">
+                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Search name, email, company..." 
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                        />
+                    </div>
+                    <div className="relative">
+                         <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                         <select 
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value as any)}
+                            className="pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 appearance-none bg-white"
+                         >
+                             <option value="ALL">All Status</option>
+                             <option value={SubscriptionStatus.ACTIVE}>Active</option>
+                             <option value={SubscriptionStatus.PAST_DUE}>Past Due</option>
+                             <option value={SubscriptionStatus.TRIAL}>Trial</option>
+                             <option value={SubscriptionStatus.CANCELED}>Canceled</option>
+                             <option value={SubscriptionStatus.NONE}>None</option>
+                         </select>
+                    </div>
+                 </div>
+                 <div className="text-sm text-gray-500 font-medium">
+                    Showing <span className="text-gray-900">{filteredUsers.length}</span> records
                 </div>
             </div>
 
@@ -346,7 +452,9 @@ const UsersManagement: React.FC = () => {
                         <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                             <tr>
                                 <th className="px-6 py-4">User</th>
-                                <th className="px-6 py-4">Current Plan</th>
+                                <th className="px-6 py-4">Company</th>
+                                <th className="px-6 py-4">Plan & Source</th>
+                                <th className="px-6 py-4">Validity (Duration)</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Action</th>
                             </tr>
@@ -354,30 +462,88 @@ const UsersManagement: React.FC = () => {
                         <tbody className="divide-y divide-gray-100">
                             {filteredUsers.map(user => {
                                 const license = getLicenseForUser(user.id);
+                                const hasStripe = license?.stripeSubscriptionId?.startsWith('sub_');
+                                const daysRemaining = getDaysRemaining(license?.validUntil);
+
                                 return (
                                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-gray-900">{user.name}</div>
                                             <div className="text-xs text-gray-500">{user.email}</div>
                                         </td>
+                                        
+                                        {/* COMPANY COLUMN */}
+                                        <td className="px-6 py-4">
+                                            {user.billingAddress?.companyName ? (
+                                                <div className="flex items-center gap-1.5">
+                                                    <Building className="w-3 h-3 text-gray-400" />
+                                                    <span className="font-medium text-gray-700">{user.billingAddress.companyName}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-300 italic">-</span>
+                                            )}
+                                        </td>
+
+                                        {/* PLAN & SOURCE */}
                                         <td className="px-6 py-4">
                                             {license ? (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-brand-600">{license.planTier}</span>
-                                                    {license.billingCycle !== 'none' && (
-                                                        <span className="text-xs text-gray-400">({license.billingCycle})</span>
-                                                    )}
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-gray-900">{license.planTier}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {hasStripe ? (
+                                                            <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-100 flex items-center gap-1 w-fit">
+                                                                <CreditCard className="w-3 h-3" /> Stripe
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200 w-fit">
+                                                                Manual
+                                                            </span>
+                                                        )}
+                                                        {license.billingCycle !== 'none' && (
+                                                            <span className="text-[10px] text-gray-400 capitalize">{license.billingCycle}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <span className="text-gray-400 italic">No license</span>
                                             )}
                                         </td>
+
+                                        {/* VALIDITY (TWO BADGES) */}
+                                        <td className="px-6 py-4">
+                                            {license?.validUntil ? (
+                                                <div className="flex flex-col gap-1.5 items-start">
+                                                    {/* Badge 1: Date */}
+                                                    <div className="flex items-center gap-1.5 text-gray-700 text-xs bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                                                        <Calendar className="w-3 h-3 text-gray-400" />
+                                                        {new Date(license.validUntil).toLocaleDateString()}
+                                                    </div>
+
+                                                    {/* Badge 2: Duration */}
+                                                    {daysRemaining !== null && (
+                                                        <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded border ${
+                                                            daysRemaining > 30 ? 'bg-green-50 text-green-700 border-green-100' :
+                                                            daysRemaining > 7 ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
+                                                            'bg-red-50 text-red-700 border-red-100'
+                                                        }`}>
+                                                            <Clock className="w-3 h-3" />
+                                                            {daysRemaining} Days left
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-300">-</span>
+                                            )}
+                                        </td>
+
                                         <td className="px-6 py-4">
                                             {license ? (
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                                                     license.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-700' :
                                                     license.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-red-100 text-red-700'
+                                                    'bg-gray-100 text-gray-500'
                                                 }`}>
                                                     {license.status}
                                                 </span>
@@ -386,7 +552,7 @@ const UsersManagement: React.FC = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button onClick={() => setEditingUser(user)} className="text-brand-500 hover:bg-brand-50 p-2 rounded">
+                                            <button onClick={() => setEditingUser(user)} className="text-brand-500 hover:bg-brand-50 p-2 rounded-lg transition-colors border border-transparent hover:border-brand-100">
                                                 <Edit className="w-4 h-4" />
                                             </button>
                                         </td>

@@ -53,9 +53,19 @@ serve(async (req) => {
 
   const markEventError = async (eventId: string, errorMsg: string) => {
       if (!supabaseAdmin) return;
+      console.error(`Event ${eventId} Error: ${errorMsg}`);
       try {
           await supabaseAdmin.from('stripe_events')
               .update({ processing_error: errorMsg })
+              .eq('id', eventId);
+      } catch (e) {}
+  };
+
+  const markEventProcessed = async (eventId: string) => {
+      if (!supabaseAdmin) return;
+      try {
+          await supabaseAdmin.from('stripe_events')
+              .update({ processed_at: new Date().toISOString(), processing_error: null })
               .eq('id', eventId);
       } catch (e) {}
   };
@@ -156,8 +166,13 @@ serve(async (req) => {
                 if (mapping) {
                     newPlanTier = mapping.plan_tier;
                 } else {
+                    const msg = `Mapping missing for Price ID: ${priceItem.id}`;
                     await logToDb('MAPPING_MISSING', { price_id: priceItem.id });
+                    await markEventError(event.id, msg);
+                    // We continue processing the status update, but tier might be null (preserving old tier if possible or defaulting)
                 }
+            } else {
+                await markEventError(event.id, "No price item found in subscription");
             }
 
             const updateData: any = {
@@ -172,7 +187,6 @@ serve(async (req) => {
 
             if (newPlanTier) {
                 updateData.plan_tier = newPlanTier;
-                // Only reset product name if we found a mapping, implies it's a valid KOSMA plan
                 updateData.product_name = 'KOSMA'; 
             }
 
@@ -183,10 +197,13 @@ serve(async (req) => {
                 await markEventError(event.id, error.message);
             } else {
                 await logToDb('LICENSE_UPDATED', { user_id: profile.id, status, sub_id: sub.id, tier: newPlanTier });
+                await markEventProcessed(event.id);
             }
 
         } else {
+            const msg = `Orphan subscription: ${customerId} (No matching user)`;
             await logToDb('ORPHAN_SUB', { customer: sub.customer, sub_id: sub.id }, true);
+            await markEventError(event.id, msg);
         }
     }
 
@@ -203,6 +220,7 @@ serve(async (req) => {
         if (userId) {
             await supabaseAdmin!.from('profiles').update({ stripe_customer_id: session.customer }).eq('id', userId);
             await logToDb('CHECKOUT_LINKED', { user_id: userId, customer: session.customer });
+            await markEventProcessed(event.id);
         }
     }
 
@@ -223,6 +241,7 @@ serve(async (req) => {
                     invoice_hosted_url: inv.hosted_invoice_url,
                     project_name: 'KOSMA Subscription'
                 });
+                await markEventProcessed(event.id);
             }
         }
     }
@@ -241,6 +260,7 @@ serve(async (req) => {
                 vatId: cust.tax_ids?.data?.[0]?.value
             }
         }).eq('stripe_customer_id', cust.id);
+        await markEventProcessed(event.id);
     }
 
     return new Response(JSON.stringify({ received: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

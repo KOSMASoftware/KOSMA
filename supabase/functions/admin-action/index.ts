@@ -45,35 +45,60 @@ serve(async (req) => {
         // Fetch current license to check for Stripe connection
         const { data: license } = await supabaseAdmin.from('licenses').select('*').eq('user_id', userId).single();
         
+        let stripeSyncInfo = "No Stripe Subscription linked.";
+
         // STRIPE SYNC LOGIC
-        if (license?.stripe_subscription_id) {
+        if (license?.stripe_subscription_id && license.stripe_subscription_id.startsWith('sub_')) {
             const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
             
-            // If admin changes status to 'active' from 'canceled', we might need to reactivate in Stripe
-            // For now, we only implement the 'cancel_at_period_end' sync if status is toggled
+            // A. Status Toggle Sync (Cancel/Reactivate)
+            // If admin changes status to 'canceled' -> set cancel_at_period_end = true
+            // If admin changes status to 'active' -> set cancel_at_period_end = false
             if (status === 'canceled' && license.status === 'active') {
                 await stripe.subscriptions.update(license.stripe_subscription_id, { cancel_at_period_end: true });
+                stripeSyncInfo = "Stripe set to cancel at period end.";
             } else if (status === 'active' && license.cancel_at_period_end) {
                 await stripe.subscriptions.update(license.stripe_subscription_id, { cancel_at_period_end: false });
+                stripeSyncInfo = "Stripe cancellation removed.";
             }
 
-            // Note: Changing Plan Tier via Admin for Stripe Subscriptions is complex (proration, prices).
-            // In this prototype, we update the DB mostly, assuming Admin knows what they are doing 
-            // or is fixing a sync issue. If we wanted to change the actual Stripe Price, we'd need to lookup Price IDs again.
+            // B. Date/Extension Sync (The requested feature)
+            // If an override date is provided, we try to push the billing cycle to that date
+            if (admin_override_date) {
+                const newAnchor = Math.floor(new Date(admin_override_date).getTime() / 1000);
+                
+                // Note: Changing billing_cycle_anchor on active subscriptions has limitations in Stripe API.
+                // We use 'proration_behavior: none' to ensure no immediate charge is made for the shift.
+                // This effectively extends the current period to the new date.
+                try {
+                    await stripe.subscriptions.update(license.stripe_subscription_id, {
+                        billing_cycle_anchor: newAnchor,
+                        proration_behavior: 'none'
+                    });
+                    stripeSyncInfo = `Stripe billing cycle shifted to ${admin_override_date}`;
+                } catch (stripeErr: any) {
+                    console.error("Stripe Anchor Update Failed:", stripeErr);
+                    // We continue to update DB, but log the warning
+                    stripeSyncInfo = `DB updated, but Stripe Sync failed: ${stripeErr.message}`;
+                }
+            }
         }
 
         // DB UPDATE
         const updateData: any = {};
         if (plan_tier) updateData.plan_tier = plan_tier;
         if (status) updateData.status = status;
-        if (admin_override_date !== undefined) updateData.admin_valid_until_override = admin_override_date; // can be null to clear
+        
+        // Always update override date (even if null to clear it)
+        updateData.admin_valid_until_override = admin_override_date === '' ? null : admin_override_date;
 
         const { error } = await supabaseAdmin.from('licenses').update(updateData).eq('user_id', userId);
         if (error) throw error;
 
-        // Audit Log handled by SQL Trigger "log_admin_license_update" (already set up by user)
+        // Audit Log is handled by SQL Trigger, but we can add an extra log for the Stripe result if needed.
+        // For now, returning it in the response is enough for the UI.
         
-        return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ success: true, message: stripeSyncInfo }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     throw new Error("Unknown Action");
