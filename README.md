@@ -519,13 +519,18 @@ Diese Sektion ist Pflichtlektüre, bevor jemand „mal kurz was aufräumt“.
 
 # 14. DEPLOYMENT MAPPING (DATEINAMEN VS. FUNCTION SLUGS)
 
-Da die Namen der lokalen Dateien von den deployten Funktionsnamen (Slugs) in Supabase abweichen, hier die exakte Zuordnung für das Deployment:
+Achtung: Die Namen der deployten Functions im Supabase Dashboard unterscheiden sich aus Obfuskierungsgründen von den lokalen Ordnernamen.
 
-| Lokaler Pfad | Deployed Function Name (Slug) | Beschreibung |
+Hier ist die **verbindliche Zuordnung** (Source of Truth):
+
+| Function Name (Dashboard) | Lokaler Ordner (Repository) | Beschreibung |
 | :--- | :--- | :--- |
-| `supabase/functions/webhook-handler/index.ts` | **`dynamic-endpoint`** | Verarbeitet erfolgreiche Zahlungen (wird vom Frontend nach Checkout aufgerufen). |
-| `supabase/functions/cancel-subscription/index.ts` | **`swift-action`** | Logik für die Kündigung (wird beim Klick auf "Cancel" aufgerufen). |
-| `supabase/functions/create-billing-portal-session/index.ts` | **`rapid-handler`** | Erstellt Stripe Customer Portal Session (für "Manage Payment Methods"). |
-| `supabase/functions/system-health/index.ts` | **`system-health`** | Monitoring-Endpunkt für Health-Checks. |
+| **`dynamic-endpoint`** | `supabase/functions/webhook-handler/` | Verarbeitet erfolgreiche Zahlungen (Checkout Return). |
+| **`rapid-handler`** | `supabase/functions/create-billing-portal-session/` | Erstellt Stripe Customer Portal Session. |
+| **`swift-action`** | `supabase/functions/cancel-subscription/` | Kündigungs-Logik (Cancel Subscription). |
+| **`system-health`** | `supabase/functions/system-health/` | System Health Monitoring. |
 
-**Hinweis:** `stripe-webhook` läuft im Hintergrund und taucht in dieser spezifischen Liste der Frontend-aufrufbaren Funktionen ggf. nicht auf, muss aber als `stripe-webhook` deployed sein.
+**Hintergrund-Funktion (nicht im Dashboard Screenshot):**
+*   **`stripe-webhook`**: Liegt in `supabase/functions/stripe-webhook/`.
+    *   Diese Funktion wird **nicht** vom Frontend aufgerufen.
+    *   Sie muss als Webhook-URL in Stripe hinterlegt werden (`https://[PROJECT].supabase.co/functions/v1/stripe-webhook`).
