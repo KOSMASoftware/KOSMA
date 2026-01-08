@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -144,6 +144,7 @@ const SystemHealthView: React.FC = () => { return <div className="p-8 text-cente
 
 // --- VIEW 5: DEBUG VIEW (ENHANCED) ---
 const DebugView: React.FC = () => {
+    const { user } = useAuth(); // Access current user for debug info
     const [events, setEvents] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
     const [authLogs, setAuthLogs] = useState<any[]>([]);
@@ -151,6 +152,7 @@ const DebugView: React.FC = () => {
     const [logFilter, setLogFilter] = useState<'all' | 'edge' | 'system'>('all');
     const [activeTab, setActiveTab] = useState<'stripe' | 'logs' | 'auth'>('logs');
     const [loading, setLoading] = useState(false);
+    const [copying, setCopying] = useState(false);
 
     const refresh = async () => {
         setLoading(true);
@@ -200,6 +202,33 @@ const DebugView: React.FC = () => {
         setLoading(false);
     };
 
+    const handleCopyAll = async () => {
+        setCopying(true);
+        const dump = {
+            timestamp: new Date().toISOString(),
+            environment: 'production', // Or dynamic if available
+            currentUser: user?.email,
+            stats: {
+                stripeEventsCount: events.length,
+                systemLogsCount: logs.length,
+                authLogsCount: authLogs.length
+            },
+            data: {
+                stripeEvents: events,
+                systemLogs: logs,
+                authLogs: authLogs
+            }
+        };
+
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
+            setTimeout(() => setCopying(false), 2000);
+        } catch (err) {
+            console.error("Copy failed", err);
+            setCopying(false);
+        }
+    };
+
     useEffect(() => { refresh(); }, [logFilter]);
 
     // Helpers for badges
@@ -215,9 +244,33 @@ const DebugView: React.FC = () => {
                    <p className="text-gray-500">Inspect server events, edge function logs, and authentication trails.</p>
                 </div>
                 <div className="flex gap-2">
+                    <button 
+                        onClick={handleCopyAll}
+                        disabled={loading} 
+                        className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors"
+                    >
+                         {copying ? <Check className="w-4 h-4 text-green-600"/> : <Copy className="w-4 h-4"/>}
+                         {copying ? 'Copied!' : 'Copy All'}
+                    </button>
                     <button onClick={refresh} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white border border-gray-900 rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors">
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
                     </button>
+                </div>
+            </div>
+
+            {/* DEBUG USER INFO BOX */}
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6 text-sm text-blue-900 flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                    <h4 className="font-bold mb-1">Your Access Status</h4>
+                    <p>Logged in as: <span className="font-mono bg-blue-100 px-1 rounded">{user?.email}</span></p>
+                    <p>Detected Role: <span className="font-mono bg-blue-100 px-1 rounded uppercase font-bold">{user?.role}</span></p>
+                    <p className="text-xs text-blue-600 mt-1">UUID: {user?.id}</p>
+                    {user?.role !== 'admin' && (
+                        <div className="mt-2 text-red-600 font-bold text-xs bg-red-50 p-2 border border-red-100 rounded">
+                            ⚠️ Warning: You are not recognized as 'admin'. Logs are hidden by RLS policies. Run the SQL update to fix this.
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -337,7 +390,7 @@ const DebugView: React.FC = () => {
                              <div className="bg-white p-4 rounded border border-amber-200 font-mono text-xs overflow-x-auto">
                                  <code className="block text-gray-600">-- Run this in Supabase SQL Editor:</code>
                                  <code className="block text-purple-700 font-bold">create or replace view public.auth_logs_view as</code>
-                                 <code className="block text-purple-700 font-bold">select id, created_at, payload->>'action' as action, payload->>'actor_email' as email, payload</code>
+                                 <code className="block text-purple-700 font-bold">select id, created_at, payload-&gt;&gt;'action' as action, payload-&gt;&gt;'actor_email' as email, payload</code>
                                  <code className="block text-purple-700 font-bold">from auth.audit_log_entries order by created_at desc;</code>
                                  <code className="block text-purple-700 font-bold mt-2">grant select on public.auth_logs_view to service_role;</code>
                                  <code className="block text-purple-700 font-bold mt-2">grant select on public.auth_logs_view to authenticated;</code>
