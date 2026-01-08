@@ -5,43 +5,24 @@ import Stripe from 'https://esm.sh/stripe@14.21.0';
 
 declare const Deno: any;
 
-const allowedOrigins = new Set([
-  "https://kosma.io",
-  "https://www.kosma.io",
-  "https://kosma-lake.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:3000"
-]);
-
-function cors(origin: string | null) {
-  const o = origin && allowedOrigins.has(origin) ? origin : "null";
-  return {
-    "Access-Control-Allow-Origin": o,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-}
+// PROTOTYPE FIX: Allow ALL origins to prevent Preflight/CORS issues during dev/test.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*", 
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  const origin = req.headers.get("Origin");
-
-  // 1. STRICT CORS & PREFLIGHT
+  // 1. HANDLE PREFLIGHT (Browser OPTIONS check)
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: cors(origin) });
+    return new Response('ok', { headers: corsHeaders });
   }
 
-  // Echter Block mit CORS Header
-  if (origin && !allowedOrigins.has(origin)) {
-      return new Response(JSON.stringify({ error: "Forbidden origin" }), { 
-          status: 403,
-          headers: { ...cors(origin), "Content-Type": "application/json" }
-      });
-  }
-
+  // 2. CHECK METHOD
   if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: "Method not allowed" }), { 
           status: 405, 
-          headers: { ...cors(origin), 'Content-Type': 'application/json' } 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
   }
 
@@ -50,7 +31,7 @@ serve(async (req) => {
     if (!authHeader) {
         return new Response(JSON.stringify({ error: "Missing auth token" }), { 
             status: 401, 
-            headers: { ...cors(origin), 'Content-Type': 'application/json' } 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
     }
     const token = authHeader.replace("Bearer ", "");
@@ -68,7 +49,7 @@ serve(async (req) => {
     if (authError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { 
             status: 401, 
-            headers: { ...cors(origin), 'Content-Type': 'application/json' } 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
     }
 
@@ -82,14 +63,14 @@ serve(async (req) => {
     if (licError || !license || !license.stripe_subscription_id) {
         return new Response(JSON.stringify({ error: "No active subscription found or sync pending." }), { 
             status: 404, 
-            headers: { ...cors(origin), 'Content-Type': 'application/json' } 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
     }
 
     if (license.cancel_at_period_end) {
         return new Response(JSON.stringify({ success: true, message: "Subscription is already scheduled for cancellation." }), {
             status: 200,
-            headers: { ...cors(origin), 'Content-Type': 'application/json' }
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
 
@@ -120,14 +101,14 @@ serve(async (req) => {
     });
 
     return new Response(JSON.stringify({ success: true }), {
-        headers: { ...cors(origin), 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error: any) {
     console.error("Cancel Error:", error);
     return new Response(JSON.stringify({ success: false, error: error.message }), {
         status: 500,
-        headers: { ...cors(origin), 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 })

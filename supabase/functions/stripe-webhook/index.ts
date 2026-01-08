@@ -36,6 +36,9 @@ function inferCycle(interval: string | undefined): 'monthly' | 'yearly' | 'none'
     return 'none';
 }
 
+// Regex for UUID v4 validation
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 console.log("Stripe Webhook Function Loaded");
 
 serve(async (req) => {
@@ -101,13 +104,12 @@ serve(async (req) => {
              const session = event.data.object;
              
              // 1. RECOVER STRIPE CUSTOMER ID
-             // If payment link was "payment" mode, session.customer might be null.
              let stripeCustomerId = session.customer;
 
              if (!stripeCustomerId) {
-                 console.log(`[WARN] Session ${session.id} has no customer. Attempting recovery...`);
+                 console.log(`[WARN] Session ${session.id} has no customer.`);
                  
-                 // Strategy A: Via Payment Intent
+                 // Strategy A: Via Payment Intent (Common for one-time payments)
                  if (session.payment_intent) {
                      try {
                          const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
@@ -118,86 +120,103 @@ serve(async (req) => {
                      } catch (e) { console.error("PI fetch failed", e); }
                  }
 
-                 // Strategy B: Via Email (Find or Create)
+                 // Strategy B: Via Email (Only for One-Time Payments or Legacy)
+                 // FIX: Do NOT create a new customer via email if this is a subscription.
+                 // Stripe always creates customers for subscriptions. If it's missing here, it's a timing issue, not a missing record.
                  if (!stripeCustomerId) {
                      const email = session.customer_details?.email || session.customer_email;
+                     
                      if (email) {
                          const existing = await stripe.customers.list({ email, limit: 1 });
                          if (existing.data.length > 0) {
                              stripeCustomerId = existing.data[0].id;
                              console.log(`[INFO] Recovered customer ${stripeCustomerId} via Email lookup.`);
                          } else {
-                             const newCus = await stripe.customers.create({
-                                 email,
-                                 name: session.customer_details?.name || 'Customer',
-                                 metadata: { source: 'webhook_recovery' }
-                             });
-                             stripeCustomerId = newCus.id;
-                             console.log(`[INFO] Created new customer ${stripeCustomerId} fallback.`);
+                             // Only create new customer if NOT subscription mode
+                             if (session.mode !== 'subscription') {
+                                 const newCus = await stripe.customers.create({
+                                     email,
+                                     name: session.customer_details?.name || 'Customer',
+                                     metadata: { source: 'webhook_recovery' }
+                                 });
+                                 stripeCustomerId = newCus.id;
+                                 console.log(`[INFO] Created new customer ${stripeCustomerId} fallback (One-Time Mode).`);
+                             } else {
+                                 console.warn(`[SKIP] Subscription mode detected. Skipping fallback customer creation for ${email} to avoid duplicates.`);
+                             }
                          }
                      }
                  }
              }
 
              if (!stripeCustomerId) {
-                 throw new Error(`Could not determine Stripe Customer ID for session ${session.id}`);
-             }
-
-             // 2. FIND LOCAL USER ID
-             let userId = session.client_reference_id 
-                        || session.metadata?.user_id 
-                        || session.subscription_details?.metadata?.user_id;
-
-             // Email Fallback
-             if (!userId && (session.customer_details?.email || session.customer_email)) {
-                 const email = session.customer_details?.email || session.customer_email;
-                 const { data: userProfile } = await supabaseAdmin
-                    .from('profiles')
-                    .select('id')
-                    .eq('email', email)
-                    .maybeSingle();
-                 
-                 if (userProfile) userId = userProfile.id;
-             }
-
-             if (userId) {
-                 let subscription: any = null;
-                 let priceId = null;
-                 let cycle = 'none';
-
-                 // Handle Subscription Mode vs Payment Mode
-                 if (session.subscription) {
-                     subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-                     priceId = subscription.items.data[0]?.price?.id;
-                     cycle = inferCycle(subscription.items.data[0]?.price?.recurring?.interval);
+                 // If we still don't have it in subscription mode, we log an error but don't crash.
+                 // The 'invoice.payment_succeeded' event will handle the heavy lifting.
+                 if (session.mode === 'subscription') {
+                     console.error(`[CRITICAL] Subscription Session ${session.id} missing customer ID. Relying on invoice event.`);
                  } else {
-                     console.warn(`[WARN] Session ${session.id} is NOT a subscription (mode=${session.mode}). treating as Active License.`);
-                     // If it's a one-time payment, we set it as Active (Lifetime or Manual Expiry)
-                     cycle = 'none'; // Or 'yearly' if you want to fake it
+                     throw new Error(`Could not determine Stripe Customer ID for session ${session.id}`);
+                 }
+             }
+
+             // 2. FIND LOCAL USER ID & SYNC
+             // We only proceed if we actually found a stripeCustomerId
+             if (stripeCustomerId) {
+                 let userId = session.client_reference_id 
+                            || session.metadata?.user_id 
+                            || session.subscription_details?.metadata?.user_id;
+
+                 // Email Fallback (Only if userId is missing or invalid UUID)
+                 if ((!userId || !uuidRegex.test(userId)) && (session.customer_details?.email || session.customer_email)) {
+                     const email = session.customer_details?.email || session.customer_email;
+                     console.log(`[INFO] Looking up user by email: ${email}`);
+                     const { data: userProfile } = await supabaseAdmin
+                        .from('profiles')
+                        .select('id')
+                        .eq('email', email)
+                        .maybeSingle();
+                     
+                     if (userProfile) userId = userProfile.id;
                  }
 
-                 // Update Profile with verified Stripe ID
-                 await supabaseAdmin.from('profiles').update({
-                     stripe_customer_id: stripeCustomerId
-                 }).eq('id', userId);
+                 // STRICT UUID CHECK BEFORE DB OPS
+                 if (userId && uuidRegex.test(userId)) {
+                     let subscription: any = null;
+                     let priceId = null;
+                     let cycle = 'none';
 
-                 // UPDATE LICENSE
-                 const { error: upsertError } = await supabaseAdmin.from('licenses').upsert({
-                     user_id: userId,
-                     stripe_customer_id: stripeCustomerId,
-                     stripe_subscription_id: session.subscription || null,
-                     stripe_price_id: priceId,
-                     // If subscription exists, use its status. If one-time payment, force 'active'.
-                     status: subscription ? mapStripeStatus(subscription.status) : 'active',
-                     billing_cycle: cycle,
-                     current_period_end: subscription ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-                     cancel_at_period_end: subscription?.cancel_at_period_end || false,
-                 }, { onConflict: 'user_id' });
+                     if (session.subscription) {
+                         subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+                         priceId = subscription.items.data[0]?.price?.id;
+                         cycle = inferCycle(subscription.items.data[0]?.price?.recurring?.interval);
+                     } else {
+                         // One-time payment logic
+                         cycle = 'none'; 
+                     }
 
-                 if (upsertError) throw upsertError;
+                     // Update Profile with verified Stripe ID
+                     await supabaseAdmin.from('profiles').update({
+                         stripe_customer_id: stripeCustomerId
+                     }).eq('id', userId);
 
-             } else {
-                 console.warn(`[Webhook] Unmapped User for Session ${session.id}.`);
+                     // UPDATE LICENSE
+                     const { error: upsertError } = await supabaseAdmin.from('licenses').upsert({
+                         user_id: userId,
+                         stripe_customer_id: stripeCustomerId,
+                         stripe_subscription_id: session.subscription || null,
+                         stripe_price_id: priceId,
+                         status: subscription ? mapStripeStatus(subscription.status) : 'active',
+                         billing_cycle: cycle,
+                         current_period_end: subscription ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+                         cancel_at_period_end: subscription?.cancel_at_period_end || false,
+                     }, { onConflict: 'user_id' });
+
+                     if (upsertError) throw upsertError;
+                     console.log(`[SUCCESS] License updated for User ${userId}`);
+
+                 } else {
+                     console.warn(`[Webhook] SKIPPED DB SYNC. Invalid or missing UUID for session ${session.id}. Value: ${userId}`);
+                 }
              }
         }
 

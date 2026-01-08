@@ -1,3 +1,4 @@
+
 # KOSMA – SaaS Production Management Prototype
 
 KOSMA ist ein SaaS-Prototyp für Film- und Produktionsmanagement mit rollenbasiertem Zugriff, Lizenzmodell, Zahlungsabwicklung über Stripe und einem sicherheitsgehärteten Auth-Flow über Supabase.
@@ -14,8 +15,9 @@ Damit die Stripe-Events korrekt ankommen und verarbeitet werden, müssen diese *
 
 ### 1. Secrets korrekt setzen (Test-Mode)
 *   Gehe zu **Edge Functions > Secrets**.
-*   `STRIPE_SECRET_KEY`: Muss mit **`sk_test_...`** beginnen (nicht live!).
-*   `STRIPE_WEBHOOK_SECRET`: Muss mit **`whsec_...`** beginnen (Stripe Dashboard > Developers > Webhooks > Endpoint > Signing Secret).
+*   **`STRIPE_SECRET_KEY`**: Setze hier **exakt diesen Test-Key** (Verbindlich für den Prototyp):
+    `sk_test_51NkjczHdGtVVCQC4OBcNq1h0inYrbJAC8tbGW9Ylm7lhLlVffjYnIEosgmHbGW1mFE9ucZJrmOxMNTyetNBrY8Er005nswaVjs`
+*   **`STRIPE_WEBHOOK_SECRET`**: Muss mit **`whsec_...`** beginnen (Stripe Dashboard > Developers > Webhooks > Endpoint > Signing Secret).
 
 ### 2. JWT Verification deaktivieren
 *   Gehe zu **Edge Functions**.
@@ -267,13 +269,13 @@ Einziger Schreibzugang für:
 
 Achtung: Die Namen der deployten Functions im Supabase Dashboard unterscheiden sich aus Obfuskierungsgründen von den lokalen Ordnernamen.
 
-Hier ist die **verbindliche Zuordnung** (Source of Truth):
+**Damit das Frontend funktioniert, MÜSSEN die Functions im Dashboard exakt so heißen wie in der linken Spalte!**
 
 | Function Name (Dashboard) | Lokaler Ordner (Repository) | Beschreibung |
 | :--- | :--- | :--- |
 | **`dynamic-endpoint`** | `supabase/functions/webhook-handler/` | Verarbeitet erfolgreiche Zahlungen (Checkout Return). |
 | **`rapid-handler`** | `supabase/functions/create-billing-portal-session/` | Erstellt Stripe Customer Portal Session. |
-| **`swift-action`** | `supabase/functions/cancel-subscription/` | Kündigungs-Logik (Cancel Subscription). |
+| **`cancel-subscription`** | `supabase/functions/cancel-subscription/` | **WICHTIG:** Kündigungs-Logik. Muss im Dashboard `cancel-subscription` heißen. |
 | **`system-health`** | `supabase/functions/system-health/` | System Health Monitoring. |
 
 **Hintergrund-Funktion (nicht im Dashboard Screenshot sichtbar):**
@@ -281,3 +283,77 @@ Hier ist die **verbindliche Zuordnung** (Source of Truth):
     *   Diese Funktion wird **nicht** vom Frontend aufgerufen.
     *   **WICHTIG:** Im Supabase Dashboard muss für diese Funktion **"Enforce JWT Verification" DEAKTIVIERT** werden, da Stripe keinen Auth-Header sendet.
     *   **Events:** `checkout.session.completed`, `customer.updated`, `invoice.payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`.
+
+---
+
+# 9. APPENDIX: SQL DEBUGGING HELPER & SYSTEM DUMP
+
+Kopiere diese Befehle in den SQL Editor von Supabase, um den aktuellen Status des Systems zu prüfen.
+
+### 9.1 Datentabellen prüfen
+Zeigt den Inhalt der wichtigsten Tabellen.
+
+```sql
+-- Profile (User-Daten & Stripe IDs)
+SELECT * FROM public.profiles;
+
+-- Lizenzen (Aktueller Status)
+SELECT * FROM public.licenses;
+
+-- Rechnungen (Zahlungshistorie)
+SELECT * FROM public.invoices ORDER BY created_at DESC;
+
+-- Webhook Events (Logs von Stripe)
+SELECT id, type, created_at, processed_at, processing_error 
+FROM public.stripe_events 
+ORDER BY created_at DESC 
+LIMIT 20;
+
+-- Audit Logs (Systemänderungen)
+SELECT * FROM public.audit_logs ORDER BY created_at DESC;
+```
+
+### 9.2 Row Level Security (RLS) Policies prüfen
+Zeigt alle aktiven Sicherheitsregeln an, um Zugriffsprobleme zu debuggen.
+
+```sql
+SELECT 
+    schemaname, 
+    tablename, 
+    policyname, 
+    permissive, 
+    roles, 
+    cmd, 
+    qual, 
+    with_check 
+FROM pg_policies 
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
+```
+
+### 9.3 Table Definitions & Extensions
+Zeigt, ob notwendige Extensions (z.B. für UUIDs) aktiviert sind und wie die Tabellen definiert sind.
+
+```sql
+-- Check Extensions
+SELECT * FROM pg_extension;
+
+-- Check Table Constraints (z.B. Unique License)
+SELECT conname, contype, conrelid::regclass 
+FROM pg_constraint 
+WHERE conrelid::regclass::text IN ('public.licenses', 'public.profiles');
+```
+
+### 9.4 Wichtige Logik-Trigger
+Prüft, ob der `on_auth_user_created` Trigger existiert, der neue User automatisch in `public.profiles` schreibt.
+
+```sql
+SELECT 
+    trigger_name, 
+    event_manipulation, 
+    event_object_table, 
+    action_statement 
+FROM information_schema.triggers 
+WHERE event_object_schema = 'public' 
+ORDER BY event_object_table;
+```
