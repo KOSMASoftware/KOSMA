@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -174,8 +173,15 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         await login(email, password);
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-          navigate(profile?.role === 'admin' ? '/admin' : '/dashboard');
+          // Robust Navigation: use maybeSingle and fallback to customer
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          const role = profile?.role || 'customer';
+          navigate(role === 'admin' ? '/admin' : '/dashboard');
         }
         return;
       } 

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserRole, PlanTier, SubscriptionStatus } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -57,27 +56,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   };
 
-  // FETCH PROFILE mit Retry-Logik (falls der DB Trigger eine Sekunde braucht)
+  // FETCH PROFILE mit Self-Healing Logic (Upsert bei fehlendem Profil)
   const fetchProfile = async (session: Session, retryCount = 0) => {
     try {
-      const { data, error } = await supabase
+      // 1. Robust Fetch mit maybeSingle() statt single()
+      let { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, role, stripe_customer_id')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      // Wenn kein Profil da ist (Trigger Delay), versuchen wir es kurz noch einmal
-      if ((error || !data) && retryCount < 3) {
-          console.log(`Auth: Profile missing (Trigger latency?). Retry ${retryCount + 1}/3...`);
-          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms warten
+      // 2. Auto-Create (Self-Healing), falls Profil fehlt aber Auth da ist
+      if (!data && !error) {
+          console.warn("Auth: User exists but Profile missing. Attempting auto-create...");
+          
+          const { error: upsertError } = await supabase
+            .from('profiles')
+            .upsert(
+              { 
+                id: session.user.id, 
+                email: session.user.email,
+                role: 'customer',
+                full_name: session.user.user_metadata?.full_name || 'User'
+              }, 
+              { onConflict: 'id' }
+            );
+
+          if (!upsertError) {
+             // Wenn Upsert klappt, nutzen wir Dummy-Daten für den sofortigen Login
+             data = { 
+                 id: session.user.id, 
+                 full_name: session.user.user_metadata?.full_name, 
+                 role: 'customer', 
+                 stripe_customer_id: null 
+             };
+          } else {
+             console.error("Auth: Auto-create failed (RLS blocking?)", upsertError);
+             // Wir machen trotzdem weiter, constructUser nutzt dann Fallbacks
+          }
+      }
+
+      // Retry Logic nur bei echten Netzwerk/DB Fehlern, nicht bei "null" Result
+      if (error && retryCount < 3) {
+          console.log(`Auth: Profile fetch error. Retry ${retryCount + 1}/3...`);
+          await new Promise(resolve => setTimeout(resolve, 500)); 
           return fetchProfile(session, retryCount + 1);
       }
 
-      const newUser = constructUser(session.user, error ? null : data);
+      const newUser = constructUser(session.user, data); // data kann null sein, constructUser handled das
       setUser(newUser);
       userIdRef.current = newUser.id;
     } catch (err) {
-      // Fallback nur, wenn DB komplett streikt, User Session ist aber da
+      console.error("Critical Auth Error:", err);
+      // Fallback: User Session ist da, also lassen wir ihn rein (als Customer)
       const fallbackUser = constructUser(session.user, null);
       setUser(fallbackUser);
       userIdRef.current = fallbackUser.id;
