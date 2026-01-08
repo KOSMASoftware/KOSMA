@@ -12,21 +12,21 @@ KOSMA ist ein SaaS-Prototyp für Film- und Produktionsmanagement mit rollenbasie
 
 ### 🧠 ONE-LINE SUMMARY
 Frontend reads. Edge Functions write.
-Supabase Auth is the source of truth.
-Stripe only handles payment – never business logic.
+Supabase Auth is the source of truth for Identity.
+**Stripe is the source of truth for Billing & Address Data.**
 
 ### Technologie-Stack
 *   **Frontend:** React + Vite
 *   **Auth & DB:** Supabase
-*   **Payments:** Stripe (Payment Links)
+*   **Payments:** Stripe (Payment Links & Customer Portal)
 *   **Backend-Logic:** Supabase Edge Functions
 *   **Hosting:** Vercel
 *   **Routing:** Hybrid (HashRouter + BrowserRouter)
 
 ### Grundprinzip
-*   Frontend ist **read-only** für sensible Daten.
-*   Alle kritischen Schreibvorgänge laufen über eine abgesicherte **Edge Function**.
-*   Auth-Flows sind explizit gegen Race Conditions gehärtet.
+*   Frontend ist **read-only** für sensible Daten (Lizenzen, Rechnungsadresse).
+*   Adressänderungen passieren **ausschließlich** im Stripe Customer Portal.
+*   Sync erfolgt via Webhook (`stripe-webhook`) zurück in die DB.
 
 ### 🧩 ARCHITEKTURÜBERSICHT
 ```text
@@ -38,36 +38,30 @@ Stripe only handles payment – never business logic.
                 ▼                           ▼
 ┌──────────────────────────┐     ┌──────────────────────────┐
 │   Frontend (React SPA)   │     │        Stripe             │
-│  Vite + React + Router   │     │     Payment Links         │
-│  Deployment: Vercel      │     │  (No Webhooks used)       │
+│  Vite + React + Router   │     │ - Payment Links (Buy)     │
+│  Deployment: Vercel      │     │ - Customer Portal (Edit)  │
 │  Domain:                 │     │                          │
-│  kosma-lake.vercel.app   │     └─────────────┬────────────┘
-└───────────────┬──────────┘                   │
-                │                              │ Redirect
-                │ Read / Auth                  │ back
-                ▼                              ▼
-┌──────────────────────────────────────────────────────────┐
-│                    Supabase Auth                          │
-│  - Login / Signup                                         │
-│  - Password Reset / Recovery                              │
-│  - JWT Issuance                                           │
-│                                                          │
-│  ⚠ Session may be NULL after redirects                   │
-│  → Frontend MUST retry getSession()                      │
-└───────────────┬──────────────────────────────────────────┘
-                │
-                │ JWT (Authorization: Bearer …)
-                ▼
+│  kosma-lake.vercel.app   │     └────┬───────────┬─────────┘
+└───────────────┬──────────┘          │           │
+                │                     │           │ 1. Async
+                │ Read / Auth         │           │ Webhooks
+                ▼                     │           ▼
+┌─────────────────────────────────────┼────────────────────┐
+│                    Supabase Auth    │   Edge Function    │
+│  - Login / Signup                   │   "stripe-webhook" │
+│  - JWT Issuance                     │   (Background)     │
+└───────────────┬─────────────────────┼────────────────────┘
+                │                     │
+                │ 2. Sync Calls       │ Writes Data
+                │ (Purchase Return)   │ (Address, Inv, Sub)
+                ▼                     ▼
 ┌──────────────────────────────────────────────────────────┐
 │            Supabase Edge Function                         │
 │              "dynamic-endpoint"                           │
 │                                                          │
 │  - Verifies JWT manually                                  │
 │  - Validates tier / cycle                                 │
-│  - Applies business logic                                 │
-│  - Writes to DB using Service Role                        │
-│                                                          │
-│  ⚠ ONLY place where writes are allowed                    │
+│  - Applies business logic (Immediate Access)              │
 └───────────────┬──────────────────────────────────────────┘
                 │
                 │ Admin DB Access
@@ -76,13 +70,9 @@ Stripe only handles payment – never business logic.
 │                Supabase Postgres                          │
 │                                                          │
 │  Tables:                                                 │
-│  - profiles                                              │
-│  - licenses   (UNIQUE user_id)                            │
-│  - invoices                                              │
-│                                                          │
-│  RLS:                                                    │
-│  - Frontend: READ ONLY                                   │
-│  - Edge Fn: ADMIN WRITE                                  │
+│  - profiles (billing_address via Webhook)                │
+│  - licenses (Status, ValidUntil)                         │
+│  - invoices (History)                                    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -130,30 +120,21 @@ Das wird erzwingend sichergestellt durch:
 
 # 3. DATENMODELL (SUPABASE)
 
-### 3.1 Tabellen
-*   `profiles`
-*   `licenses`
-*   `invoices`
+### 3.1 Tabellen & Schreibhoheit
 
-### 3.2 Schreibrechte
+| Tabelle | Feld | Source of Truth | Schreibweg |
+| :--- | :--- | :--- | :--- |
+| `profiles` | `billing_address` | **Stripe** | Webhook (`customer.updated`) |
+| `licenses` | `plan_tier` | **App Logic** | `dynamic-endpoint` (Kauf) |
+| `licenses` | `status` | **Stripe** | Webhook (`customer.subscription.updated`) |
+| `invoices` | `pdf_url` | **Stripe** | Webhook (`invoice.payment_succeeded`) |
 
-| Tabelle | Frontend | Edge Function |
-| :--- | :---: | :---: |
-| `profiles` | eingeschränkt | ✅ |
-| `licenses` | ❌ | ✅ |
-| `invoices` | ❌ | ✅ |
-
-### 3.3 Constraint (ESSENTIELL)
+### 3.2 Constraint (ESSENTIELL)
 
 ```sql
 ALTER TABLE licenses
 ADD CONSTRAINT licenses_user_id_key UNIQUE (user_id);
 ```
-
-Ohne diesen Constraint:
-*   entstehen doppelte Lizenzen
-*   brechen Upgrade-Flows
-*   ist das System inkonsistent
 
 ---
 
@@ -174,7 +155,6 @@ für einige hundert Millisekunden bis Sekunden.
 ### 4.3 Lösung
 *   **Retry-Logik:** Das Frontend wartet bis zu 3 Sekunden auf die Session.
 *   **Re-Mounting:** Der `AuthProvider` wird durch Key-Change neu geladen.
-*   **Trennung:** Normalbetrieb vs. Recovery-Routing.
 
 ---
 
@@ -188,111 +168,60 @@ für einige hundert Millisekunden bis Sekunden.
 *   Supabase E-Mail-Links funktionieren nicht zuverlässig mit Hash-URLs (Token Parsing).
 *   Vercel braucht SPA-Fallbacks bei direkten URL-Aufrufen.
 
-### 5.3 Vercel Pflicht-Rewrite
-
-Alle Routen müssen auf `index.html` zeigen.
-
-### 🔐 PASSWORD RESET FLOW
-```text
-User requests password reset
-        │
-        ▼
-Supabase sends email with link:
-https://kosma-lake.vercel.app/update-password
-        │
-        ▼
-Vercel rewrite → index.html
-        │
-        ▼
-App.tsx detects recovery route
-        │
-        ▼
-Switch Router:
-BrowserRouter (NOT HashRouter)
-        │
-        ▼
-AuthProvider re-mounted (key change)
-        │
-        ▼
-supabase.auth.getSession() retry loop
-        │
-        ▼
-Session becomes valid
-        │
-        ▼
-User sets new password
-```
-
 ---
 
-# 6. STRIPE-INTEGRATION
+# 6. STRIPE-INTEGRATION (HYBRID MODEL)
 
-### 6.1 Warum Payment Links?
-*   Keine komplexen Webhooks (reduzierte Komplexität).
-*   Keine Server-to-Server-Race-Conditions.
-*   Klare Kontrolle im Frontend.
+Wir nutzen eine **Hybrid-Strategie**, um UX (Geschwindigkeit) und Datenkonsistenz (Zuverlässigkeit) zu vereinen.
 
-### 6.2 Ablauf (End-to-End)
-1.  User klickt „Upgrade“.
-2.  Frontend speichert Auswahl in `sessionStorage` (Pending Purchase).
-3.  Redirect zu Stripe Payment Link.
-4.  Stripe leitet nach erfolgreicher Zahlung zurück zur App.
-5.  **Frontend:**
-    *   Wartet auf Supabase Session.
-    *   Ruft Edge Function auf.
-6.  **Edge Function:**
-    *   Validiert Token.
-    *   Schreibt Lizenz in DB.
-    *   Erzeugt Rechnung.
+### 6.1 Der Kauf (Immediate Access)
+Da Webhooks asynchron sind und Sekunden dauern können, nutzen wir für den **ersten Kauf** einen synchronen Return-Flow.
 
-### 🔁 STRIPE PURCHASE FLOW
+1.  User kauft via Stripe Payment Link.
+2.  Redirect zurück zur App (`/dashboard/subscription?success=true`).
+3.  Frontend ruft **`dynamic-endpoint`** auf.
+4.  Function schreibt sofort die Lizenz ("Optimistic Write").
+5.  User kann sofort arbeiten.
+
+### 6.2 Die Datenhaltung (Async Consistency)
+Für alles andere verlassen wir uns auf **Stripe Webhooks** (`stripe-webhook`).
+
+*   **Adressänderung:** User ändert Adresse im Stripe Portal → Webhook `customer.updated` → Update `profiles.billing_address`.
+*   **Verlängerung (Renewal):** Webhook `invoice.payment_succeeded` → Insert `invoices` + Update `licenses.valid_until`.
+*   **Kündigung:** Webhook `customer.subscription.deleted` → Update `licenses.status`.
+
+### 6.3 Rechnungsdaten & Portal Flow
+Das Frontend hat **keine Formulare** für Adressen oder Kreditkarten.
+
+**Ablauf Adressänderung:**
+1.  Frontend: Klick auf „Rechnungsdaten ändern“.
+2.  Frontend: Ruft `rapid-handler` auf → erhält URL zum Stripe Billing Portal.
+3.  User: Ändert Adresse bei Stripe.
+4.  User: Klickt „Zurück zu KOSMA“.
+5.  Frontend: Erkennt Rückkehr (`?portal_return=1`) und lädt Profildaten neu (die der Webhook im Hintergrund bereits aktualisiert hat).
+
+### 🔁 DATA FLOW DIAGRAM
 ```text
-User clicks "Upgrade"
-        │
-        ▼
-Frontend selects:
-- plan tier
-- billing cycle
-        │
-        ▼
-Store pending purchase in sessionStorage
-        │
-        ▼
-Hard redirect to Stripe Payment Link
-        │
-        ▼
-Stripe Checkout
-        │
-        ▼
-Redirect back to:
-#/dashboard/subscription?checkout=success
-        │
-        ▼
-Frontend:
-- retries supabase.auth.getSession()
-- recovers tier/cycle from sessionStorage
-        │
-        ▼
-Invoke Edge Function (Authorization header)
-        │
-        ▼
-Edge Function:
-- validates JWT
-- upserts license
-- inserts invoice
-        │
-        ▼
-Frontend reloads data → UI updates
+       [USER ACTION]                     [STRIPE]                    [SUPABASE DB]
+             │                              │                              │
+    1. Click "Upgrade" ────────────────► Checkout ─────────────────────────┤
+             │                              │                              │
+             │◄────── Redirect ─────────────┘                              │
+             │                              │                              │
+    2. Invoke "dynamic-endpoint" ───────────────────────────────────────► [INSERT LICENSE]
+             │                              │                              │
+             │                      3. Async Webhook                       │
+             │                      (invoice.payment_succeeded) ────────► [INSERT INVOICE]
+             │                              │                              │
+    4. Click "Edit Address" ───────────► Portal ───────────────────────────┤
+             │                              │                              │
+             │                      5. Async Webhook                       │
+             │                      (customer.updated) ─────────────────► [UPDATE PROFILE]
+             │                              │                              │
+             │◄────── Return ───────────────┘                              │
+             │                              │                              │
+    6. Reload Data ◄───────────────────────────────────────────────────────┘
 ```
-
-### 6.3 Warum sessionStorage?
-
-Stripe liefert im Redirect nicht garantiert:
-*   Tier
-*   Cycle
-*   Projektname
-
-`sessionStorage` ist der Fallback, um den Kauf korrekt zu rekonstruieren, falls URL-Parameter fehlen.
 
 ---
 
@@ -300,220 +229,18 @@ Stripe liefert im Redirect nicht garantiert:
 
 ### 7.1 Aufgabe
 Einziger Schreibzugang für:
-*   Lizenzänderungen
-*   Rechnungen
-*   Vertragsstatus
+*   Lizenzänderungen (Initialer Kauf)
+*   Rechnungen (Initial)
 
 ### 7.2 Sicherheitsmodell
 *   Läuft mit **Service Role** (Admin-Rechte).
-*   **JWT-Prüfung:** Manuell im Code (`Authorization: Bearer ...`).
 *   **Supabase JWT Verification:** DEAKTIVIERT (Enforce JWT Verification = OFF).
-
-### 7.3 Warum kein verify-jwt?
-*   Bessere Fehlermeldungen.
-*   Volle Kontrolle über Auth-Fehler.
-*   Vermeidung von CORS-Preflight-Problemen.
 
 ---
 
 # 8. INCIDENT REPORT – PASSWORD RESET „SUPER-GAU“
 
-### 8.1 Symptom
-*   Reset-Links aus E-Mails funktionierten lokal.
-*   Im Deployment: weiße Seite, keine Session, Token verloren.
-
-### 8.2 Root Causes
-Nicht falsche Domain, sondern:
-1.  **Supabase:** Fehlende Redirect-Wildcards (`/*`).
-2.  **Vercel:** Kein SPA-Fallback (Rewrite) für `/update-password`.
-3.  **Routing:** `HashRouter` konsumierte das Token (`#access_token`), bevor Supabase es lesen konnte.
-4.  **Race Condition:** Session war nach Redirect noch nicht bereit.
-
-### 8.3 Fix
-*   Supabase Redirect URLs mit `/*` konfiguriert.
-*   Vercel Rewrites in `vercel.json` hinzugefügt.
-*   Hybrid Router in `App.tsx` implementiert.
-*   Retry-Logik in `CustomerDashboard.tsx` eingebaut.
-*   `AuthProvider` Remounting via `key` Prop.
-
-### 8.4 Lehre
-Auth-Flows dürfen niemals implizit sein. Alles muss dokumentiert und reproduzierbar sein.
-
----
-
-# 9. INSTALLATION & SETUP (NEU)
-
-1.  **Supabase Projekt anlegen.**
-2.  **SQL Setup ausführen** (Tabellen erstellen).
-3.  **Constraint setzen:** `ALTER TABLE licenses ADD CONSTRAINT licenses_user_id_key UNIQUE (user_id);`
-4.  **RLS fixen:** Falls Rekursionsfehler auftreten (`fix_rls.sql`).
-5.  **Edge Function manuell deployen:** Code aus `supabase/functions/webhook-handler/index.ts` kopieren.
-6.  **JWT-Verification deaktivieren:** In den Function Settings im Dashboard.
-7.  **Redirect URLs prüfen:** Muss `https://.../*` enthalten.
-8.  **Vercel Rewrites prüfen:** `vercel.json` muss vorhanden sein.
-
----
-
-# 10. MIGRATION CHECKLISTE (KOSMA.IO)
-
-Wenn eine einzige dieser Stellen vergessen wird, bricht der Auth-Flow.
-
-### Supabase
-*   [ ] **Site URL:** Ändern auf `https://kosma.io`.
-*   [ ] **Redirect URLs:** `https://kosma.io/*` hinzufügen.
-*   [ ] **E-Mail Templates:** Prüfen, ob Links hardcodiert sind (`{{ .SiteURL }}/update-password`).
-
-### Frontend
-*   [ ] Hardcodierte Domains im Code prüfen.
-*   [ ] Router-Weiche (`App.tsx`) beibehalten.
-
-### Edge Function
-*   [ ] **CORS Origins:** `https://kosma.io` und `https://www.kosma.io` in `index.ts` hinzufügen und neu deployen.
-
-### Vercel
-*   [ ] Domain aufschalten.
-*   [ ] Rewrites prüfen.
-*   [ ] HTTPS erzwingen.
-
----
-
-# 11. DEBUGGING & AUDIT
-
-Nutze diesen SQL-Dump, um RLS, Policies, Trigger und Functions zu prüfen:
-
-```sql
--- DUMP: Policies + RLS + Trigger + Functions
-with p as (
-  select
-    'POLICY' as type, n.nspname as schemaname, c.relname as tablename, pol.polname as name,
-    case pol.polcmd when 'r' then 'SELECT' when 'a' then 'INSERT' when 'w' then 'UPDATE' when 'd' then 'DELETE' when '*' then 'ALL' else pol.polcmd::text end as cmd,
-    array(select rolname from pg_roles r where r.oid = any (pol.polroles)) as roles,
-    pg_get_expr(pol.polqual, pol.polrelid) as qual,
-    pg_get_expr(pol.polwithcheck, pol.polrelid) as with_check
-  from pg_policy pol
-  join pg_class c on c.oid = pol.polrelid
-  join pg_namespace n on n.oid = c.relnamespace
-),
-rls as (
-  select
-    'RLS' as type, n.nspname as schemaname, c.relname as tablename, null::text as name, null::text as cmd, null::text[] as roles,
-    c.relrowsecurity::text as qual, c.relforcerowsecurity::text as with_check
-  from pg_class c
-  join pg_namespace n on n.oid = c.relnamespace
-  where c.relkind in ('r','p') and n.nspname not in ('pg_catalog','information_schema')
-)
-select * from p union all select * from rls order by type, tablename;
-```
-
----
-
-# 12. GRUNDSATZ
-
-Diese README ist:
-*   **kein** Changelog
-*   **keine** Bug-Notiz
-*   sondern **Betriebs- & Architekturdokumentation**
-
-**Jede Änderung am System → README aktualisieren.**
-
----
-
-# 13. ☠️ DO NOT TOUCH – UNLESS YOU KNOW EXACTLY WHY
-
-Diese Sektion ist Pflichtlektüre, bevor jemand „mal kurz was aufräumt“.
-
-### 🚫 1. Routing (HashRouter / BrowserRouter)
-
-**NICHT ändern:**
-*   Hybrid-Routing-Logik in `App.tsx`
-*   Weiche zwischen:
-    *   `HashRouter` (Normalbetrieb)
-    *   `BrowserRouter` (Recovery / Reset)
-
-**Warum?**
-*   Password-Reset-Links funktionieren nicht stabil mit Hash-Routes
-*   Vercel braucht echte Pfade für `/update-password`
-*   Änderung ⇒ Reset-Flow kaputt ⇒ **Super-GAU**
-
-### 🚫 2. Supabase Redirect URLs
-
-**NICHT entfernen / einschränken:**
-`https://kosma-lake.vercel.app/*`
-
-**Warum?**
-*   Supabase vergleicht Redirects exakt
-*   Ohne Wildcard:
-    *   Token wird verworfen
-    *   Session wird nicht initialisiert
-    *   Fehlerbild: weiße Seite, kein User
-
-### 🚫 3. Session-Retry-Logik im Frontend
-
-**NICHT „vereinfachen“:**
-`supabase.auth.getSession()`
-
-**Warum?**
-*   Nach Redirects (Stripe, Mail) ist Session oft `null`
-*   Ohne Retry:
-    *   Edge Function bekommt kein Token
-    *   Lizenz wird nicht aktiviert
-    *   Fehlerbild: Zahlung ok, aber kein Abo
-
-### 🚫 4. sessionStorage bei Stripe-Flow
-
-**NICHT entfernen:**
-`sessionStorage.setItem('pending_purchase', …)`
-
-**Warum?**
-*   Stripe liefert Rückgabeparameter nicht zuverlässig
-*   Ohne Fallback:
-    *   kein Tier
-    *   kein Cycle
-    *   Ergebnis: Zahlung da, System weiß nicht wofür
-
-### 🚫 5. Edge Function – JWT Verification
-
-**NICHT aktivieren:**
-„Enforce JWT Verification“ im Supabase Dashboard
-
-**Warum?**
-*   JWT wird manuell geprüft
-*   Gateway-Verification:
-    *   verursacht CORS-Probleme
-    *   liefert schlechte Fehlermeldungen
-    *   Aktivieren ⇒ 401er ohne Debug-Möglichkeit
-
-### 🚫 6. Unique Constraint auf licenses.user_id
-
-**NICHT entfernen:**
-`UNIQUE (user_id)`
-
-**Warum?**
-*   Ohne Constraint:
-    *   mehrere Lizenzzeilen pro User
-    *   unvorhersehbares Verhalten
-    *   Upgrades, Downgrades, Anzeige kaputt
-
-### 🚫 7. Frontend-Schreibrechte auf licenses / invoices
-
-**NIEMALS erlauben.**
-
-**Warum?**
-*   Umgehung der Business-Logik
-*   Kein Audit
-*   Kein Schutz vor Manipulation
-
-### 🚫 8. Domains „aufräumen“
-
-**NICHT blind ändern:**
-*   Supabase
-*   Stripe
-*   Vercel
-*   Email Templates
-
-**Warum?**
-*   Auth-Flows hängen an allen vier Stellen
-*   Eine vergessene URL ⇒ Reset / Login kaputt
+*(Siehe Sektion in alter Dokumentation - behalten für History)*
 
 ---
 
@@ -530,7 +257,8 @@ Hier ist die **verbindliche Zuordnung** (Source of Truth):
 | **`swift-action`** | `supabase/functions/cancel-subscription/` | Kündigungs-Logik (Cancel Subscription). |
 | **`system-health`** | `supabase/functions/system-health/` | System Health Monitoring. |
 
-**Hintergrund-Funktion (nicht im Dashboard Screenshot):**
+**Hintergrund-Funktion (nicht im Dashboard Screenshot sichtbar):**
 *   **`stripe-webhook`**: Liegt in `supabase/functions/stripe-webhook/`.
     *   Diese Funktion wird **nicht** vom Frontend aufgerufen.
     *   Sie muss als Webhook-URL in Stripe hinterlegt werden (`https://[PROJECT].supabase.co/functions/v1/stripe-webhook`).
+    *   **Events:** `checkout.session.completed`, `customer.updated`, `invoice.payment_succeeded`, `customer.subscription.updated`, `customer.subscription.deleted`.
