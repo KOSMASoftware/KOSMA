@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -183,11 +184,11 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           const role = profile?.role || 'customer';
           navigate(role === 'admin' ? '/admin' : '/dashboard');
         }
-        return;
+        // FIXED: Removed return; here to allow finally block to execute
       } 
       
       // 4. SIGNUP FLOW
-      if (mode === 'signup') {
+      else if (mode === 'signup') {
         if (step === 'initial') {
            // Validate Email visually
            if (!email.includes('@') || email.length < 5) {
