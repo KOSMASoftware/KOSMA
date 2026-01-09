@@ -42,6 +42,11 @@ serve(async (req) => {
     if (action === 'update_license') {
         const { plan_tier, status, admin_override_date } = payload;
         
+        // POINT 5: Date Validation
+        if (admin_override_date && isNaN(Date.parse(admin_override_date))) {
+            throw new Error("Invalid date format for admin_override_date");
+        }
+
         // Fetch current license to check for Stripe connection
         const { data: license } = await supabaseAdmin.from('licenses').select('*').eq('user_id', userId).single();
         
@@ -51,40 +56,36 @@ serve(async (req) => {
         if (license?.stripe_subscription_id && license.stripe_subscription_id.startsWith('sub_')) {
             const stripe = new Stripe(stripeKey, { apiVersion: '2023-08-16', httpClient: Stripe.createFetchHttpClient() });
             
-            // A. Status Toggle Sync (Cancel/Reactivate)
-            // If admin changes status to 'canceled' -> set cancel_at_period_end = true
-            // If admin changes status to 'active' -> set cancel_at_period_end = false
-            if (status === 'canceled' && license.status === 'active') {
-                await stripe.subscriptions.update(license.stripe_subscription_id, { cancel_at_period_end: true });
-                stripeSyncInfo = "Stripe set to cancel at period end.";
-            } else if (status === 'active' && license.cancel_at_period_end) {
-                await stripe.subscriptions.update(license.stripe_subscription_id, { cancel_at_period_end: false });
-                stripeSyncInfo = "Stripe cancellation removed.";
-            }
+            try {
+                // A. Status Toggle Sync (Cancel/Reactivate)
+                // POINT 4: Mandatory Sync - Check logic and throw on error
+                if (status === 'canceled' && license.status === 'active') {
+                    await stripe.subscriptions.update(license.stripe_subscription_id, { cancel_at_period_end: true });
+                    stripeSyncInfo = "Stripe set to cancel at period end.";
+                } else if (status === 'active' && license.cancel_at_period_end) {
+                    await stripe.subscriptions.update(license.stripe_subscription_id, { cancel_at_period_end: false });
+                    stripeSyncInfo = "Stripe cancellation removed.";
+                }
 
-            // B. Date/Extension Sync (The requested feature)
-            // If an override date is provided, we try to push the billing cycle to that date
-            if (admin_override_date) {
-                const newAnchor = Math.floor(new Date(admin_override_date).getTime() / 1000);
-                
-                // Note: Changing billing_cycle_anchor on active subscriptions has limitations in Stripe API.
-                // We use 'proration_behavior: none' to ensure no immediate charge is made for the shift.
-                // This effectively extends the current period to the new date.
-                try {
+                // B. Date/Extension Sync (The requested feature)
+                if (admin_override_date) {
+                    const newAnchor = Math.floor(new Date(admin_override_date).getTime() / 1000);
+                    
+                    // POINT 4: Mandatory Sync - Fail if Stripe refuses the anchor update
                     await stripe.subscriptions.update(license.stripe_subscription_id, {
                         billing_cycle_anchor: newAnchor,
                         proration_behavior: 'none'
                     });
                     stripeSyncInfo = `Stripe billing cycle shifted to ${admin_override_date}`;
-                } catch (stripeErr: any) {
-                    console.error("Stripe Anchor Update Failed:", stripeErr);
-                    // We continue to update DB, but log the warning
-                    stripeSyncInfo = `DB updated, but Stripe Sync failed: ${stripeErr.message}`;
                 }
+            } catch (stripeErr: any) {
+                // POINT 4: Abort if Sync fails
+                console.error("Stripe Sync Failed:", stripeErr);
+                throw new Error(`Stripe Sync Failed: ${stripeErr.message}. Database was NOT updated.`);
             }
         }
 
-        // DB UPDATE
+        // DB UPDATE (Only reached if Stripe sync succeeded or wasn't needed)
         const updateData: any = {};
         if (plan_tier) updateData.plan_tier = plan_tier;
         if (status) updateData.status = status;
@@ -95,9 +96,6 @@ serve(async (req) => {
         const { error } = await supabaseAdmin.from('licenses').update(updateData).eq('user_id', userId);
         if (error) throw error;
 
-        // Audit Log is handled by SQL Trigger, but we can add an extra log for the Stripe result if needed.
-        // For now, returning it in the response is enough for the UI.
-        
         return new Response(JSON.stringify({ success: true, message: stripeSyncInfo }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

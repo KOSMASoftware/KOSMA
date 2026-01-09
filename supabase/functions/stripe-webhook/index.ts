@@ -31,6 +31,10 @@ function inferCycle(interval: string | undefined): 'monthly' | 'yearly' | 'none'
     return 'none';
 }
 
+function isUUID(uuid: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -169,13 +173,14 @@ serve(async (req) => {
                     const msg = `Mapping missing for Price ID: ${priceItem.id}`;
                     await logToDb('MAPPING_MISSING', { price_id: priceItem.id });
                     await markEventError(event.id, msg);
-                    // We continue processing the status update, but tier might be null (preserving old tier if possible or defaulting)
+                    // We continue processing the status update
                 }
             } else {
                 await markEventError(event.id, "No price item found in subscription");
             }
 
             const updateData: any = {
+                user_id: profile.id, // Mandatory for Upsert
                 stripe_subscription_id: sub.id,
                 stripe_price_id: priceItem?.id,
                 status: status,
@@ -190,7 +195,8 @@ serve(async (req) => {
                 updateData.product_name = 'KOSMA'; 
             }
 
-            const { error } = await supabaseAdmin!.from('licenses').update(updateData).eq('user_id', profile.id);
+            // POINT 1: Use UPSERT instead of UPDATE
+            const { error } = await supabaseAdmin!.from('licenses').upsert(updateData, { onConflict: 'user_id' });
             
             if (error) {
                 await logToDb('LICENSE_UPDATE_FAIL', { user_id: profile.id, error }, true);
@@ -210,7 +216,18 @@ serve(async (req) => {
     // --- B. CHECKOUT SUCCESS ---
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
-        let userId = session.metadata?.user_id || session.client_reference_id;
+        let userId = session.metadata?.user_id;
+
+        // POINT 2: Validate UUID Security
+        const clientRef = session.client_reference_id;
+        if (clientRef) {
+            if (isUUID(clientRef)) {
+                userId = clientRef;
+            } else {
+                await logToDb('CHECKOUT_INVALID_REF', { ref: clientRef, msg: 'Not a UUID' }, true);
+                // We do NOT use this ID, but we continue trying email fallback
+            }
+        }
         
         if (!userId && session.customer_details?.email) {
              const { data: p } = await supabaseAdmin!.from('profiles').select('id').eq('email', session.customer_details.email).maybeSingle();
@@ -221,6 +238,10 @@ serve(async (req) => {
             await supabaseAdmin!.from('profiles').update({ stripe_customer_id: session.customer }).eq('id', userId);
             await logToDb('CHECKOUT_LINKED', { user_id: userId, customer: session.customer });
             await markEventProcessed(event.id);
+        } else {
+            // POINT 3: Fallback Logging if no mapping possible
+            await logToDb('CHECKOUT_UNMAPPED', { session_id: session.id, email: session.customer_details?.email }, true);
+            await markEventProcessed(event.id); // Mark processed so Stripe stops retrying
         }
     }
 
