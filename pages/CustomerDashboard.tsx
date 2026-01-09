@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, ExternalLink, ChevronRight, Lock, RefreshCw, LogOut } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, RefreshCw, ChevronRight, Lock, ExternalLink } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -14,36 +13,36 @@ const DashboardTabs = () => {
     const isActive = (path: string) => location.pathname === path;
 
     return (
-        <div className="flex flex-wrap justify-center border-b border-gray-200 mb-8">
+        <div className="flex flex-wrap justify-center border-b border-gray-200 mb-8 bg-white/50 backdrop-blur-md sticky top-0 z-10 -mx-4 md:mx-0 px-4">
              <Link 
                 to="/dashboard" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${
                     isActive('/dashboard')
-                    ? 'border-brand-500 text-brand-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600 translate-y-[1px]' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
                 }`}
             >
                 <LayoutDashboard className="w-4 h-4" /> Overview
             </Link>
             <Link 
                 to="/dashboard/subscription" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${
                     isActive('/dashboard/subscription') 
-                    ? 'border-brand-500 text-brand-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600 translate-y-[1px]' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
                 }`}
             >
-                <CreditCard className="w-4 h-4" /> Subscription & Invoices
+                <CreditCard className="w-4 h-4" /> Subscription
             </Link>
             <Link 
                 to="/dashboard/settings" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${
                     isActive('/dashboard/settings') 
-                    ? 'border-brand-500 text-brand-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-brand-500 text-brand-600 translate-y-[1px]' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
                 }`}
             >
-                <Settings className="w-4 h-4" /> Account Settings
+                <Settings className="w-4 h-4" /> Settings
             </Link>
         </div>
     );
@@ -60,10 +59,8 @@ const useCustomerData = (user: User) => {
     const refresh = () => setRefreshTrigger(prev => prev + 1);
 
     useEffect(() => {
-        const fetchData = async (retryCount = 0) => {
-            if (retryCount === 0) setLoading(true);
+        const fetchData = async () => {
             try {
-                // 1. Licenses (RLS ensures we only get our own)
                 const { data: licData, error: licError } = await supabase
                     .from('licenses')
                     .select('*')
@@ -80,25 +77,21 @@ const useCustomerData = (user: User) => {
                 if (profileData?.billing_address) setBillingAddress(profileData.billing_address);
 
                 if (licData && licData.length > 0) {
-                     const mappedLicenses = licData.map((l: any) => {
-                        // Effective Valid Until Logic matches SQL: Coalesce(Admin, Stripe, DB)
-                        const effectiveValidUntil = l.admin_valid_until_override || l.current_period_end || l.valid_until;
-                        return {
-                            id: l.id,
-                            userId: l.user_id,
-                            productName: l.product_name,
-                            planTier: l.plan_tier as PlanTier,
-                            billingCycle: l.billing_cycle || 'none',
-                            status: l.status as SubscriptionStatus,
-                            validUntil: effectiveValidUntil,
-                            licenseKey: l.license_key,
-                            billingProjectName: l.billing_project_name,
-                            stripeSubscriptionId: l.stripe_subscription_id,
-                            stripeCustomerId: l.stripe_customer_id,
-                            cancelAtPeriodEnd: l.cancel_at_period_end,
-                            currentPeriodEnd: l.current_period_end
-                        };
-                    });
+                     const mappedLicenses = licData.map((l: any) => ({
+                        id: l.id,
+                        userId: l.user_id,
+                        productName: l.product_name,
+                        planTier: l.plan_tier as PlanTier,
+                        billingCycle: l.billing_cycle || 'none',
+                        status: l.status as SubscriptionStatus,
+                        validUntil: l.admin_valid_until_override || l.current_period_end || l.valid_until,
+                        licenseKey: l.license_key,
+                        billingProjectName: l.billing_project_name,
+                        stripeSubscriptionId: l.stripe_subscription_id,
+                        stripeCustomerId: l.stripe_customer_id,
+                        cancelAtPeriodEnd: l.cancel_at_period_end,
+                        currentPeriodEnd: l.current_period_end
+                    }));
                     setLicenses(mappedLicenses);
                 } else {
                     setLicenses([{
@@ -109,7 +102,6 @@ const useCustomerData = (user: User) => {
                     }]);
                 }
 
-                // 2. Invoices
                 const { data: invData } = await supabase
                     .from('invoices')
                     .select('*')
@@ -127,7 +119,6 @@ const useCustomerData = (user: User) => {
                         projectName: i.project_name
                     })));
                  }
-
             } catch (err: any) {
                 console.error("Critical Data Load Error:", err);
             } finally {
@@ -141,55 +132,8 @@ const useCustomerData = (user: User) => {
     return { loading, licenses, invoices, billingAddress, refresh };
 };
 
-
-// --- VIEW COMPONENTS ---
-
-const BillingAddressCard: React.FC<{ initialAddress: BillingAddress | null }> = ({ initialAddress }) => {
-    const address = initialAddress || { street: '', city: '', zip: '', country: 'Germany', companyName: '', vatId: '' };
-
-    return (
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-full flex flex-col">
-            <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Building className="w-5 h-5 text-gray-400" /> Billing Address
-                </h3>
-                <span className="bg-gray-100 text-gray-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded">Read Only</span>
-            </div>
-
-            <div className="text-sm text-gray-600 space-y-1 flex-1">
-                {address.companyName ? (
-                    <p className="font-bold text-gray-900">{address.companyName}</p>
-                ) : (
-                    <p className="italic text-gray-400">No company name stored</p>
-                )}
-                {address.vatId && <p className="text-xs text-gray-400 mb-2">VAT: {address.vatId}</p>}
-                
-                {address.street ? (
-                    <>
-                        <p>{address.street}</p>
-                        <p>{address.zip} {address.city}</p>
-                        <p>{address.country}</p>
-                    </>
-                ) : (
-                    <p className="text-gray-400 italic mt-2">No address details synchronized yet.</p>
-                )}
-            </div>
-            
-            <div className="mt-6 pt-4 border-t border-gray-50">
-                 <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> Managed via Payment Provider
-                 </p>
-            </div>
-        </div>
-    );
-};
-
 const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle: string, status: SubscriptionStatus, hasStripeId: boolean }> = ({ user, currentTier, currentCycle, status, hasStripeId }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
-    
-    // Logic: If user has an active Stripe subscription (or past_due), 
-    // we MUST send them to the Portal for any changes.
-    // We only show direct Payment Links if they are strictly on FREE/NONE.
     const isManagedViaPortal = hasStripeId && (status === SubscriptionStatus.ACTIVE || status === SubscriptionStatus.PAST_DUE || status === SubscriptionStatus.TRIAL);
 
     const handlePortalRedirect = async () => {
@@ -197,42 +141,34 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
-            
-            const returnUrl = window.location.href;
-            const { data, error } = await supabase.functions.invoke('rapid-handler', {
-                body: { returnUrl },
+            const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
+                body: { returnUrl: window.location.href },
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
-
             if (data?.url) window.location.href = data.url;
             else throw new Error(error?.message || "No URL returned");
         } catch (e) {
             console.error(e);
-            alert("Could not open settings. Please try again.");
+            alert("Could not open billing portal. Please try again.");
         } finally {
             setLoadingPortal(false);
         }
     };
 
     const handlePurchase = (planName: PlanTier, cycle: 'yearly' | 'monthly') => {
-        try {
-            const link = STRIPE_LINKS[planName]?.[cycle];
-            if (!link) {
-                alert("Payment link configuration missing.");
-                return;
-            }
-            const url = new URL(link);
-            url.searchParams.set('client_reference_id', user.id);
-            url.searchParams.set('prefilled_email', user.email);
-            window.location.href = url.toString();
-        } catch (e) {
-            console.error(e);
+        const link = STRIPE_LINKS[planName]?.[cycle];
+        if (!link) {
+            alert("Payment link configuration missing.");
+            return;
         }
+        const url = new URL(link);
+        url.searchParams.set('client_reference_id', user.id);
+        url.searchParams.set('prefilled_email', user.email);
+        window.location.href = url.toString();
     };
 
     const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>('yearly');
 
-    // PLANS DEFINITION
     const plans = [
         {
           name: PlanTier.BUDGET,
@@ -241,7 +177,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           price: billingInterval === 'yearly' ? 390 : 39,
           colorClass: "border-amber-500",
           textClass: "text-amber-500",
-          features: ["Budgeting Module", "Unlimited Projects"]
+          features: ["Budgeting Module", "Unlimited Projects", "Print to PDF"]
         },
         {
           name: PlanTier.COST_CONTROL,
@@ -250,7 +186,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           price: billingInterval === 'yearly' ? 590 : 59,
           colorClass: "border-purple-600",
           textClass: "text-purple-600",
-          features: ["Budgeting + Cost Control", "Share projects"]
+          features: ["Budgeting + Cost Control", "Soll/Ist Comparison", "Share projects"]
         },
         {
           name: PlanTier.PRODUCTION,
@@ -259,25 +195,25 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           price: billingInterval === 'yearly' ? 690 : 69,
           colorClass: "border-green-600",
           textClass: "text-green-600",
-          features: ["All Modules", "Financing & Cashflow"]
+          features: ["All Modules", "Financing & Cashflow", "Multi-Project Overview"]
         }
     ];
 
     return (
         <div className="mt-16 border-t border-gray-100 pt-12">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
                 <div>
-                    <h3 className="text-2xl font-bold text-gray-900">Available Plans</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Expand Your Tools</h3>
                     <p className="text-gray-500 mt-1">
                         {isManagedViaPortal 
-                            ? "Manage your upgrade or downgrade in the customer portal." 
-                            : "Choose a plan to get started."}
+                            ? "Manage your active subscription in the Stripe Customer Portal." 
+                            : "Choose the tier that matches your production workflow."}
                     </p>
                 </div>
                 {!isManagedViaPortal && (
-                    <div className="inline-flex bg-gray-100 rounded-full p-1">
-                        <button onClick={() => setBillingInterval('yearly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Yearly</button>
-                        <button onClick={() => setBillingInterval('monthly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Monthly</button>
+                    <div className="inline-flex bg-gray-100 rounded-2xl p-1.5 shadow-inner">
+                        <button onClick={() => setBillingInterval('yearly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
+                        <button onClick={() => setBillingInterval('monthly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
                     </div>
                 )}
             </div>
@@ -285,45 +221,43 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {plans.map((plan) => {
                     const isCurrent = plan.name === currentTier;
-
                     return (
-                        <div key={plan.name} className={`relative bg-white rounded-2xl shadow-sm border border-gray-100 border-t-[8px] ${plan.colorClass} p-8 flex flex-col text-center`}>
+                        <div key={plan.name} className={`relative bg-white rounded-3xl shadow-sm border border-gray-100 border-t-[10px] ${plan.colorClass} p-8 flex flex-col h-full hover:shadow-xl transition-all duration-300 group`}>
                             {isCurrent && (
-                                <div className="absolute top-0 right-0 bg-gray-900 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
-                                    CURRENT
+                                <div className="absolute top-0 right-0 bg-gray-900 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl tracking-widest uppercase">
+                                    Active
                                 </div>
                             )}
-                            <h4 className={`text-2xl font-bold ${plan.textClass} mb-4`}>{plan.title}</h4>
-                            <div className="flex justify-center mb-6"><plan.Icon className={`w-12 h-12 ${plan.textClass} opacity-90`} /></div>
-                            <div className="mb-2">
-                                <span className={`text-4xl font-bold ${plan.textClass}`}>{plan.price} €</span>
-                                <span className="text-sm text-gray-400">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
+                            <h4 className={`text-2xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h4>
+                            <div className="flex justify-center mb-8 transform group-hover:scale-110 transition-transform duration-300"><plan.Icon className={`w-14 h-14 ${plan.textClass} opacity-80`} /></div>
+                            <div className="mb-8 text-center">
+                                <span className={`text-5xl font-black ${plan.textClass}`}>{plan.price} €</span>
+                                <span className="text-sm text-gray-400 block mt-1 font-bold">{billingInterval === 'yearly' ? 'per year' : 'per month'}</span>
                             </div>
 
-                            {/* ACTION BUTTON */}
                             {isManagedViaPortal ? (
                                 <button
                                     onClick={handlePortalRedirect}
                                     disabled={loadingPortal}
-                                    className="w-full py-3 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 flex items-center justify-center gap-2 mb-8"
+                                    className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 mb-8 transition-all"
                                 >
                                     {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
-                                    Manage in Portal
+                                    Manage Plan
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => handlePurchase(plan.name, billingInterval)}
                                     disabled={isCurrent}
-                                    className={`w-full py-3 rounded-lg border-2 text-sm font-bold transition-all mb-8 ${isCurrent ? 'border-gray-100 text-gray-300 cursor-not-allowed' : `border-gray-900 text-gray-900 hover:bg-gray-50`}`}
+                                    className={`w-full py-4 rounded-2xl border-2 text-sm font-bold transition-all mb-8 shadow-sm ${isCurrent ? 'border-gray-100 text-gray-300 cursor-not-allowed' : `border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white`}`}
                                 >
-                                    {isCurrent ? "Active Plan" : "Choose Plan"}
+                                    {isCurrent ? "Currently Active" : "Get Started"}
                                 </button>
                             )}
                             
-                            <div className="border-t border-gray-100 pt-6 flex-1">
-                                <ul className="space-y-3 text-left text-sm text-gray-600">
+                            <div className="border-t border-gray-100 pt-8 flex-1">
+                                <ul className="space-y-4 text-left text-sm text-gray-600 font-medium">
                                     {plan.features.map((f, i) => (
-                                        <li key={i} className="flex gap-3 items-start"><Check className={`w-4 h-4 ${plan.textClass} shrink-0 mt-0.5`} /> <span className="leading-tight">{f}</span></li>
+                                        <li key={i} className="flex gap-3 items-start"><Check className={`w-5 h-5 ${plan.textClass} shrink-0`} /> <span>{f}</span></li>
                                     ))}
                                 </ul>
                             </div>
@@ -335,122 +269,89 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
     );
 };
 
-// --- VIEW 1: OVERVIEW ---
-const OverviewView: React.FC<{ 
-    user: User, 
-    licenses: License[], 
-    invoices: Invoice[]
-}> = ({ user, licenses, invoices }) => {
-    const activeLicense = licenses[0];
+// --- VIEWS ---
 
+const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoice[] }> = ({ user, licenses, invoices }) => {
+    const activeLicense = licenses[0];
     const daysRemaining = useMemo(() => {
         if (!activeLicense?.validUntil) return null;
-        
-        const validUntil = new Date(activeLicense.validUntil);
-        const now = new Date();
-
-        const diff = validUntil.getTime() - now.getTime();
-        return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
+        const diff = new Date(activeLicense.validUntil).getTime() - Date.now();
+        return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     }, [activeLicense]);
 
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center mb-10">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.name}</h1>
-                <p className="text-gray-500">Your production hub overview.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+                <div>
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Welcome, {user.name}</h1>
+                    <p className="text-gray-500 mt-1 font-medium italic">Production Dashboard</p>
+                </div>
             </div>
             
             <DashboardTabs />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Current License</h3>
-                    {activeLicense ? (
-                        <>
-                            <div className="flex items-center gap-4">
-                                <div className={`p-4 rounded-xl ${activeLicense.status === SubscriptionStatus.TRIAL ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                                    <Zap className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-xl text-gray-900">{activeLicense.planTier}</p>
-                                    <div className="flex gap-2 items-center mt-1">
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                            activeLicense.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                                        }`}>
-                                            {activeLicense.status}
-                                        </span>
-                                        {activeLicense.cancelAtPeriodEnd && (
-                                            <span className="text-[10px] bg-orange-100 text-orange-800 font-bold px-2 py-0.5 rounded-full">Expir.</span>
-                                        )}
-                                    </div>
-                                    
-                                    {/* TRIAL SPECIFIC DISPLAY */}
-                                    {activeLicense.status === SubscriptionStatus.TRIAL && activeLicense.validUntil && (
-                                        <p className="text-xs font-bold text-blue-600 mt-2">
-                                            Trial ends: {new Date(activeLicense.validUntil).toLocaleDateString()}
-                                        </p>
-                                    )}
-                                    
-                                    {activeLicense.status !== SubscriptionStatus.TRIAL && (
-                                         <p className="text-xs text-gray-500 mt-2">
-                                            {activeLicense.validUntil ? `Valid until ${new Date(activeLicense.validUntil).toLocaleDateString()}` : 'No expiration'}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
-                                <div className="bg-gray-50 rounded-lg p-3 text-center min-w-[120px] border border-gray-100">
-                                     <span className="block text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">
-                                        Remaining
-                                     </span>
-                                     <span className="block text-xl font-black text-gray-900 leading-none">
-                                         {daysRemaining !== null ? `${daysRemaining} days` : '—'}
-                                     </span>
-                                </div>
-                                
-                                <Link to="/dashboard/subscription" className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold bg-gray-900 text-white hover:bg-gray-800 transition-colors">
-                                    View Subscription Details <ChevronRight className="w-4 h-4"/>
-                                </Link>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="text-center py-6">
-                            <p className="text-sm text-gray-500 mb-4">No active license found.</p>
-                            <Link to="/dashboard/subscription" className="inline-flex items-center text-brand-500 font-bold text-sm hover:underline">
-                                Get Started
-                            </Link>
+                {/* Status Card */}
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between relative overflow-hidden group">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-50 rounded-full blur-3xl group-hover:bg-brand-100 transition-colors duration-500"></div>
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-6">
+                             <div className={`p-4 rounded-2xl ${activeLicense?.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-brand-50 text-brand-500'}`}>
+                                <Zap className="w-8 h-8" />
+                             </div>
+                             <span className={`text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+                                activeLicense?.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-brand-100 text-brand-700'
+                             }`}>
+                                {activeLicense?.status || 'No License'}
+                             </span>
                         </div>
-                    )}
+                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Your Plan</h3>
+                        <p className="text-3xl font-black text-gray-900">{activeLicense?.planTier || 'Free'}</p>
+                        
+                        {activeLicense?.validUntil && (
+                             <p className="text-sm text-gray-500 mt-2 font-medium">
+                                Valid until {new Date(activeLicense.validUntil).toLocaleDateString()}
+                             </p>
+                        )}
+                    </div>
+
+                    <div className="mt-8 pt-8 border-t border-gray-100 flex items-center justify-between relative z-10">
+                        <div className="text-center">
+                            <span className="block text-2xl font-black text-gray-900 leading-none">{daysRemaining ?? 0}</span>
+                            <span className="block text-[10px] text-gray-400 font-bold uppercase mt-1">Days left</span>
+                        </div>
+                        <Link to="/dashboard/subscription" className="flex items-center gap-2 py-3 px-6 rounded-2xl bg-gray-900 text-white text-xs font-black hover:bg-brand-500 transition-all shadow-lg shadow-gray-900/10">
+                            Details <ChevronRight className="w-4 h-4"/>
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Latest Invoices</h3>
+                {/* History Card */}
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-black text-gray-900 tracking-tight">Recent Invoices</h3>
+                        <FileText className="w-5 h-5 text-gray-300" />
+                    </div>
                     {invoices.length > 0 ? (
-                        <ul className="space-y-4 flex-1">
-                            {invoices.slice(0, 2).map(inv => (
-                                <li key={inv.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 border border-gray-100">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs text-gray-500">{new Date(inv.date).toLocaleDateString()}</span>
-                                        <span className="font-bold text-gray-900">{inv.amount.toFixed(2)} €</span>
+                        <div className="space-y-4 flex-1">
+                            {invoices.slice(0, 3).map(inv => (
+                                <div key={inv.id} className="flex justify-between items-center p-4 rounded-2xl bg-gray-50/50 border border-gray-100 hover:bg-gray-50 transition-colors">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(inv.date).toLocaleDateString()}</p>
+                                        <p className="font-black text-gray-900">{inv.amount.toFixed(2)} €</p>
                                     </div>
-                                    <div className="text-right">
-                                        <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${
-                                            inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                        }`}>
-                                            {inv.status}
-                                        </span>
-                                    </div>
-                                </li>
+                                    <span className="text-[10px] font-black uppercase px-2 py-1 rounded-lg bg-green-100 text-green-700">Paid</span>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     ) : (
-                        <div className="flex-1 flex items-center justify-center text-sm text-gray-400 italic">
-                            No invoices yet.
+                        <div className="flex-1 flex flex-col items-center justify-center text-sm text-gray-400 italic">
+                            <div className="p-4 bg-gray-50 rounded-full mb-4"><CreditCard className="w-10 h-10 opacity-20" /></div>
+                            No payments yet.
                         </div>
                     )}
-                    <Link to="/dashboard/subscription" className="mt-6 block text-center py-2 border border-gray-200 rounded-lg font-bold text-sm hover:bg-gray-50 text-gray-600">
-                        View All Invoices
+                    <Link to="/dashboard/subscription" className="mt-8 text-center text-xs font-black text-brand-500 uppercase tracking-widest hover:text-brand-600">
+                        View Billing History
                     </Link>
                 </div>
             </div>
@@ -458,269 +359,100 @@ const OverviewView: React.FC<{
     );
 };
 
-// --- VIEW 2: SUBSCRIPTION & INVOICES ---
-const SubscriptionView: React.FC<{ 
-    user: User, 
-    licenses: License[], 
-    invoices: Invoice[], 
-    refresh: () => void,
-}> = ({ user, licenses, invoices, refresh }) => {
+const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: Invoice[], refresh: () => void }> = ({ user, licenses, invoices, refresh }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isPolling, setIsPolling] = useState(false);
-    const [canceling, setCanceling] = useState(false);
+    const { refreshProfile } = useAuth();
 
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
 
-    // Handle Return from Stripe Purchase
     useEffect(() => {
-        const stripeSuccess = searchParams.get('stripe_success');
-        const checkoutStatus = searchParams.get('checkout');
-        const isSuccess = stripeSuccess === 'true' || checkoutStatus === 'success';
-
-        if (isSuccess) {
+        if (searchParams.get('stripe_success') === 'true' || searchParams.get('checkout') === 'success') {
             setIsPolling(true);
-             const { data: { session } } = supabase.auth.getSession().then(({data}) => {
-                 if(data.session) {
-                    supabase.functions.invoke('dynamic-endpoint', {
-                        body: { tier: 'na', cycle: 'na' }, // Dummy
-                        headers: { Authorization: `Bearer ${data.session.access_token}` }
-                    });
-                 }
-             });
+            refreshProfile(); // Immediate local sync
         }
-    }, [searchParams]);
+    }, [searchParams, refreshProfile]);
 
     useEffect(() => {
         if (!isPolling) return;
         const intervalId = setInterval(async () => {
             refresh();
-            if (activeLicense?.status === 'active' && activeLicense.stripeSubscriptionId?.startsWith('sub_')) {
+            if (activeLicense?.status === 'active' && hasStripeId) {
                 setIsPolling(false);
                 setSearchParams({});
             }
         }, 3000);
-        const timeoutId = setTimeout(() => setIsPolling(false), 120000);
-        return () => { clearInterval(intervalId); clearTimeout(timeoutId); };
-    }, [isPolling, refresh, activeLicense, setSearchParams]);
-
-    const handleCancel = async () => {
-        if (!confirm("Are you sure you want to cancel? Your access will remain until the end of the billing period.")) return;
-        setCanceling(true);
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error("No session");
-            const { data, error } = await supabase.functions.invoke('cancel-subscription', { // Maps to 'swift-action'
-                body: {},
-                headers: { Authorization: `Bearer ${session.access_token}` }
-            });
-            if (error || !data.success) throw new Error(data?.error || "Cancellation failed");
-            alert("Subscription canceled. You retain access until the end of the period.");
-            refresh();
-        } catch (err: any) {
-            console.error(err);
-            alert("Could not cancel subscription. Please try again.");
-        } finally {
-            setCanceling(false);
-        }
-    };
-
-    const isActive = activeLicense?.status === SubscriptionStatus.ACTIVE;
-    const isScheduled = activeLicense?.cancelAtPeriodEnd;
-    
-    let cancelBtnText = "Cancel Subscription";
-    let cancelBtnDisabled = false;
-
-    if (isScheduled) {
-        cancelBtnText = "Cancellation Scheduled";
-        cancelBtnDisabled = true;
-    } else if (!hasStripeId || !isActive) {
-        cancelBtnText = isActive ? "Syncing..." : "No active subscription";
-        cancelBtnDisabled = true;
-    }
+        return () => clearInterval(intervalId);
+    }, [isPolling, refresh, activeLicense, hasStripeId, setSearchParams]);
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="mb-10 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Subscription & Invoices</h1>
-                <p className="text-gray-500">Manage your plan and view payment history.</p>
-            </div>
-
+            <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Your Subscription</h1>
             <DashboardTabs />
 
-            {/* Syncing Banner */}
             {isPolling && (
-                <div className="bg-blue-50 border border-blue-200 text-blue-800 p-6 rounded-xl mb-12 flex items-center gap-4 animate-in zoom-in-95 shadow-sm">
-                    <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+                <div className="bg-brand-50 border border-brand-100 text-brand-800 p-8 rounded-3xl mb-12 flex items-center gap-6 animate-pulse">
+                    <RefreshCw className="w-10 h-10 text-brand-500 animate-spin" />
                     <div>
-                        <h3 className="font-bold text-lg">Payment Successful</h3>
-                        <p className="text-sm">We are syncing your data from Stripe. This may take a few seconds...</p>
+                        <h3 className="font-black text-xl tracking-tight">Updating License...</h3>
+                        <p className="text-sm font-medium opacity-70">Payment received! We're syncing your account from Stripe.</p>
                     </div>
                 </div>
             )}
 
-            {/* Active Plan Card */}
-            <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm mb-12">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-gray-200/50 mb-16 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gray-50/50 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
                     <div>
-                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Active Plan</h2>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-gray-900">{activeLicense?.planTier || 'Free'}</span>
-                            {activeLicense?.status === SubscriptionStatus.ACTIVE && (
-                                <span className="text-sm text-gray-500">{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
-                            )}
+                        <span className="text-xs font-black text-brand-500 uppercase tracking-[0.2em]">Active Plan</span>
+                        <div className="flex items-baseline gap-3 mt-2">
+                            <h2 className="text-5xl font-black text-gray-900 tracking-tighter">{activeLicense?.planTier || 'Free'}</h2>
+                            <span className="text-gray-400 font-bold">/{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
                         </div>
-                        
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${
-                                activeLicense?.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-800' :
-                                activeLicense?.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                            }`}>
-                                {activeLicense?.status === SubscriptionStatus.ACTIVE ? 'Active Subscription' :
-                                 activeLicense?.status === SubscriptionStatus.TRIAL ? 'Free Trial' : 'Free Tier'}
-                            </span>
-                        </div>
-                        
-                        {/* Cancellation State */}
-                        {activeLicense?.cancelAtPeriodEnd && (
-                            <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded-lg flex items-start gap-2 max-w-md">
-                                <AlertCircle className="w-5 h-5 text-orange-600 shrink-0" />
-                                <div>
-                                    <p className="text-sm font-bold text-orange-800">Canceled</p>
-                                    <p className="text-xs text-orange-700">
-                                        Access remains valid until {activeLicense.validUntil ? new Date(activeLicense.validUntil).toLocaleDateString() : 'period end'}.
-                                    </p>
-                                </div>
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <div className="flex items-center gap-2 bg-green-50 border border-green-100 text-green-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+                                <Check className="w-4 h-4" /> {activeLicense?.status}
                             </div>
-                        )}
-
-                        {!activeLicense?.cancelAtPeriodEnd && (
-                            <p className="text-sm text-gray-500 mt-2">
-                                {activeLicense?.validUntil 
-                                    ? `Renewing on: ${new Date(activeLicense.validUntil).toLocaleDateString()}`
-                                    : 'No expiry date.'
-                                }
-                            </p>
-                        )}
+                        </div>
                     </div>
                     
-                    <button 
-                            onClick={handleCancel}
-                            disabled={canceling || cancelBtnDisabled}
-                            className={`px-6 py-2 border rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
-                            (!cancelBtnDisabled)
-                            ? 'border-red-200 text-red-600 hover:bg-red-50'
-                            : 'border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50'
-                            }`}
-                    >
-                        {canceling ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
-                        {cancelBtnText}
-                    </button>
+                    <div className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-3xl border border-gray-100 md:min-w-[280px]">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Renewal Details</p>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 font-medium">Valid until</span>
+                                <span className="text-gray-900 font-black">{activeLicense?.validUntil ? new Date(activeLicense.validUntil).toLocaleDateString() : '—'}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500 font-medium">Auto-renew</span>
+                                <span className="text-green-600 font-black">Active</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Invoices Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-12">
-                <div className="p-6 border-b border-gray-100">
-                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-gray-400" /> Invoice History
-                    </h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
-                            <tr>
-                                <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Amount</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Invoice</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {invoices.length > 0 ? invoices.map(inv => (
-                                <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-gray-600">{new Date(inv.date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 font-bold">{inv.amount.toFixed(2)} {inv.currency}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                            inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                        }`}>
-                                            {inv.status.toUpperCase()}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button 
-                                            onClick={() => window.open(inv.pdfUrl, '_blank')}
-                                            className="text-brand-500 hover:text-brand-700 font-bold flex items-center gap-1 ml-auto"
-                                        >
-                                            <Download className="w-4 h-4" /> PDF
-                                        </button>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
-                                        No invoices found yet.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <PricingSection 
-                user={user}
-                currentTier={activeLicense?.planTier || PlanTier.FREE} 
-                currentCycle={activeLicense?.billingCycle || 'none'}
-                status={activeLicense?.status}
-                hasStripeId={!!hasStripeId}
-            />
+            <PricingSection user={user} currentTier={activeLicense?.planTier || PlanTier.FREE} currentCycle={activeLicense?.billingCycle || 'none'} status={activeLicense?.status} hasStripeId={!!hasStripeId} />
         </div>
     );
 };
 
-// --- VIEW 3: SETTINGS VIEW ---
 const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
-    const [searchParams, setSearchParams] = useSearchParams();
 
-    // Trigger data refresh if returning from Stripe Portal
-    useEffect(() => {
-        if (searchParams.get('portal_return') === '1') {
-            refresh();
-            searchParams.delete('portal_return');
-            setSearchParams(searchParams, { replace: true });
-        }
-    }, [searchParams, setSearchParams, refresh]);
-
-    const handleManagePaymentMethods = async () => {
+    const handlePortal = async () => {
         setLoadingPortal(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                alert("Please log in again.");
-                return;
-            }
-
-            const returnUrl = new URL(window.location.href);
-            returnUrl.searchParams.set('portal_return', '1');
-
-            const { data, error } = await supabase.functions.invoke('rapid-handler', {
-                body: { returnUrl: returnUrl.toString() },
-                headers: { Authorization: `Bearer ${session.access_token}` }
+            const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
+                body: { returnUrl: window.location.href },
+                headers: { Authorization: `Bearer ${session?.access_token}` }
             });
-
-            if (error || !data?.url) {
-                console.error("Portal Error:", error || data);
-                alert("Could not open payment settings. You might not have an active Stripe customer account yet.");
-                return;
-            }
-            window.location.href = data.url;
-        } catch (err) {
-            console.error(err);
-            alert("Something went wrong. Please try again later.");
+            if (data?.url) window.location.href = data.url;
+            else throw new Error(error?.message);
+        } catch (e) {
+            alert("Payment account not found or Stripe is unreachable.");
         } finally {
             setLoadingPortal(false);
         }
@@ -728,89 +460,57 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="mb-10 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Account Settings</h1>
-                <p className="text-gray-500">Manage your address and payment methods.</p>
-            </div>
-
+            <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Account Settings</h1>
             <DashboardTabs />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Billing Address (READ ONLY) */}
-                <div className="h-full">
-                    <BillingAddressCard initialAddress={billingAddress} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50">
+                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
+                        <Building className="w-6 h-6 text-brand-500" /> Billing Info
+                    </h3>
+                    {billingAddress ? (
+                        <div className="space-y-2 text-gray-600 font-medium">
+                            <p className="text-gray-900 font-black">{billingAddress.companyName || user.name}</p>
+                            <p>{billingAddress.street}</p>
+                            <p>{billingAddress.zip} {billingAddress.city}</p>
+                            <p className="text-xs uppercase font-bold text-gray-400 pt-4">VAT: {billingAddress.vatId || 'Not provided'}</p>
+                        </div>
+                    ) : (
+                        <p className="text-gray-400 italic text-sm">No billing address stored yet. This will be updated after your first purchase.</p>
+                    )}
                 </div>
 
-                {/* Account & Payment Info */}
-                <div className="space-y-8">
-                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
-                            <Briefcase className="w-5 h-5 text-gray-400" /> Account Info
-                        </h3>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between border-b border-gray-50 pb-2">
-                                <span className="text-gray-500">Name</span>
-                                <span className="font-medium text-gray-900">{user.name}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-gray-50 pb-2">
-                                <span className="text-gray-500">Email</span>
-                                <span className="font-medium text-gray-900">{user.email}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">Role</span>
-                                <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-xs">{user.role}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-2">
-                            <CreditCard className="w-5 h-5 text-gray-400" /> Billing & Payment
-                        </h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                            Securely update your payment methods and billing address via our payment provider.
-                        </p>
-
-                        <button 
-                            onClick={handleManagePaymentMethods}
-                            disabled={loadingPortal}
-                            className="w-full py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                        >
-                            {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                            Manage Billing in Portal
-                        </button>
-                    </div>
+                <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50">
+                    <h3 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-3">
+                        <CreditCard className="w-6 h-6 text-brand-500" /> Payment Methods
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-8 leading-relaxed font-medium">
+                        Securely manage your credit cards and subscription preferences in the Stripe customer portal.
+                    </p>
+                    <button onClick={handlePortal} disabled={loadingPortal} className="w-full py-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-900 text-sm font-black flex items-center justify-center gap-3 hover:bg-gray-100 transition-all">
+                        {loadingPortal ? <Loader2 className="w-5 h-5 animate-spin" /> : <ExternalLink className="w-5 h-5" />}
+                        Open Portal
+                    </button>
                 </div>
             </div>
-            
-            <div className="h-20"></div>
         </div>
     );
 };
 
-// --- MAIN ROUTER COMPONENT ---
 export const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
     const { loading, licenses, invoices, billingAddress, refresh } = useCustomerData(user!);
 
     if (!user) return <Navigate to="/login" />;
-    if (loading) return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /></div>;
+    if (loading) return <div className="flex flex-col justify-center items-center min-h-[60vh] gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-brand-500" />
+        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Loading Dashboard</p>
+    </div>;
 
     return (
         <div className="pb-20">
             <Routes>
                 <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} />} />
-                <Route 
-                    path="subscription" 
-                    element={
-                        <SubscriptionView 
-                            user={user} 
-                            licenses={licenses} 
-                            invoices={invoices} 
-                            refresh={refresh} 
-                        />
-                    } 
-                />
+                <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} />} />
                 <Route path="settings" element={<SettingsView user={user} billingAddress={billingAddress} refresh={refresh} />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

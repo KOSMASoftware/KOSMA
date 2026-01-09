@@ -12,7 +12,6 @@ export interface SystemCheckResult {
 export const liveSystemService = {
   /**
    * Pings the Supabase Database by running a lightweight query.
-   * This is a REAL check needing the SQL setup.
    */
   checkDatabaseConnection: async (): Promise<SystemCheckResult> => {
     if (!isSupabaseConfigured()) {
@@ -28,7 +27,8 @@ export const liveSystemService = {
 
     const start = performance.now();
     try {
-      const { error } = await supabase.from('health_check').select('*', { count: 'exact', head: true });
+      // Robust health check query
+      const { error } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
       const end = performance.now();
       
       if (error) {
@@ -37,8 +37,8 @@ export const liveSystemService = {
                  service: 'PostgreSQL DB', 
                  status: 'degraded', 
                  latency: Math.round(end - start), 
-                 message: 'Table missing',
-                 details: 'Connection works, but "health_check" table is missing.\nRun the SQL setup script in Supabase.',
+                 message: 'Profiles table missing',
+                 details: 'Connection works, but "profiles" table is missing or RLS prevents access.\nRun the SQL setup script.',
                  actionLink: 'https://supabase.com/dashboard/project/_/editor'
              };
          }
@@ -49,7 +49,7 @@ export const liveSystemService = {
           service: 'PostgreSQL DB', 
           status: 'operational', 
           latency: Math.round(end - start), 
-          details: 'Authenticated Connection: OK\nQuery: SELECT * FROM health_check'
+          details: 'Authenticated Connection: OK\nQuery: SELECT count from profiles'
       };
     } catch (err: any) {
       return { service: 'PostgreSQL DB', status: 'down', latency: 0, message: 'Connection Failed', details: err.message };
@@ -64,14 +64,14 @@ export const liveSystemService = {
 
     const start = performance.now();
     try {
-      const { error } = await (supabase.auth as any).getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       if (error) throw error;
       
       return { 
           service: 'Supabase Auth', 
           status: 'operational', 
           latency: Math.round(performance.now() - start),
-          details: 'Auth Session: OK\nJWT Validation: OK'
+          details: `Auth Session: ${session ? 'Active' : 'No Session'}\nJWT Validation: OK`
       };
     } catch (err: any) {
       return { service: 'Supabase Auth', status: 'down', latency: 0, message: 'Unreachable', details: err.message };
@@ -115,15 +115,13 @@ export const liveSystemService = {
       const start = performance.now();
       
       try {
-          // IMPORTANT: We use 'swift-service' because that is the deployed slug in Supabase.
-          // Even if renamed in UI, the endpoint URL stays the same.
-          const { data, error } = await supabase.functions.invoke('swift-service', {
+          // Fixed function name to match your file structure: system-health
+          const { data, error } = await supabase.functions.invoke('system-health', {
               body: { check: target }
           });
 
           const latency = Math.round(performance.now() - start);
 
-          // CASE 1: Connection Success, but Logical Error (e.g. Invalid API Key)
           if (data && data.success === false) {
               return {
                   service: serviceName,
@@ -134,33 +132,21 @@ export const liveSystemService = {
               };
           }
 
-          // CASE 2: Invocation Failure (e.g. 404, 500, Network Error)
           if (error) {
-              console.warn(`[LiveCheck] ${serviceName} check failed.`, error);
-              
               const isJwtIssue = error.message && (error.message.includes('401') || error.message.includes('404') || error.message.includes('Failed to fetch'));
-
               if (isJwtIssue) {
                   return {
                       service: serviceName,
                       status: 'deployment-needed',
                       latency: 0,
                       message: 'Access Denied (401/404)',
-                      details: `The function 'swift-service' exists but rejected the connection.\n\nFIX: Go to Supabase Dashboard > Edge Functions > swift-service\nUNCHECK "Enforce JWT Verification".`,
-                      actionLink: 'https://supabase.com/dashboard/project/_/functions/swift-service'
+                      details: `The function 'system-health' exists but rejected the connection.\n\nFIX: Go to Supabase Dashboard > Edge Functions > system-health\nUNCHECK "Enforce JWT Verification".`,
+                      actionLink: 'https://supabase.com/dashboard/project/_/functions/system-health'
                   };
               }
-
-              return {
-                  service: serviceName,
-                  status: 'down',
-                  latency: 0,
-                  message: 'Connection Failed',
-                  details: `Could not reach 'swift-service'.\nError: ${error.message}`
-              };
+              return { service: serviceName, status: 'down', latency: 0, message: 'Connection Failed', details: error.message };
           }
 
-          // CASE 3: Real Success
           return {
               service: serviceName,
               status: 'operational',
@@ -169,13 +155,7 @@ export const liveSystemService = {
           };
 
       } catch (err: any) {
-           return {
-              service: serviceName,
-              status: 'down',
-              latency: 0,
-              message: 'Client Error',
-              details: `Invocation Error: ${err.message}`
-          };
+           return { service: serviceName, status: 'down', latency: 0, message: 'Client Error', details: err.message };
       }
   },
 
