@@ -115,8 +115,8 @@ export const liveSystemService = {
       const start = performance.now();
       
       try {
-          // Fixed function name to match your file structure: system-health
-          const { data, error } = await supabase.functions.invoke('system-health', {
+          // Pointed to correct endpoint name from your list: swift-service
+          const { data, error } = await supabase.functions.invoke('swift-service', {
               body: { check: target }
           });
 
@@ -140,8 +140,8 @@ export const liveSystemService = {
                       status: 'deployment-needed',
                       latency: 0,
                       message: 'Access Denied (401/404)',
-                      details: `The function 'system-health' exists but rejected the connection.\n\nFIX: Go to Supabase Dashboard > Edge Functions > system-health\nUNCHECK "Enforce JWT Verification".`,
-                      actionLink: 'https://supabase.com/dashboard/project/_/functions/system-health'
+                      details: `The function 'swift-service' exists but rejected the connection.\n\nFIX: Go to Supabase Dashboard > Edge Functions > swift-service\nUNCHECK "Enforce JWT Verification".`,
+                      actionLink: 'https://supabase.com/dashboard/project/_/functions/swift-service'
                   };
               }
               return { service: serviceName, status: 'down', latency: 0, message: 'Connection Failed', details: error.message };

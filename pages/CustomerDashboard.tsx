@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, RefreshCw, ChevronRight, Lock, ExternalLink } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, RefreshCw, ChevronRight, Lock, ExternalLink, CalendarMinus } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -141,7 +141,8 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
-            const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
+            // CORRECT ENDPOINT: rapid-handler
+            const { data, error } = await supabase.functions.invoke('rapid-handler', {
                 body: { returnUrl: window.location.href },
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
@@ -362,10 +363,34 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
 const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: Invoice[], refresh: () => void }> = ({ user, licenses, invoices, refresh }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isPolling, setIsPolling] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
     const { refreshProfile } = useAuth();
 
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
+
+    const handleCancelSubscription = async () => {
+        if (!confirm("Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period.")) {
+            return;
+        }
+
+        setCancelling(true);
+        try {
+            // CORRECT ENDPOINT: swift-action
+            const { data, error } = await supabase.functions.invoke('swift-action');
+            
+            if (error) throw error;
+            if (data?.success === false) throw new Error(data.error || "Cancellation failed");
+
+            alert("Cancellation requested. Your status will update once Stripe confirms the change.");
+            setIsPolling(true); // Start polling to see the 'cancel_at_period_end' flag update
+        } catch (err: any) {
+            console.error("Cancellation error:", err);
+            alert(`Could not cancel subscription: ${err.message}`);
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     useEffect(() => {
         if (searchParams.get('stripe_success') === 'true' || searchParams.get('checkout') === 'success') {
@@ -378,7 +403,8 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
         if (!isPolling) return;
         const intervalId = setInterval(async () => {
             refresh();
-            if (activeLicense?.status === 'active' && hasStripeId) {
+            // Polling stops when the status is correct OR if we see the cancellation flag flipped
+            if ((activeLicense?.status === 'active' && hasStripeId) || activeLicense?.cancelAtPeriodEnd) {
                 setIsPolling(false);
                 setSearchParams({});
             }
@@ -395,8 +421,8 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                 <div className="bg-brand-50 border border-brand-100 text-brand-800 p-8 rounded-3xl mb-12 flex items-center gap-6 animate-pulse">
                     <RefreshCw className="w-10 h-10 text-brand-500 animate-spin" />
                     <div>
-                        <h3 className="font-black text-xl tracking-tight">Updating License...</h3>
-                        <p className="text-sm font-medium opacity-70">Payment received! We're syncing your account from Stripe.</p>
+                        <h3 className="font-black text-xl tracking-tight">Syncing Status...</h3>
+                        <p className="text-sm font-medium opacity-70">We are synchronizing your account with Stripe. This takes a few seconds.</p>
                     </div>
                 </div>
             )}
@@ -411,9 +437,18 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                             <span className="text-gray-400 font-bold">/{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
                         </div>
                         <div className="mt-6 flex flex-wrap gap-3">
-                            <div className="flex items-center gap-2 bg-green-50 border border-green-100 text-green-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+                            <div className={`flex items-center gap-2 border px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
+                                activeLicense?.status === 'active' 
+                                    ? 'bg-green-50 border-green-100 text-green-700' 
+                                    : 'bg-gray-50 border-gray-100 text-gray-500'
+                            }`}>
                                 <Check className="w-4 h-4" /> {activeLicense?.status}
                             </div>
+                            {activeLicense?.cancelAtPeriodEnd && (
+                                <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+                                    <AlertCircle className="w-4 h-4" /> Cancels soon
+                                </div>
+                            )}
                         </div>
                     </div>
                     
@@ -426,9 +461,23 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                             </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-gray-500 font-medium">Auto-renew</span>
-                                <span className="text-green-600 font-black">Active</span>
+                                <span className={`${activeLicense?.cancelAtPeriodEnd ? 'text-amber-600' : 'text-green-600'} font-black`}>
+                                    {activeLicense?.cancelAtPeriodEnd ? 'Off' : 'Active'}
+                                </span>
                             </div>
                         </div>
+
+                        {/* CANCELLATION BUTTON */}
+                        {hasStripeId && activeLicense?.status === 'active' && !activeLicense.cancelAtPeriodEnd && (
+                            <button 
+                                onClick={handleCancelSubscription}
+                                disabled={cancelling}
+                                className="w-full mt-6 py-2.5 rounded-xl border border-red-100 text-red-600 bg-red-50/50 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarMinus className="w-3 h-3" />}
+                                Cancel Subscription
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -445,7 +494,8 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
         setLoadingPortal(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
+            // CORRECT ENDPOINT: rapid-handler
+            const { data, error } = await supabase.functions.invoke('rapid-handler', {
                 body: { returnUrl: window.location.href },
                 headers: { Authorization: `Bearer ${session?.access_token}` }
             });
