@@ -9,6 +9,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { UserRole } from './types';
 import { Loader2 } from 'lucide-react';
 
+// Guard for protected routes
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserRole }> = ({ children, requiredRole }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -25,6 +26,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
   }
 
   if (requiredRole && user?.role !== requiredRole) {
+    // Redirect customers trying to access admin to their own dash
     return <Navigate to={user?.role === UserRole.ADMIN ? '/admin' : '/dashboard'} replace />;
   }
 
@@ -32,10 +34,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
 };
 
 const App: React.FC = () => {
+  // RADIKALE LÖSUNG:
+  // Wir prüfen, ob wir auf dem Pfad /update-password sind (durch Supabase Redirect).
+  // Wenn ja, rendern wir die AuthPage direkt in einem BrowserRouter, damit die URL und der Hash (Token) 
+  // unangetastet bleiben und von Supabase verarbeitet werden können.
+  // KEIN REDIRECT, KEIN HASH-ROUTER FÜR DIESEN FALL.
   const isUpdatePasswordPath = window.location.pathname === '/update-password' || window.location.pathname.endsWith('/update-password');
 
   if (isUpdatePasswordPath) {
     return (
+      // FIX: 'key' zwingt React, den AuthProvider neu zu mounten, wenn wir in diesen Modus wechseln.
       <AuthProvider key="auth-recovery">
         <BrowserRouter>
            <AuthPage mode="update-password" />
@@ -45,13 +53,19 @@ const App: React.FC = () => {
   }
 
   return (
+    // FIX: 'key' zwingt React, den AuthProvider neu zu mounten, wenn wir zurück in den normalen Modus kommen.
+    // Dadurch wird 'initSession' (useEffect) erneut ausgeführt und der Login funktioniert sofort.
     <AuthProvider key="auth-normal">
       <HashRouter>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/signup" element={<AuthPage mode="signup" />} />
+          {/* Fallback route within HashRouter just in case */}
           <Route path="/update-password" element={<AuthPage mode="update-password" />} />
+
+          {/* Customer Routes */}
           <Route 
             path="/dashboard/*" 
             element={
@@ -60,6 +74,8 @@ const App: React.FC = () => {
               </ProtectedRoute>
             } 
           />
+
+          {/* Admin Routes */}
           <Route 
             path="/admin/*" 
             element={
@@ -68,6 +84,8 @@ const App: React.FC = () => {
               </ProtectedRoute>
             } 
           />
+          
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
