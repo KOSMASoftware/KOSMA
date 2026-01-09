@@ -38,12 +38,6 @@ export interface User {
   billingAddress?: BillingAddress;
 }
 
-export interface Project {
-  id: string;
-  name: string;
-  lastSynced: string;
-}
-
 export interface License {
   id: string;
   userId: string;
@@ -53,34 +47,15 @@ export interface License {
   stripeCustomerId?: string;
   billingCycle: 'monthly' | 'yearly' | 'none' | 'trial';
   status: SubscriptionStatus;
-  
-  // The logic 'validUntil' displayed to user. 
-  // Should be calculated as COALESCE(adminOverride, currentPeriodEnd, originalValidUntil)
   validUntil: string | null; 
-  
   licenseKey: string | null;
   billingProjectName?: string; 
-
-  // V2 Fields
   cancelAtPeriodEnd?: boolean;
   canceledAt?: string;
   currentPeriodEnd?: string;
-  
-  // Admin Overrides
-  adminValidUntilOverride?: string;
-  adminOverrideReason?: string;
-  adminOverrideBy?: string;
-  adminOverrideAt?: string;
-}
-
-export interface AuditLog {
-  id: string;
-  createdAt: string;
-  actorUserId?: string;
-  actorEmail?: string;
-  action: string;
-  targetUserId: string;
-  details: any;
+  // Fix: Added missing admin override fields for manual license adjustments
+  adminValidUntilOverride?: string | null;
+  adminOverrideReason?: string | null;
 }
 
 export interface Invoice {
@@ -91,9 +66,4 @@ export interface Invoice {
   status: 'paid' | 'open';
   pdfUrl: string;
   projectName?: string;
-}
-
-export interface Session {
-  user: User | null;
-  token: string | null;
 }

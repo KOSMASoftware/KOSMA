@@ -1,9 +1,4 @@
-
 import { createClient } from '@supabase/supabase-js';
-
-// ------------------------------------------------------------------
-// CONFIGURATION: SUPABASE CREDENTIALS
-// ------------------------------------------------------------------
 
 const env = (import.meta as any).env || {};
 
@@ -23,7 +18,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
-// Zum Debugging in der Konsole verfügbar machen
 if (typeof window !== 'undefined') {
     (window as any).supabase = supabase;
 }
