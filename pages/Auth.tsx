@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -213,9 +212,8 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
       console.error("Auth action error:", err);
       setError(err.message || "An error occurred.");
     } finally {
-      if (mode !== 'signup' || step !== 'initial') {
-          setLoading(false);
-      }
+      // FIX: Always reset loading to false to avoid hanging spinners
+      setLoading(false);
     }
   };
 
