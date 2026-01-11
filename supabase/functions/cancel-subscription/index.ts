@@ -16,12 +16,24 @@ serve(async (req) => {
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const body = await req.json().catch(() => ({}));
-  if (body.action === 'ping') {
-    return new Response(JSON.stringify({ success: true, message: "swift-action operational" }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+  try {
+    const body = await req.json().catch(() => ({}));
+    if (body.action === 'ping') {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: "cancel-subscription operational",
+        timestamp: new Date().toISOString()
+      }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  } catch (error: any) {
+    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
   }
-
-  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 })

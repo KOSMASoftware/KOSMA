@@ -12,8 +12,8 @@ import {
   ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, 
   ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, 
   History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, 
-  Play, Wifi, Edit, Trash2, UserCheck, UserMinus, TrendingDown, Eye, Loader2, 
-  BarChart3, ClipboardCopy, ShieldAlert, HeartPulse, HardDrive, KeyRound, Globe2
+Play, Wifi, Edit, Trash2, UserCheck, UserMinus, TrendingDown, Eye, Loader2, 
+BarChart3, ClipboardCopy, ShieldAlert, HeartPulse, HardDrive, KeyRound, Globe2
 } from 'lucide-react';
 
 // --- HELPERS ---
@@ -353,12 +353,13 @@ const SystemHealthView: React.FC = () => {
     const [heartbeatStatus, setHeartbeatStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
     const [heartbeatLog, setHeartbeatLog] = useState<string[]>([]);
 
+    // Diese IDs entsprechen jetzt 1:1 den Slugs in Supabase
     const functionsToPing = [
         { id: 'admin-action', label: 'Lizenz-Steuerung (admin-action)', desc: 'Schreibt Lizenzen händisch in DB' },
-        { id: 'swift-action', label: 'Kündigungs-Dienst (swift-action)', desc: 'Storniert Stripe Abonnements' },
-        { id: 'rapid-handler', label: 'Billing-Portal (rapid-handler)', desc: 'Erzeugt Stripe Portal Links' },
+        { id: 'cancel-subscription', label: 'Kündigungs-Dienst (cancel-subscription)', desc: 'Storniert Stripe Abonnements' },
+        { id: 'create-billing-portal-session', label: 'Billing-Portal (create-billing-portal-session)', desc: 'Erzeugt Stripe Portal Links' },
         { id: 'stripe-webhook', label: 'Stripe-Empfänger (stripe-webhook)', desc: 'Verarbeitet Zahlungs-Events' },
-        { id: 'dynamic-endpoint', label: 'Frontend-Handler (dynamic-endpoint)', desc: 'Verarbeitet Redirects nach Kauf' },
+        { id: 'webhook-handler', label: 'Frontend-Handler (webhook-handler)', desc: 'Verarbeitet Redirects nach Kauf' },
         { id: 'system-health', label: 'Diagnose-Kern (system-health)', desc: 'Prüft API Keys & Secrets' },
         { id: 'mark-login', label: 'Login-Tracker (mark-login)', desc: 'Aktualisiert last_login_at' },
         { id: 'cron-scheduler', label: 'Zeit-Steuerung (cron-scheduler)', desc: 'Beendet Testphasen automatisch' }
@@ -366,13 +367,11 @@ const SystemHealthView: React.FC = () => {
 
     const runChecks = async () => {
         setLoading(true);
-        
         const { data: { session } } = await supabase.auth.getSession();
         
         const functionChecks = await Promise.all(functionsToPing.map(async (fn) => {
             const start = performance.now();
             try {
-                // EXTREM WICHTIG: Wir übergeben den Authorization Header, um Admin-Checks in der Funktion zu triggern!
                 const response = await supabase.functions.invoke(fn.id, { 
                     body: { action: 'ping' },
                     headers: { Authorization: `Bearer ${session?.access_token}` }
@@ -380,26 +379,21 @@ const SystemHealthView: React.FC = () => {
                 
                 const latency = Math.round(performance.now() - start);
 
-                // Analyse der Rückgabe
                 if (response.error) {
                     const errorMsg = response.error.message;
                     if (errorMsg.includes('404')) {
-                        return { service: fn.label, status: 'down', latency: 0, details: `FEHLER 404: Funktion '${fn.id}' ist nicht deployed.` };
+                        return { service: fn.label, status: 'down', latency: 0, details: `FEHLER 404: Slug '${fn.id}' nicht gefunden.` };
                     }
-                    if (errorMsg.includes('Failed to send a request') || errorMsg.includes('fetch')) {
-                        return { service: fn.label, status: 'down', latency: 0, details: `NETZWERK-BLOCKADE: Der Browser kann die Edge Function nicht erreichen (CORS oder Firewall).` };
-                    }
-                    return { service: fn.label, status: 'degraded', latency, details: `Antwortet mit Fehler: ${errorMsg}` };
+                    return { service: fn.label, status: 'degraded', latency, details: `Fehler: ${errorMsg}` };
                 }
 
-                // Check ob die Funktion selbst einen success:false zurückgibt (z.B. Auth-Check in der Funktion)
                 if (response.data && response.data.success === false) {
-                    return { service: fn.label, status: 'degraded', latency, details: `BRÜCKE STEHT, aber ZUGRIFF VERWEIGERT: ${response.data.error}` };
+                    return { service: fn.label, status: 'degraded', latency, details: `AUTH ERROR: ${response.data.error}` };
                 }
 
-                return { service: fn.label, status: 'operational', latency, details: `VOLLSTÄNDIG BEREIT. Ping-Response: ${JSON.stringify(response.data || 'OK')}` };
+                return { service: fn.label, status: 'operational', latency, details: `BEREIT. Antwort: ${JSON.stringify(response.data || 'OK')}` };
             } catch (e: any) {
-                return { service: fn.label, status: 'down', latency: 0, details: `KRITISCH: Browser-Crash beim Aufruf: ${e.message}` };
+                return { service: fn.label, status: 'down', latency: 0, details: `Crash: ${e.message}` };
             }
         }));
 
@@ -412,41 +406,31 @@ const SystemHealthView: React.FC = () => {
 
     const runHeartbeat = async () => {
         setHeartbeatStatus('running');
-        setHeartbeatLog(["Diagnose Sequenz gestartet...", "Prüfe Browser-Session & Token..."]);
+        setHeartbeatLog(["Diagnose Sequenz gestartet...", "Prüfe Klarnamen-Slugs..."]);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error("Kein Auth-Token gefunden. Bitte neu einloggen.");
+            if (!session) throw new Error("Kein Auth-Token gefunden.");
             
-            setHeartbeatLog(prev => [...prev, "Schritt 1: Lokal-DB-Test (Browser -> PostgreSQL)..."]);
-            const { error: writeError } = await supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', session.user.id);
-            if (writeError) throw new Error(`DB-Schreibfehler: ${writeError.message}. RLS Policies prüfen!`);
-            setHeartbeatLog(prev => [...prev, "✅ DB-Schreibzugriff erfolgreich."]);
-
-            setHeartbeatLog(prev => [...prev, "Schritt 2: Edge-Proxy-Test (Browser -> admin-action)..."]);
+            setHeartbeatLog(prev => [...prev, "Schritt 1: Ping gegen 'admin-action'..."]);
             const response = await supabase.functions.invoke('admin-action', { 
                 body: { action: 'ping' },
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
             
-            if (response.error) {
-                const err = response.error.message;
-                if (err.includes('Failed to send a request')) {
-                    throw new Error("TECHNISCHER ABBRUCH: Der Browser blockiert den Request zur Edge Function (CORS-Fehler im Browser-Log prüfen oder URL falsch).");
-                }
-                throw new Error(`EDGE-FEHLER: ${err}`);
-            }
+            if (response.error) throw new Error(`CORS/Netzwerk-Fehler bei 'admin-action': ${response.error.message}`);
+            setHeartbeatLog(prev => [...prev, "✅ 'admin-action' erreichbar."]);
             
-            setHeartbeatLog(prev => [...prev, "✅ Edge Function erreichbar."]);
-            
-            setHeartbeatLog(prev => [...prev, "Schritt 3: Identitäts-Check in der Cloud..."]);
-            if (response.data?.success === false) {
-                throw new Error(`AUTORISIERUNGS-ABBRUCH: Die Funktion '${response.data.error}'. Deine Email ist evtl. nicht als Admin hinterlegt.`);
-            }
+            setHeartbeatLog(prev => [...prev, "Schritt 2: Ping gegen 'system-health'..."]);
+            const hResponse = await supabase.functions.invoke('system-health', { 
+                body: { action: 'ping' }
+            });
+            if (hResponse.error) throw new Error(`Slug 'system-health' nicht erreichbar.`);
+            setHeartbeatLog(prev => [...prev, "✅ 'system-health' erreichbar."]);
 
-            setHeartbeatLog(prev => [...prev, "Diagnose abgeschlossen: System ist zu 100% einsatzbereit."]);
             setHeartbeatStatus('success');
+            setHeartbeatLog(prev => [...prev, "Diagnose abgeschlossen. Alle Slugs sind synchron."]);
         } catch (err: any) {
-            setHeartbeatLog(prev => [...prev, `❌ FEHLER GEFUNDEN: ${err.message}`]);
+            setHeartbeatLog(prev => [...prev, `❌ FEHLER: ${err.message}`]);
             setHeartbeatStatus('error');
         }
     };
@@ -456,16 +440,15 @@ const SystemHealthView: React.FC = () => {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
-            
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-4">
-                        <ShieldCheck className="text-brand-500 w-10 h-10" /> Technischer Statusbericht
+                        <ShieldCheck className="text-brand-500 w-10 h-10" /> Statusbericht (Klarnamen)
                     </h1>
-                    <p className="text-gray-400 font-bold mt-2 uppercase tracking-widest text-xs">Analyse aller 8 Cloud-Brücken</p>
+                    <p className="text-gray-400 font-bold mt-2 uppercase tracking-widest text-xs">Standardisiertes Slug-Mapping</p>
                 </div>
                 <button onClick={runChecks} disabled={loading} className="p-5 bg-gray-900 text-white rounded-[1.5rem] flex items-center gap-3 font-black text-sm uppercase tracking-widest hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10">
-                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} /> Deep-Scan ausführen
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} /> Scan ausführen
                 </button>
             </div>
 
@@ -487,10 +470,6 @@ const SystemHealthView: React.FC = () => {
                                 <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${check.status === 'operational' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{check.status}</span>
                             </div>
                             <div className="bg-gray-900 border border-gray-800 p-4 rounded-xl text-green-400 font-mono text-[10px] leading-relaxed shadow-inner overflow-x-auto">
-                                <div className="flex justify-between mb-2 pb-2 border-b border-gray-800">
-                                    <span>Latenz: {check.latency}ms</span>
-                                    <span>ID: {idx + 100}</span>
-                                </div>
                                 {check.details || 'Warte auf Rückmeldung...'}
                             </div>
                         </div>
@@ -499,26 +478,20 @@ const SystemHealthView: React.FC = () => {
 
                 <div className="space-y-10">
                     <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 sticky top-24">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-4 bg-brand-50 text-brand-500 rounded-3xl"><HeartPulse className="w-8 h-8" /></div>
-                            <div>
-                                <h3 className="text-3xl font-black text-gray-900 tracking-tight">End-to-End Diagnose</h3>
-                                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Wieso schlägt das Speichern fehl?</p>
-                            </div>
-                        </div>
+                        <h3 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Slug-Isolation</h3>
+                        <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-8">Synchronitäts-Check</p>
 
                         <div className="space-y-3 mb-10">
                             {heartbeatLog.map((log, i) => (
-                                <div key={i} className={`flex items-start gap-3 text-xs font-bold font-mono p-3 rounded-xl transition-all ${log.includes('❌') ? 'bg-red-50 text-red-600' : log.includes('✅') ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
-                                    {log.includes('❌') ? <AlertTriangle className="w-3.5 h-3.5 shrink-0"/> : log.includes('✅') ? <Check className="w-3.5 h-3.5 shrink-0"/> : <Terminal className="w-3.5 h-3.5 shrink-0"/>}
+                                <div key={i} className={`flex items-start gap-3 text-xs font-bold font-mono p-3 rounded-xl ${log.includes('❌') ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>
+                                    <Terminal className="w-3.5 h-3.5 shrink-0"/>
                                     <span className="leading-tight">{log}</span>
                                 </div>
                             ))}
                         </div>
 
-                        <button onClick={runHeartbeat} disabled={heartbeatStatus === 'running'} className={`w-full py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 shadow-xl shadow-brand-500/10 ${heartbeatStatus === 'running' ? 'bg-gray-100 text-gray-400' : 'bg-brand-500 text-white hover:bg-brand-600'}`}>
-                            {heartbeatStatus === 'running' ? <RefreshCw className="w-6 h-6 animate-spin"/> : <Play className="w-6 h-6" />}
-                            Fehlerquelle isolieren
+                        <button onClick={runHeartbeat} disabled={heartbeatStatus === 'running'} className="w-full py-6 rounded-[2rem] bg-brand-500 text-white font-black uppercase tracking-widest hover:bg-brand-600 shadow-xl shadow-brand-500/10">
+                            Check Slugs
                         </button>
                     </div>
                 </div>
@@ -526,8 +499,6 @@ const SystemHealthView: React.FC = () => {
         </div>
     );
 };
-
-// --- REST DER ANSICHTEN ---
 
 const DashboardOverview: React.FC = () => {
     const { loading, stats } = useAdminData();

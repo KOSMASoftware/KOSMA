@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -141,8 +142,8 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
-            // CORRECT ENDPOINT: rapid-handler
-            const { data, error } = await supabase.functions.invoke('rapid-handler', {
+            // CORRECT SLUG: create-billing-portal-session
+            const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
                 body: { returnUrl: window.location.href },
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
@@ -376,14 +377,14 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
 
         setCancelling(true);
         try {
-            // CORRECT ENDPOINT: swift-action
-            const { data, error } = await supabase.functions.invoke('swift-action');
+            // CORRECT SLUG: cancel-subscription
+            const { data, error } = await supabase.functions.invoke('cancel-subscription');
             
             if (error) throw error;
             if (data?.success === false) throw new Error(data.error || "Cancellation failed");
 
             alert("Cancellation requested. Your status will update once Stripe confirms the change.");
-            setIsPolling(true); // Start polling to see the 'cancel_at_period_end' flag update
+            setIsPolling(true); 
         } catch (err: any) {
             console.error("Cancellation error:", err);
             alert(`Could not cancel subscription: ${err.message}`);
@@ -395,7 +396,7 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
     useEffect(() => {
         if (searchParams.get('stripe_success') === 'true' || searchParams.get('checkout') === 'success') {
             setIsPolling(true);
-            refreshProfile(); // Immediate local sync
+            refreshProfile();
         }
     }, [searchParams, refreshProfile]);
 
@@ -403,7 +404,6 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
         if (!isPolling) return;
         const intervalId = setInterval(async () => {
             refresh();
-            // Polling stops when the status is correct OR if we see the cancellation flag flipped
             if ((activeLicense?.status === 'active' && hasStripeId) || activeLicense?.cancelAtPeriodEnd) {
                 setIsPolling(false);
                 setSearchParams({});
@@ -467,7 +467,6 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                             </div>
                         </div>
 
-                        {/* CANCELLATION BUTTON */}
                         {hasStripeId && activeLicense?.status === 'active' && !activeLicense.cancelAtPeriodEnd && (
                             <button 
                                 onClick={handleCancelSubscription}
@@ -494,8 +493,8 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
         setLoadingPortal(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            // CORRECT ENDPOINT: rapid-handler
-            const { data, error } = await supabase.functions.invoke('rapid-handler', {
+            // CORRECT SLUG: create-billing-portal-session
+            const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
                 body: { returnUrl: window.location.href },
                 headers: { Authorization: `Bearer ${session?.access_token}` }
             });

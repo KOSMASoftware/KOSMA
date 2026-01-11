@@ -19,12 +19,20 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     if (body.action === 'ping') {
-        return new Response(JSON.stringify({ success: true, message: "system-health operational" }), { 
+        return new Response(JSON.stringify({ 
+            success: true, 
+            message: "system-health operational", // Name an Slug angepasst
+            timestamp: new Date().toISOString()
+        }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
     }
-    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ success: true }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   } catch (error: any) {
-    return new Response(JSON.stringify({ success: false, error: error.message }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 })
