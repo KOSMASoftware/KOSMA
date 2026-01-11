@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -15,7 +14,6 @@ const DottedPattern = ({ className }: { className?: string }) => (
 
 const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?: string }> = ({ children, title, subtitle }) => (
   <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900 overflow-hidden">
-    {/* Header Navigation - Exactly as per screenshot */}
     <header className="w-full max-w-7xl mx-auto px-8 py-10 flex justify-between items-center z-20">
       <Link to="/" className="text-2xl font-bold text-[#0093D0] tracking-tight">KOSMA</Link>
       <div className="flex items-center gap-10 text-sm font-bold">
@@ -25,12 +23,8 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
       </div>
     </header>
 
-    {/* Main Content Area */}
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-      {/* Decorative Dots Left */}
       <DottedPattern className="absolute left-[10%] xl:left-[20%] top-1/2 -translate-y-1/2 hidden md:grid" />
-      
-      {/* Decorative Dots Right */}
       <DottedPattern className="absolute right-[10%] xl:right-[20%] top-1/2 -translate-y-1/2 hidden md:grid" />
 
       <div className="w-full max-w-[440px] z-10 -mt-24">
@@ -51,7 +45,7 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
 );
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {
-  const { login, signup, resetPassword, updatePassword } = useAuth();
+  const { login, signup, resetPassword, updatePassword, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -86,7 +80,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         await resetPassword(email);
         setStep('success');
       } else if (mode === 'login') {
-        const { user, error: loginError } = await login(email, password);
+        const { data, error: loginError } = await login(email, password);
         
         if (loginError) {
           setError(loginError.message || "Invalid credentials.");
@@ -94,10 +88,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           return;
         }
 
-        if (user) {
-          // Robust Role Detection
-          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-          const isAdmin = (user.email?.toLowerCase() === 'mail@joachimknaf.de') || (profile?.role === 'admin');
+        if (data?.user) {
+          // Wir warten kurz auf das Profil-Update im Context
+          await refreshProfile();
+          
+          // Direkte Abfrage der DB zur Sicherheit beim Navigieren
+          const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).maybeSingle();
+          const isAdmin = (data.user.email?.toLowerCase().trim() === 'mail@joachimknaf.de') || (profile?.role === 'admin');
           
           navigate(isAdmin ? '/admin' : '/dashboard');
         }

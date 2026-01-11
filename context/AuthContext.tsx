@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -8,7 +9,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isRecovering: boolean;
-  login: (email: string, password: string) => Promise<{ user: any, error: any }>;
+  // FIX: Supabase signInWithPassword returns { data, error }. The interface previously used 'user' instead of 'data'.
+  login: (email: string, password: string) => Promise<{ data: any, error: any }>;
   signup: (email: string, name: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
@@ -18,7 +20,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAILS = ['mail@joachimknaf.de'];
+// Absolute Admin-Garantie für dich
+const OWNER_EMAIL = 'mail@joachimknaf.de';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -27,13 +30,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const userIdRef = useRef<string | null>(null);
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
-    const email = sessionUser.email?.toLowerCase() || '';
-    const isAdmin = ADMIN_EMAILS.includes(email) || dbProfile?.role === 'admin';
+    const email = sessionUser.email?.toLowerCase().trim() || '';
     
+    // WICHTIG: Wir ignorieren sessionUser.user_metadata.role, da es oft veraltet ist!
+    // Die Rolle kommt EXKLUSIV aus der Datenbank oder dem E-Mail-Check.
+    const isOwner = email === OWNER_EMAIL;
+    const isAdmin = isOwner || dbProfile?.role === 'admin';
+    
+    console.log(`[Auth] Reconstructing User: ${email}`);
+    console.log(`[Auth] Role from DB: ${dbProfile?.role || 'none'}, isOwner: ${isOwner} -> Final: ${isAdmin ? 'ADMIN' : 'CUSTOMER'}`);
+
     return {
       id: sessionUser.id,
       email: email,
-      name: dbProfile?.full_name || sessionUser.user_metadata?.full_name || (isAdmin ? 'Joachim Knaf' : 'User'),
+      name: dbProfile?.full_name || sessionUser.user_metadata?.full_name || (isOwner ? 'Joachim Knaf' : 'User'),
       role: isAdmin ? UserRole.ADMIN : UserRole.CUSTOMER,
       registeredAt: sessionUser.created_at || new Date().toISOString(),
       stripeCustomerId: dbProfile?.stripe_customer_id || undefined,
@@ -43,11 +53,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const fetchProfile = async (session: Session) => {
-    // Vorab-Check: Wenn es ein Admin ist, setzen wir den Status schon mal provisorisch
-    const email = session.user.email?.toLowerCase() || '';
-    if (ADMIN_EMAILS.includes(email)) {
+    const email = session.user.email?.toLowerCase().trim() || '';
+    
+    // Falls du es bist, setzen wir sofort Admin, um Flackern beim Laden zu verhindern
+    if (email === OWNER_EMAIL) {
        setUser(constructUser(session.user, null));
-       // Wir laden trotzdem das Profil für weitere Daten, aber der Admin-Status steht schon mal.
     }
 
     try {
@@ -57,14 +67,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', session.user.id)
         .maybeSingle();
 
+      if (error) console.error("[Auth] DB Error:", error.message);
+
       const newUser = constructUser(session.user, data);
       setUser(newUser);
       userIdRef.current = newUser.id;
     } catch (err) {
-      console.error("Profile Fetch Exception:", err);
-      if (!user) { // Nur Fallback, wenn oben nicht schon gesetzt
-        setUser(constructUser(session.user, null));
-      }
+      console.error("[Auth] Critical Failure:", err);
+      // Letzter Rettungsanker
+      setUser(constructUser(session.user, null));
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +94,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      console.log(`[Auth] Session Event: ${event}`);
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
         if (session) await fetchProfile(session);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -122,9 +134,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    // Radikaler Logout inklusive Speicher-Bereinigung
     await supabase.auth.signOut();
+    localStorage.removeItem('kosma-auth-token');
     setUser(null);
     setIsLoading(false);
+    window.location.hash = '#/login';
   };
 
   const refreshProfile = async () => {

@@ -15,7 +15,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
   if (isLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-white">
-        <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Verifying Session...</p>
+        </div>
       </div>
     );
   }
@@ -24,8 +27,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
     return <Navigate to="/login" replace />;
   }
 
+  // Automatische Umleitung zur korrekten Root-Ansicht basierend auf der Rolle
   if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to={user?.role === UserRole.ADMIN ? '/admin' : '/dashboard'} replace />;
+    console.log(`[Router] Role mismatch. User is ${user?.role}, but page requires ${requiredRole}. Redirecting...`);
+    const target = user?.role === UserRole.ADMIN ? '/admin' : '/dashboard';
+    return <Navigate to={target} replace />;
   }
 
   return <Layout>{children}</Layout>;
@@ -41,6 +47,7 @@ const App: React.FC = () => {
           <Route path="/signup" element={<AuthPage mode="signup" />} />
           <Route path="/update-password" element={<AuthPage mode="update-password" />} />
 
+          {/* Kunden-Bereich: Admins werden hier rausgeworfen nach /admin */}
           <Route 
             path="/dashboard/*" 
             element={
@@ -50,6 +57,7 @@ const App: React.FC = () => {
             } 
           />
 
+          {/* Admin-Bereich: Kunden werden hier rausgeworfen nach /dashboard */}
           <Route 
             path="/admin/*" 
             element={
