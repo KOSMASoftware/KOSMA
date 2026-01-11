@@ -1,14 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * Safe environment variable access for Vite.
- * We use optional chaining and a fallback object to prevent "Cannot read properties of undefined" errors
- * at runtime, while still allowing Vite to perform static replacement during the build process.
- */
-const env = (import.meta as any).env || {};
+// WICHTIG: Vite benötigt die exakte Schreibweise 'import.meta.env.VARIABLE', 
+// um diese beim Build-Prozess statisch durch den Wert zu ersetzen.
+// Wir nutzen 'fallback'-Strings für den Fall, dass die Variablen in Vercel nicht gesetzt sind.
 
-const SUPABASE_URL = env.VITE_SUPABASE_URL || 'https://zpnbnjvhklgxfhsoczbp.supabase.co';
-const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwbmJuanZoa2xneGZoc29jemJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzQyNTAsImV4cCI6MjA4MzI1MDI1MH0.hvgH4vGoK4GhzmMb0QQupNafskxWID6aB3PnUlRZ5C8';
+// Fix: Silence TypeScript error for env property on ImportMeta to keep Vite's static replacement working
+// @ts-ignore
+const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) 
+// @ts-ignore
+  ? import.meta.env.VITE_SUPABASE_URL 
+  : 'https://zpnbnjvhklgxfhsoczbp.supabase.co';
+
+// Fix: Silence TypeScript error for env property on ImportMeta to keep Vite's static replacement working
+// @ts-ignore
+const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY)
+// @ts-ignore
+  ? import.meta.env.VITE_SUPABASE_ANON_KEY
+  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwbmJuanZoa2xneGZoc29jemJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzQyNTAsImV4cCI6MjA4MzI1MDI1MH0.hvgH4vGoK4GhzmMb0QQupNafskxWID6aB3PnUlRZ5C8';
 
 export const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), {
   auth: {

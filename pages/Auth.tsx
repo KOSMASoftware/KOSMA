@@ -18,7 +18,7 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
     <div className="w-full max-w-7xl mx-auto p-6 flex justify-between items-center">
       <Link to="/" className="text-2xl font-bold text-brand-500 tracking-tight">KOSMA</Link>
       <div className="flex items-center gap-8 text-sm font-medium">
-        <Link to="#" className="text-brand-500 hover:text-brand-600">Download</Link>
+        <Link to="#" className="text-brand-500 hover:text-brand-600 transition-colors">Download</Link>
         <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors">Login</Link>
         <Link to="/signup" className="bg-[#111827] text-white px-6 py-2.5 rounded hover:bg-black transition-colors">Sign Up</Link>
       </div>
@@ -33,7 +33,7 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
 
       <div className="w-full max-w-[480px] z-10">
         <div className="text-center mb-12">
-          <h1 className="text-6xl font-bold text-[#111827] mb-4 tracking-tight">{title}</h1>
+          <h1 className="text-6xl font-bold text-[#111827] mb-2 tracking-tight">{title}</h1>
           {subtitle && <p className="text-gray-500 text-lg font-medium">{subtitle}</p>}
         </div>
         {children}
@@ -125,7 +125,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
     >
       <div className="space-y-8">
         {error && (
-          <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm flex gap-3">
+          <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm flex gap-3 animate-in fade-in zoom-in-95">
             {isConfigError ? <ShieldAlert className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
             <p>{error}</p>
           </div>
