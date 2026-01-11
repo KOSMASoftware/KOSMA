@@ -16,10 +16,10 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
   <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900">
     {/* Header Navigation */}
     <div className="w-full max-w-7xl mx-auto p-8 flex justify-between items-center">
-      <Link to="/" className="text-2xl font-bold text-brand-500 tracking-tight">KOSMA</Link>
+      <Link to="/" className="text-2xl font-bold text-[#0093D0] tracking-tight">KOSMA</Link>
       <div className="flex items-center gap-8 text-sm font-bold">
-        <Link to="#" className="text-brand-500 hover:text-brand-600 transition-colors">Download</Link>
-        <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors">Login</Link>
+        <Link to="#" className="text-[#0093D0] hover:text-[#007fb5] transition-colors">Download</Link>
+        <Link to="/login" className="text-gray-900 hover:text-[#0093D0] transition-colors">Login</Link>
         <Link to="/signup" className="bg-[#111827] text-white px-6 py-2.5 rounded-md hover:bg-black transition-colors">Sign Up</Link>
       </div>
     </div>
@@ -112,7 +112,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
       <AuthLayout title="Success" subtitle="Check your email">
         <div className="text-center space-y-6">
           <p className="text-gray-600">Instructions have been sent.</p>
-          <Link to="/login" className="text-brand-500 font-bold hover:underline">Back to Login</Link>
+          <Link to="/login" className="text-[#0093D0] font-bold hover:underline">Back to Login</Link>
         </div>
       </AuthLayout>
     );
@@ -140,7 +140,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
                 placeholder="user@demo.de" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)}
-                className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/10 transition-all text-gray-700 placeholder:text-gray-300 bg-white shadow-sm"
+                className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-[#0093D0]/10 transition-all text-gray-700 placeholder:text-gray-300 bg-white shadow-sm"
               />
             </div>
           )}
@@ -153,7 +153,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
                 placeholder="......" 
                 value={password} 
                 onChange={e => setPassword(e.target.value)}
-                className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/10 transition-all text-gray-700 placeholder:text-gray-300 bg-white shadow-sm"
+                className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-[#0093D0]/10 transition-all text-gray-700 placeholder:text-gray-300 bg-white shadow-sm"
               />
             </div>
           )}
@@ -162,11 +162,11 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-3">
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] block ml-1">FIRST NAME</label>
-                <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/10 bg-white" />
+                <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-[#0093D0]/10 bg-white" />
               </div>
               <div className="space-y-3">
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] block ml-1">LAST NAME</label>
-                <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/10 bg-white" />
+                <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-[#0093D0]/10 bg-white" />
               </div>
             </div>
           )}
@@ -190,7 +190,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         <div className="text-center space-y-4 pt-2">
           {mode === 'login' && (
             <p className="text-xs font-bold text-gray-400">
-              Not having a KOSMA account? <Link to="/signup" className="text-brand-500 hover:underline">Register now</Link>
+              Not having a KOSMA account? <Link to="/signup" className="text-[#0093D0] hover:underline">Register now</Link>
             </p>
           )}
           <Link to="/login?reset=true" className="text-xs font-bold text-gray-400 hover:text-gray-600 block tracking-tight">Forgot password?</Link>
