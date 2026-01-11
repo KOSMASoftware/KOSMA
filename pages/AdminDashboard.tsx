@@ -5,109 +5,62 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, Play, Wifi, Edit, Trash2 } from 'lucide-react';
+import { 
+  Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, 
+  AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, 
+  Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, 
+  ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, 
+  ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, 
+  History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, 
+  Play, Wifi, Edit, Trash2, UserCheck, UserMinus, TrendingDown, Eye, Loader2, 
+  BarChart3, ClipboardCopy, ShieldAlert, HeartPulse, HardDrive, KeyRound, Globe2
+} from 'lucide-react';
 
-const TIER_COLORS = {
-  [PlanTier.FREE]: '#1F2937',
-  [PlanTier.BUDGET]: '#F59E0B',
-  [PlanTier.COST_CONTROL]: '#A855F7',
-  [PlanTier.PRODUCTION]: '#22C55E'
+// --- HELPERS ---
+const getLicenseLabel = (status: SubscriptionStatus) => {
+    switch (status) {
+        case SubscriptionStatus.ACTIVE: return 'Bezahlt';
+        case SubscriptionStatus.TRIAL: return 'Trial (14 Tage)';
+        case SubscriptionStatus.PAST_DUE: return 'Zahlung offen';
+        case SubscriptionStatus.CANCELED: return 'Gekündigt / Abgelaufen';
+        case SubscriptionStatus.NONE: return 'Free User';
+        default: return 'Unbekannt';
+    }
 };
-
-const CYCLE_COLORS = {
-  'yearly': '#0ea5e9',
-  'monthly': '#64748b',
-  'none': '#e2e8f0'
-};
-
-// --- SHARED ADMIN COMPONENTS ---
 
 const AdminTabs = () => {
     const location = useLocation();
-    
     return (
-        <div className="flex flex-wrap justify-center border-b border-gray-200 mb-8 bg-white sticky top-0 z-10 pt-2">
-            <Link 
-                to="/admin" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    location.pathname === '/admin' 
-                    ? 'border-brand-500 text-brand-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-                <LayoutDashboard className="w-4 h-4" /> Overview
-            </Link>
-             <Link 
-                to="/admin/users" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    location.pathname === '/admin/users' 
-                    ? 'border-brand-500 text-brand-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-                <ShieldCheck className="w-4 h-4" /> Users & Licenses
-            </Link>
-            <Link 
-                to="/admin/marketing" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    location.pathname === '/admin/marketing' 
-                    ? 'border-brand-500 text-brand-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-                <LineChartIcon className="w-4 h-4" /> Marketing
-            </Link>
-             <Link 
-                to="/admin/system" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    location.pathname === '/admin/system' 
-                    ? 'border-brand-500 text-brand-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-                <Server className="w-4 h-4" /> System
-            </Link>
-            <Link 
-                to="/admin/debug" 
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    location.pathname === '/admin/debug' 
-                    ? 'border-brand-500 text-brand-600 bg-brand-50' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-                <Bug className="w-4 h-4" /> Debug Stripe
-            </Link>
+        <div className="flex flex-wrap justify-center border-b border-gray-200 mb-8 bg-white sticky top-0 z-10 pt-2 shadow-sm -mx-8 px-8">
+            <Link to="/admin" className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${location.pathname === '/admin' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}><LayoutDashboard className="w-4 h-4" /> Übersicht</Link>
+            <Link to="/admin/users" className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${location.pathname === '/admin/users' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}><ShieldCheck className="w-4 h-4" /> Nutzer & Lizenzen</Link>
+            <Link to="/admin/marketing" className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${location.pathname === '/admin/marketing' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}><TrendingUp className="w-4 h-4" /> Marketing</Link>
+            <div className="h-4 w-px bg-gray-200 mx-2 self-center hidden md:block"></div>
+            <Link to="/admin/system" className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${location.pathname === '/admin/system' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}><Server className="w-4 h-4" /> System Health</Link>
+            <Link to="/admin/debug" className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${location.pathname === '/admin/debug' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'}`}><Bug className="w-4 h-4" /> Stripe Debug</Link>
         </div>
     );
 };
 
-// --- DATA FETCHING HELPER ---
+// --- DATA HOOK ---
 const useAdminData = () => {
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<User[]>([]);
     const [licenses, setLicenses] = useState<License[]>([]);
     const [stats, setStats] = useState({ totalUsers: 0, activeLicenses: 0, inactiveLicenses: 0, revenue: 0 });
     const [refreshIndex, setRefreshIndex] = useState(0);
-
     const refreshData = () => setRefreshIndex(prev => prev + 1);
 
     useEffect(() => {
         const fetchAll = async () => {
             setLoading(true);
             try {
-                // RLS: Admin can see all profiles and licenses
-                // Explicitly selecting fields to ensure we get login data from profiles table
                 const { data: profiles } = await supabase.from('profiles').select('*');
                 const { data: licData } = await supabase.from('licenses').select('*');
                 const { data: invData } = await supabase.from('invoices').select('amount, status');
 
-                let realUsers: User[] = [];
-                let realLicenses: License[] = [];
-                let realRevenue = 0;
-
                 if (profiles) {
-                    realUsers = profiles.map((p: any) => ({
+                    setUsers(profiles.map((p: any) => ({
                         id: p.id, 
                         email: p.email || 'N/A', 
                         name: p.full_name || 'User', 
@@ -115,315 +68,95 @@ const useAdminData = () => {
                         registeredAt: p.created_at || new Date().toISOString(), 
                         stripeCustomerId: p.stripe_customer_id, 
                         billingAddress: p.billing_address,
-                        // 1) Daten wirklich aus profiles lesen
                         firstLoginAt: p.first_login_at || null, 
                         lastLoginAt: p.last_login_at || null
-                    }));
+                    })));
                 }
                 if (licData) {
-                    realLicenses = licData.map((l: any) => ({
+                    setLicenses(licData.map((l: any) => ({
                         id: l.id, userId: l.user_id, productName: l.product_name, planTier: l.plan_tier as PlanTier, billingCycle: l.billing_cycle || 'none',
                         status: l.status as SubscriptionStatus, validUntil: l.admin_valid_until_override || l.current_period_end || l.valid_until,
                         licenseKey: l.license_key, billingProjectName: l.billing_project_name, stripeSubscriptionId: l.stripe_subscription_id,
-                        stripeCustomerId: l.stripe_customer_id, cancelAtPeriodEnd: l.cancel_at_period_end, adminValidUntilOverride: l.admin_valid_until_override, adminOverrideReason: l.admin_override_reason
-                    }));
+                        stripeCustomerId: l.stripe_customer_id, cancelAtPeriodEnd: l.cancel_at_period_end, adminValidUntilOverride: l.admin_valid_until_override
+                    })));
                 }
-                if (invData) {
-                     realRevenue = invData.filter((i: any) => i.status === 'paid').reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
-                }
-
-                setUsers(realUsers);
-                setLicenses(realLicenses);
-                setStats({ totalUsers: realUsers.length, activeLicenses: realLicenses.filter(l => l.status === SubscriptionStatus.ACTIVE).length, inactiveLicenses: realLicenses.filter(l => l.status !== SubscriptionStatus.ACTIVE).length, revenue: realRevenue });
-            } catch (err) { console.error(err); } finally { setLoading(false); }
+                const rev = invData?.filter((i: any) => i.status === 'paid').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
+                setStats({ totalUsers: profiles?.length || 0, activeLicenses: licData?.filter(l => l.status === 'active').length || 0, inactiveLicenses: licData?.filter(l => l.status !== 'active').length || 0, revenue: rev });
+            } finally { setLoading(false); }
         };
         fetchAll();
     }, [refreshIndex]);
     return { loading, users, licenses, stats, refreshData };
 };
 
-// --- VIEW 1: OVERVIEW ---
-const DashboardOverview: React.FC = () => {
-    const { loading, stats, users } = useAdminData();
-
-    // Mock growth data based on total users
-    const data = [
-      { name: 'Jan', users: Math.floor(stats.totalUsers * 0.2) },
-      { name: 'Feb', users: Math.floor(stats.totalUsers * 0.35) },
-      { name: 'Mar', users: Math.floor(stats.totalUsers * 0.45) },
-      { name: 'Apr', users: Math.floor(stats.totalUsers * 0.6) },
-      { name: 'May', users: Math.floor(stats.totalUsers * 0.75) },
-      { name: 'Jun', users: Math.floor(stats.totalUsers * 0.9) },
-      { name: 'Jul', users: stats.totalUsers },
-    ];
-
-    if (loading) return <div className="p-8 text-center"><RefreshCw className="w-8 h-8 animate-spin mx-auto text-gray-400"/></div>;
-
-    return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <AdminTabs />
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Users</p>
-                            <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats.totalUsers}</h3>
-                        </div>
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                            <Users className="w-5 h-5" />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Licenses</p>
-                            <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats.activeLicenses}</h3>
-                        </div>
-                        <div className="p-2 bg-green-50 text-green-600 rounded-lg">
-                            <CheckCircle className="w-5 h-5" />
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Revenue (Est.)</p>
-                            <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats.revenue.toFixed(2)} €</h3>
-                        </div>
-                        <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                            <CreditCard className="w-5 h-5" />
-                        </div>
-                    </div>
-                </div>
-                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Churn / Inactive</p>
-                            <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats.inactiveLicenses}</h3>
-                        </div>
-                        <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
-                            <AlertCircle className="w-5 h-5" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8">
-                <h3 className="font-bold text-gray-900 mb-6">User Growth (Mock)</h3>
-                <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={data}>
-                            <defs>
-                                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0093D0" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#0093D0" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                            <YAxis axisLine={false} tickLine={false} />
-                            <Tooltip />
-                            <Area type="monotone" dataKey="users" stroke="#0093D0" fillOpacity={1} fill="url(#colorUsers)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- VIEW 2: USERS MANAGEMENT ---
+// --- MODALS ---
 
 const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onClose: () => void, onUpdate: () => void }> = ({ user, license, onClose, onUpdate }) => {
     const [tier, setTier] = useState<PlanTier>(license?.planTier || PlanTier.FREE);
     const [status, setStatus] = useState<SubscriptionStatus>(license?.status || SubscriptionStatus.NONE);
-    
-    // Logic for Override
-    const initialOverride = license?.adminValidUntilOverride 
-        ? new Date(license.adminValidUntilOverride).toISOString().split('T')[0] 
-        : '';
-    const [overrideDate, setOverrideDate] = useState(initialOverride);
-    
+    const [overrideDate, setOverrideDate] = useState(license?.adminValidUntilOverride ? new Date(license.adminValidUntilOverride).toISOString().split('T')[0] : '');
     const [updating, setUpdating] = useState(false);
-    
-    // Day calculation
-    const currentValidUntil = useMemo(() => {
-        if (overrideDate) return new Date(overrideDate);
-        if (license?.validUntil) return new Date(license.validUntil);
-        return new Date();
-    }, [overrideDate, license]);
-
-    const hasStripeSub = license?.stripeSubscriptionId?.startsWith('sub_');
-    const hasStripeCustomer = !!user.stripeCustomerId;
-
-    const handleAddDays = (days: number) => {
-        const newDate = new Date(currentValidUntil);
-        newDate.setDate(newDate.getDate() + days);
-        setOverrideDate(newDate.toISOString().split('T')[0]);
-    };
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const handleSave = async () => {
         setUpdating(true);
+        setErrorMsg(null);
         try {
-            // CALL ADMIN EDGE FUNCTION
             const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase.functions.invoke('admin-action', {
-                body: { 
-                    action: 'update_license', 
-                    userId: user.id,
-                    payload: {
-                        plan_tier: tier,
-                        status: status,
-                        admin_override_date: overrideDate || null
-                    }
-                },
+                body: { action: 'update_license', userId: user.id, payload: { plan_tier: tier, status: status, admin_override_date: overrideDate || null } },
                 headers: { Authorization: `Bearer ${session?.access_token}` }
             });
-
-            if (error || !data.success) throw new Error(data?.error || error?.message);
             
-            if (data.message) {
-                alert(data.message); // Feedback from backend (e.g. "Stripe cycle shifted")
-            }
+            if (error) throw error;
+            if (!data || data.success === false) throw new Error(data?.error || "Backend-Fehler.");
             
-            onUpdate();
-            onClose();
-        } catch (err) {
-            console.error(err);
-            alert("Failed to update license. Check console.");
-        } finally {
-            setUpdating(false);
-        }
-    };
-
-    const handleDeleteUser = async () => {
-        if (!confirm(`Are you sure you want to PERMANENTLY delete user "${user.name}"? This action CANNOT be undone.`)) {
-            return;
-        }
-
-        setUpdating(true);
-        try {
-             const { data: { session } } = await supabase.auth.getSession();
-             const { data, error } = await supabase.functions.invoke('admin-action', {
-                body: { 
-                    action: 'delete_user', 
-                    userId: user.id
-                },
-                headers: { Authorization: `Bearer ${session?.access_token}` }
-            });
-
-            if (error || !data.success) throw new Error(data?.error || error?.message);
-
-            alert("User deleted successfully.");
-            onUpdate();
-            onClose();
-
-        } catch (err: any) {
-            console.error(err);
-            alert(`Failed to delete user: ${err.message}`);
-        } finally {
-            setUpdating(false);
-        }
+            onUpdate(); onClose();
+        } catch (err: any) { 
+            setErrorMsg(err.message);
+        } finally { setUpdating(false); }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-900">Edit License</h3>
-                        <p className="text-sm text-gray-500">{user.name} ({user.email})</p>
-                    </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button>
-                </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                <h3 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">Lizenz-Steuerung</h3>
+                <p className="text-sm text-gray-400 font-bold mb-8 uppercase tracking-widest">{user.email}</p>
                 
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                {errorMsg && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex gap-3">
+                        <AlertTriangle className="w-5 h-5 shrink-0" />
+                        <p>{errorMsg}</p>
+                    </div>
+                )}
+
+                <div className="space-y-8">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Plan Tier</label>
-                        <select value={tier} onChange={e => setTier(e.target.value as PlanTier)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Plan (Tier) - Händisch</label>
+                        <select value={tier} onChange={e => setTier(e.target.value as PlanTier)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
                             {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
-                        <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
-                            {Object.values(SubscriptionStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Status - Händisch</label>
+                        <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
+                            <option value="active">Bezahlt / Aktiv</option>
+                            <option value="trial">Trial (Production)</option>
+                            <option value="past_due">Zahlung offen</option>
+                            <option value="canceled">Gekündigt</option>
+                            <option value="none">Kein Abo (Free)</option>
                         </select>
                     </div>
-                </div>
-
-                <div className="border-t border-gray-100 pt-4 mb-6">
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extend / Reduce Access</label>
-                    <div className="flex items-center gap-2 mb-4">
-                         <div className="relative flex-1">
-                             <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                             <input 
-                                type="date" 
-                                value={overrideDate} 
-                                onChange={e => setOverrideDate(e.target.value)} 
-                                className="w-full pl-9 pr-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                             />
-                         </div>
-                         <button onClick={() => setOverrideDate('')} className="text-xs text-gray-400 hover:text-gray-600 underline px-2">
-                             Reset to Stripe
-                         </button>
-                    </div>
-
-                    <div className="flex gap-2">
-                        <button onClick={() => handleAddDays(7)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-xs font-bold text-gray-700">+ 7 Days</button>
-                        <button onClick={() => handleAddDays(30)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-xs font-bold text-gray-700">+ 30 Days</button>
-                        <button onClick={() => handleAddDays(365)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-xs font-bold text-gray-700">+ 1 Year</button>
-                        <div className="w-px bg-gray-300 mx-1"></div>
-                        <button onClick={() => handleAddDays(-7)} className="px-3 py-1.5 bg-red-50 hover:bg-red-100 rounded text-xs font-bold text-red-600">- 7 Days</button>
-                    </div>
-                    
-                    {overrideDate && (
-                         <div className={`mt-3 border p-3 rounded-lg text-sm flex items-start gap-2 ${
-                             hasStripeSub ? 'bg-blue-50 border-blue-100 text-blue-800' : 'bg-orange-50 border-orange-100 text-orange-800'
-                         }`}>
-                             {hasStripeSub ? <RefreshCw className="w-4 h-4 shrink-0 mt-0.5 animate-spin-slow" /> : <Info className="w-4 h-4 shrink-0 mt-0.5" />}
-                             <span>
-                                 {hasStripeSub 
-                                     ? `This will also shift the Stripe billing cycle to ${new Date(overrideDate).toLocaleDateString()}.` 
-                                     : `Only database updated. No Stripe subscription found to sync.`}
-                             </span>
-                         </div>
-                    )}
-                </div>
-
-                {/* DELETE USER SECTION */}
-                <div className="border-t border-gray-100 pt-4 mb-6">
-                    <label className="block text-xs font-bold text-red-500 uppercase mb-2">Danger Zone</label>
-                    <div className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg">
-                        <div className="text-xs text-red-800">
-                             <span className="font-bold">Delete User</span>
-                             <p className="text-[10px] opacity-80 mt-1">Irreversible. Removes auth, profile, licenses.</p>
-                        </div>
-                        {hasStripeCustomer ? (
-                             <div className="flex flex-col items-end">
-                                <button disabled className="flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-500 rounded text-xs font-bold cursor-not-allowed">
-                                    <Trash2 className="w-3 h-3" /> Delete
-                                </button>
-                                <span className="text-[9px] text-gray-400 mt-1 text-right">Cannot delete users<br/>with Stripe account</span>
-                             </div>
-                        ) : (
-                             <button 
-                                onClick={handleDeleteUser} 
-                                disabled={updating}
-                                className="flex items-center gap-1 px-3 py-2 bg-white border border-red-200 text-red-600 rounded text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"
-                             >
-                                <Trash2 className="w-3 h-3" /> {updating ? '...' : 'Delete User'}
-                             </button>
-                        )}
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Hard-Expiration Date (Override)</label>
+                        <input type="date" value={overrideDate} onChange={e => setOverrideDate(e.target.value)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none" />
+                        <p className="text-[10px] text-gray-400 mt-2 font-medium">Dies überschreibt Stripe-Daten im Dashboard.</p>
                     </div>
                 </div>
-
-                <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
-                    <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg font-bold">Cancel</button>
-                    <button onClick={handleSave} disabled={updating} className="px-4 py-2 text-sm bg-brand-500 text-white rounded-lg hover:bg-brand-600 flex items-center gap-2 font-bold shadow-sm">
-                        {updating && <RefreshCw className="w-3 h-3 animate-spin"/>} Save Changes
+                <div className="flex gap-4 mt-12">
+                    <button onClick={onClose} className="flex-1 py-5 text-sm font-black text-gray-400 hover:text-gray-900 transition-colors">Abbrechen</button>
+                    <button onClick={handleSave} disabled={updating} className="flex-2 py-5 bg-gray-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10">
+                        {updating ? <RefreshCw className="w-5 h-5 animate-spin"/> : <Check className="w-5 h-5" />} Speichern
                     </button>
                 </div>
             </div>
@@ -431,256 +164,499 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
     );
 };
 
+// --- VIEWS ---
+
 const UsersManagement: React.FC = () => {
     const { loading, users, licenses, refreshData } = useAdminData();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'ALL' | SubscriptionStatus>('ALL');
+    const [search, setSearch] = useState('');
+    const [tierFilter, setTierFilter] = useState<string>('all');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [engagementFilter, setEngagementFilter] = useState<string>('all');
+    const [companyFilter, setCompanyFilter] = useState<string>('all');
+    
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const filteredUsers = users.filter(u => {
-        const license = licenses.find(l => l.userId === u.id);
+    // Filter-Logic
+    const filteredUsers = useMemo(() => {
+        return users.filter(u => {
+            const lic = licenses.find(l => l.userId === u.id);
+            const matchesSearch = u.email.toLowerCase().includes(search.toLowerCase()) || 
+                                 u.name.toLowerCase().includes(search.toLowerCase()) || 
+                                 (u.billingAddress?.companyName || '').toLowerCase().includes(search.toLowerCase());
+            
+            const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
+            const matchesStatus = statusFilter === 'all' || lic?.status === statusFilter;
+            
+            const isEngaged = !!u.firstLoginAt;
+            const matchesEngagement = engagementFilter === 'all' || 
+                                     (engagementFilter === 'engaged' && isEngaged) || 
+                                     (engagementFilter === 'inactive' && !isEngaged);
+            
+            const matchesCompany = companyFilter === 'all' || u.billingAddress?.companyName === companyFilter;
+
+            return matchesSearch && matchesTier && matchesStatus && matchesEngagement && matchesCompany;
+        });
+    }, [users, licenses, search, tierFilter, statusFilter, engagementFilter, companyFilter]);
+
+    const companies = useMemo(() => {
+        const set = new Set(users.map(u => u.billingAddress?.companyName).filter(Boolean));
+        return Array.from(set);
+    }, [users]);
+
+    const handleDelete = async (u: User) => {
+        if (u.stripeCustomerId) {
+            alert("❌ LÖSCHEN NICHT ERLAUBT: Dieser Nutzer hat ein verknüpftes Stripe-Konto. Bitte kündige zuerst das Abo über das Stripe Dashboard, falls nötig.");
+            return;
+        }
+        if (!confirm(`Soll ${u.email} permanent gelöscht werden? (Keine Stripe-Verbindung vorhanden, Löschen ist sicher).`)) return;
         
-        // Text Search (Name, Email, Company)
-        const lowerTerm = searchTerm.toLowerCase();
-        const matchesText = 
-            u.email.toLowerCase().includes(lowerTerm) || 
-            u.name.toLowerCase().includes(lowerTerm) || 
-            (u.billingAddress?.companyName || '').toLowerCase().includes(lowerTerm);
-
-        // Status Filter
-        const matchesStatus = statusFilter === 'ALL' 
-            ? true 
-            : license?.status === statusFilter || (!license && statusFilter === SubscriptionStatus.NONE);
-
-        return matchesText && matchesStatus;
-    });
-
-    const getLicenseForUser = (userId: string) => licenses.find(l => l.userId === userId);
-
-    const getDaysRemaining = (dateStr: string | null | undefined) => {
-        if (!dateStr) return null;
-        const now = new Date();
-        const target = new Date(dateStr);
-        const diff = target.getTime() - now.getTime();
-        return Math.ceil(diff / (1000 * 3600 * 24));
+        setDeletingId(u.id);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const { data, error } = await supabase.functions.invoke('admin-action', {
+                body: { action: 'delete_user', userId: u.id },
+                headers: { Authorization: `Bearer ${session?.access_token}` }
+            });
+            if (error) throw error;
+            if (!data || !data.success) throw new Error(data?.error || "Löschen fehlgeschlagen.");
+            refreshData();
+        } catch (err: any) {
+            alert(`Fehler: ${err.message}`);
+        } finally { setDeletingId(null); }
     };
 
-    if (loading) return <div className="p-8 text-center"><RefreshCw className="w-8 h-8 animate-spin mx-auto text-gray-400"/></div>;
+    if (loading) return <div className="p-20 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-brand-500" /></div>;
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
+            {editingUser && <EditLicenseModal user={editingUser} license={licenses.find(l => l.userId === editingUser.id)} onClose={() => setEditingUser(null)} onUpdate={refreshData} />}
             
-            {editingUser && (
-                <EditLicenseModal 
-                    user={editingUser} 
-                    license={getLicenseForUser(editingUser.id)} 
-                    onClose={() => setEditingUser(null)} 
-                    onUpdate={refreshData} 
-                />
-            )}
-
-            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-                 <div className="flex items-center gap-2 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-80">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Search name, email, company..." 
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                        />
+            {/* Filter-Bar */}
+            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mb-10 space-y-6">
+                <div className="flex items-center gap-5 border-b border-gray-50 pb-6">
+                    <Search className="w-6 h-6 text-gray-300" />
+                    <input type="text" placeholder="Schnellsuche (Email, Name, Firma)..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1 outline-none text-lg font-bold placeholder:text-gray-300" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-2">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan (Tier)</label>
+                        <select value={tierFilter} onChange={e => setTierFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
+                            <option value="all">Alle Pläne</option>
+                            {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
                     </div>
-                    <div className="relative">
-                         <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                         <select 
-                            value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value as any)}
-                            className="pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 appearance-none bg-white"
-                         >
-                             <option value="ALL">All Status</option>
-                             <option value={SubscriptionStatus.ACTIVE}>Active</option>
-                             <option value={SubscriptionStatus.PAST_DUE}>Past Due</option>
-                             <option value={SubscriptionStatus.TRIAL}>Trial</option>
-                             <option value={SubscriptionStatus.CANCELED}>Canceled</option>
-                             <option value={SubscriptionStatus.NONE}>None</option>
-                         </select>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</label>
+                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
+                            <option value="all">Alle Status</option>
+                            <option value="active">Aktiv / Bezahlt</option>
+                            <option value="trial">Trial</option>
+                            <option value="past_due">Zahlung offen</option>
+                            <option value="canceled">Gekündigt</option>
+                        </select>
                     </div>
-                 </div>
-                 <div className="text-sm text-gray-500 font-medium">
-                    Showing <span className="text-gray-900">{filteredUsers.length}</span> records
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Engagement</label>
+                        <select value={engagementFilter} onChange={e => setEngagementFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
+                            <option value="all">Alle</option>
+                            <option value="engaged">Eingeloggt (Aktiv)</option>
+                            <option value="inactive">Nie eingeloggt (Lead)</option>
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Firma</label>
+                        <select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
+                            <option value="all">Alle Firmen</option>
+                            {companies.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden">
+                <table className="w-full text-left">
+                    <thead className="bg-gray-50/50 border-b border-gray-100">
+                        <tr>
+                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer & Firma</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Lizenz / Plan</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Stripe</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {filteredUsers.map(user => {
+                            const lic = licenses.find(l => l.userId === user.id);
+                            const hasStripe = !!user.stripeCustomerId;
+                            return (
+                                <tr key={user.id} className="hover:bg-gray-50/50 group transition-colors">
+                                    <td className="px-8 py-6">
+                                        <div className="font-black text-gray-900 leading-tight text-lg">{user.name}</div>
+                                        <div className="text-sm text-gray-400 font-bold mb-2">{user.email}</div>
+                                        {user.billingAddress?.companyName ? (
+                                            <div className="text-[10px] text-brand-500 font-black flex items-center gap-1.5 uppercase tracking-tight">
+                                                <Building className="w-3.5 h-3.5"/>{user.billingAddress.companyName}
+                                            </div>
+                                        ) : (
+                                            <div className="text-[10px] text-gray-300 font-bold uppercase italic">Keine Firma</div>
+                                        )}
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="text-sm font-black text-gray-700 mb-1">{lic?.planTier || 'Free'}</div>
+                                        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${
+                                            lic?.status === 'active' ? 'bg-green-100 text-green-700' : 
+                                            lic?.status === 'trial' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-gray-100 text-gray-500'
+                                        }`}>{getLicenseLabel(lic?.status || SubscriptionStatus.NONE)}</span>
+                                        {lic?.validUntil && (
+                                            <div className="text-[10px] text-gray-400 font-bold mt-2">Gültig bis: {new Date(lic.validUntil).toLocaleDateString()}</div>
+                                        )}
+                                    </td>
+                                    <td className="px-8 py-6 text-center">
+                                        <div className={`inline-flex items-center justify-center p-2 rounded-xl ${hasStripe ? 'text-brand-500 bg-brand-50 shadow-sm' : 'text-gray-200'}`} title={hasStripe ? `Stripe ID: ${user.stripeCustomerId}` : 'Keine Stripe-Verbindung'}>
+                                            <CreditCard className="w-6 h-6" />
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-right">
+                                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={() => setEditingUser(user)} className="p-3 text-brand-500 hover:bg-brand-50 rounded-2xl transition-colors" title="Lizenz händisch setzen"><Edit className="w-5 h-5"/></button>
+                                            <button 
+                                                onClick={() => handleDelete(user)} 
+                                                disabled={deletingId === user.id || hasStripe} 
+                                                className={`p-3 rounded-2xl transition-colors ${hasStripe ? 'text-gray-200 cursor-not-allowed' : 'text-red-500 hover:bg-red-50'}`}
+                                                title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
+                                            >
+                                                {deletingId === user.id ? <RefreshCw className="w-5 h-5 animate-spin"/> : (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5"/>)}
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+                {filteredUsers.length === 0 && (
+                    <div className="p-20 text-center text-gray-400 font-bold italic">Keine Nutzer gefunden, die diesen Filtern entsprechen.</div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- SYSTEM HEALTH VIEW ---
+
+const SystemHealthView: React.FC = () => {
+    const [checks, setChecks] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [heartbeatStatus, setHeartbeatStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+    const [heartbeatLog, setHeartbeatLog] = useState<string[]>([]);
+
+    const functionsToPing = [
+        { id: 'admin-action', label: 'Lizenz-Steuerung (admin-action)', desc: 'Schreibt Lizenzen händisch in DB' },
+        { id: 'swift-action', label: 'Kündigungs-Dienst (swift-action)', desc: 'Storniert Stripe Abonnements' },
+        { id: 'rapid-handler', label: 'Billing-Portal (rapid-handler)', desc: 'Erzeugt Stripe Portal Links' },
+        { id: 'stripe-webhook', label: 'Stripe-Empfänger (stripe-webhook)', desc: 'Verarbeitet Zahlungs-Events' },
+        { id: 'dynamic-endpoint', label: 'Frontend-Handler (dynamic-endpoint)', desc: 'Verarbeitet Redirects nach Kauf' },
+        { id: 'system-health', label: 'Diagnose-Kern (system-health)', desc: 'Prüft API Keys & Secrets' },
+        { id: 'mark-login', label: 'Login-Tracker (mark-login)', desc: 'Aktualisiert last_login_at' },
+        { id: 'cron-scheduler', label: 'Zeit-Steuerung (cron-scheduler)', desc: 'Beendet Testphasen automatisch' }
+    ];
+
+    const runChecks = async () => {
+        setLoading(true);
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const functionChecks = await Promise.all(functionsToPing.map(async (fn) => {
+            const start = performance.now();
+            try {
+                // EXTREM WICHTIG: Wir übergeben den Authorization Header, um Admin-Checks in der Funktion zu triggern!
+                const response = await supabase.functions.invoke(fn.id, { 
+                    body: { action: 'ping' },
+                    headers: { Authorization: `Bearer ${session?.access_token}` }
+                });
+                
+                const latency = Math.round(performance.now() - start);
+
+                // Analyse der Rückgabe
+                if (response.error) {
+                    const errorMsg = response.error.message;
+                    if (errorMsg.includes('404')) {
+                        return { service: fn.label, status: 'down', latency: 0, details: `FEHLER 404: Funktion '${fn.id}' ist nicht deployed.` };
+                    }
+                    if (errorMsg.includes('Failed to send a request') || errorMsg.includes('fetch')) {
+                        return { service: fn.label, status: 'down', latency: 0, details: `NETZWERK-BLOCKADE: Der Browser kann die Edge Function nicht erreichen (CORS oder Firewall).` };
+                    }
+                    return { service: fn.label, status: 'degraded', latency, details: `Antwortet mit Fehler: ${errorMsg}` };
+                }
+
+                // Check ob die Funktion selbst einen success:false zurückgibt (z.B. Auth-Check in der Funktion)
+                if (response.data && response.data.success === false) {
+                    return { service: fn.label, status: 'degraded', latency, details: `BRÜCKE STEHT, aber ZUGRIFF VERWEIGERT: ${response.data.error}` };
+                }
+
+                return { service: fn.label, status: 'operational', latency, details: `VOLLSTÄNDIG BEREIT. Ping-Response: ${JSON.stringify(response.data || 'OK')}` };
+            } catch (e: any) {
+                return { service: fn.label, status: 'down', latency: 0, details: `KRITISCH: Browser-Crash beim Aufruf: ${e.message}` };
+            }
+        }));
+
+        const dbCheck = await liveSystemService.checkDatabaseConnection();
+        const authCheck = await liveSystemService.checkAuthService();
+
+        setChecks([dbCheck, authCheck, ...functionChecks]);
+        setLoading(false);
+    };
+
+    const runHeartbeat = async () => {
+        setHeartbeatStatus('running');
+        setHeartbeatLog(["Diagnose Sequenz gestartet...", "Prüfe Browser-Session & Token..."]);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("Kein Auth-Token gefunden. Bitte neu einloggen.");
+            
+            setHeartbeatLog(prev => [...prev, "Schritt 1: Lokal-DB-Test (Browser -> PostgreSQL)..."]);
+            const { error: writeError } = await supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', session.user.id);
+            if (writeError) throw new Error(`DB-Schreibfehler: ${writeError.message}. RLS Policies prüfen!`);
+            setHeartbeatLog(prev => [...prev, "✅ DB-Schreibzugriff erfolgreich."]);
+
+            setHeartbeatLog(prev => [...prev, "Schritt 2: Edge-Proxy-Test (Browser -> admin-action)..."]);
+            const response = await supabase.functions.invoke('admin-action', { 
+                body: { action: 'ping' },
+                headers: { Authorization: `Bearer ${session.access_token}` }
+            });
+            
+            if (response.error) {
+                const err = response.error.message;
+                if (err.includes('Failed to send a request')) {
+                    throw new Error("TECHNISCHER ABBRUCH: Der Browser blockiert den Request zur Edge Function (CORS-Fehler im Browser-Log prüfen oder URL falsch).");
+                }
+                throw new Error(`EDGE-FEHLER: ${err}`);
+            }
+            
+            setHeartbeatLog(prev => [...prev, "✅ Edge Function erreichbar."]);
+            
+            setHeartbeatLog(prev => [...prev, "Schritt 3: Identitäts-Check in der Cloud..."]);
+            if (response.data?.success === false) {
+                throw new Error(`AUTORISIERUNGS-ABBRUCH: Die Funktion '${response.data.error}'. Deine Email ist evtl. nicht als Admin hinterlegt.`);
+            }
+
+            setHeartbeatLog(prev => [...prev, "Diagnose abgeschlossen: System ist zu 100% einsatzbereit."]);
+            setHeartbeatStatus('success');
+        } catch (err: any) {
+            setHeartbeatLog(prev => [...prev, `❌ FEHLER GEFUNDEN: ${err.message}`]);
+            setHeartbeatStatus('error');
+        }
+    };
+
+    useEffect(() => { runChecks(); }, []);
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2">
+            <AdminTabs />
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+                <div>
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-4">
+                        <ShieldCheck className="text-brand-500 w-10 h-10" /> Technischer Statusbericht
+                    </h1>
+                    <p className="text-gray-400 font-bold mt-2 uppercase tracking-widest text-xs">Analyse aller 8 Cloud-Brücken</p>
+                </div>
+                <button onClick={runChecks} disabled={loading} className="p-5 bg-gray-900 text-white rounded-[1.5rem] flex items-center gap-3 font-black text-sm uppercase tracking-widest hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10">
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} /> Deep-Scan ausführen
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div className="space-y-6">
+                    {checks.map((check, idx) => (
+                        <div key={idx} className={`bg-white p-6 rounded-[1.5rem] border-2 transition-all shadow-sm ${check.status === 'operational' ? 'border-gray-50' : 'border-red-100 bg-red-50/10'}`}>
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-2.5 rounded-xl ${check.status === 'operational' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                                        {check.service.includes('DB') ? <Database className="w-5 h-5"/> : 
+                                         check.service.includes('Auth') ? <Lock className="w-5 h-5"/> : <Zap className="w-5 h-5"/>}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg font-black text-gray-900 tracking-tight leading-tight">{check.service}</h4>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{functionsToPing.find(f => f.label === check.service)?.desc || 'Basis-Dienst'}</p>
+                                    </div>
+                                </div>
+                                <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${check.status === 'operational' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{check.status}</span>
+                            </div>
+                            <div className="bg-gray-900 border border-gray-800 p-4 rounded-xl text-green-400 font-mono text-[10px] leading-relaxed shadow-inner overflow-x-auto">
+                                <div className="flex justify-between mb-2 pb-2 border-b border-gray-800">
+                                    <span>Latenz: {check.latency}ms</span>
+                                    <span>ID: {idx + 100}</span>
+                                </div>
+                                {check.details || 'Warte auf Rückmeldung...'}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="space-y-10">
+                    <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 sticky top-24">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="p-4 bg-brand-50 text-brand-500 rounded-3xl"><HeartPulse className="w-8 h-8" /></div>
+                            <div>
+                                <h3 className="text-3xl font-black text-gray-900 tracking-tight">End-to-End Diagnose</h3>
+                                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Wieso schlägt das Speichern fehl?</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 mb-10">
+                            {heartbeatLog.map((log, i) => (
+                                <div key={i} className={`flex items-start gap-3 text-xs font-bold font-mono p-3 rounded-xl transition-all ${log.includes('❌') ? 'bg-red-50 text-red-600' : log.includes('✅') ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+                                    {log.includes('❌') ? <AlertTriangle className="w-3.5 h-3.5 shrink-0"/> : log.includes('✅') ? <Check className="w-3.5 h-3.5 shrink-0"/> : <Terminal className="w-3.5 h-3.5 shrink-0"/>}
+                                    <span className="leading-tight">{log}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button onClick={runHeartbeat} disabled={heartbeatStatus === 'running'} className={`w-full py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 shadow-xl shadow-brand-500/10 ${heartbeatStatus === 'running' ? 'bg-gray-100 text-gray-400' : 'bg-brand-500 text-white hover:bg-brand-600'}`}>
+                            {heartbeatStatus === 'running' ? <RefreshCw className="w-6 h-6 animate-spin"/> : <Play className="w-6 h-6" />}
+                            Fehlerquelle isolieren
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- REST DER ANSICHTEN ---
+
+const DashboardOverview: React.FC = () => {
+    const { loading, stats } = useAdminData();
+    if (loading) return <div className="p-8 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-brand-500" /></div>;
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2">
+            <AdminTabs />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Nutzer Gesamt</p>
+                    <h3 className="text-4xl font-black text-gray-900">{stats.totalUsers}</h3>
+                </div>
+                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Aktive Abos</p>
+                    <h3 className="text-4xl font-black text-green-600">{stats.activeLicenses}</h3>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MarketingInsights: React.FC = () => {
+    const { loading, users, licenses } = useAdminData();
+    const stats = useMemo(() => {
+        const paying = licenses.filter(l => l.status === 'active' && l.planTier !== 'Free');
+        const inactiveLeads = users.filter(u => !u.firstLoginAt);
+        const churned = licenses.filter(l => l.status === 'canceled');
+        return { payingCount: paying.length, inactiveCount: inactiveLeads.length, churnedCount: churned.length };
+    }, [users, licenses]);
+    if (loading) return null;
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2">
+            <AdminTabs />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div className="bg-white p-10 rounded-[2.5rem] border-t-8 border-green-500 shadow-xl shadow-green-500/5">
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Zahlende Kunden</p>
+                    <h3 className="text-5xl font-black text-gray-900">{stats.payingCount}</h3>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DebugView: React.FC = () => {
+    const [events, setEvents] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    const refresh = async () => {
+        setLoading(true);
+        const { data } = await supabase.from('stripe_events').select('*').order('created_at', { ascending: false }).limit(50);
+        if (data) setEvents(data);
+        setLoading(false);
+    };
+
+    useEffect(() => { refresh(); }, []);
+
+    const copyJson = (ev: any) => {
+        navigator.clipboard.writeText(JSON.stringify(ev.payload, null, 2));
+        setCopiedId(ev.id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const getCustomerRef = (ev: any) => {
+        const obj = ev.payload?.data?.object;
+        if (!obj) return '—';
+        const email = obj.customer_email || obj.email || obj.receipt_email || obj.billing_details?.email;
+        const customerId = obj.customer || (obj.id?.startsWith('cus_') ? obj.id : null);
+        if (email && customerId) return `${email} (${customerId})`;
+        return email || customerId || obj.id || '—';
+    };
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2">
+            <AdminTabs />
+            <div className="flex justify-between items-center mb-10">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">Stripe Webhook Debugger</h1>
+                    <div className="px-3 py-1 bg-brand-50 text-brand-600 rounded-full text-[10px] font-black uppercase tracking-widest">Live Logs</div>
+                </div>
+                <button onClick={refresh} className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors shadow-sm">
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+            </div>
+            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50/50 border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4">User</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Company</th>
-                                <th className="px-6 py-4">Plan & Source</th>
-                                <th className="px-6 py-4">Validity (Duration)</th>
-                                <th className="px-6 py-4 text-right">Action</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Zeitpunkt</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Event Typ</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Kunde / Referenz</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Payload</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredUsers.map(user => {
-                                const license = getLicenseForUser(user.id);
-                                const hasStripe = license?.stripeSubscriptionId?.startsWith('sub_');
-                                const daysRemaining = getDaysRemaining(license?.validUntil);
-
-                                // CALCULATE PLAN DISPLAY
-                                let displayPlan = license?.planTier || PlanTier.FREE;
-                                if (license?.status === SubscriptionStatus.TRIAL) displayPlan = PlanTier.PRODUCTION;
-                                if (!license || license.status === SubscriptionStatus.NONE) displayPlan = PlanTier.FREE;
-
-                                // 2) Anzeige-Logik exakt so
-                                const isActive = !!user.firstLoginAt;
-                                const lastLoginLabel = user.lastLoginAt 
-                                    ? `Last login: ${new Date(user.lastLoginAt).toLocaleDateString()}` 
-                                    : 'Never logged in';
-
-                                // --- LICENSE BADGE LOGIC ---
-                                let licenseBadgeLabel = 'NONE';
-                                let licenseBadgeColor = 'bg-gray-100 text-gray-500';
-
-                                if (license) {
-                                    if (license.status === SubscriptionStatus.TRIAL) {
-                                        licenseBadgeLabel = 'TRIAL';
-                                        licenseBadgeColor = 'bg-blue-100 text-blue-700';
-                                    } else if (license.status === SubscriptionStatus.PAST_DUE) {
-                                        licenseBadgeLabel = 'PAST DUE';
-                                        licenseBadgeColor = 'bg-orange-100 text-orange-700';
-                                    } else if (license.status === SubscriptionStatus.CANCELED) {
-                                        licenseBadgeLabel = 'CANCELED';
-                                        licenseBadgeColor = 'bg-red-100 text-red-700';
-                                    } else if (license.status === SubscriptionStatus.ACTIVE) {
-                                        // CHECK PAID vs FREE
-                                        // Paid Tiers: Budget, Cost Control, Production
-                                        const isPaidTier = license.planTier !== PlanTier.FREE;
-                                        if (isPaidTier) {
-                                            licenseBadgeLabel = 'PAID';
-                                            licenseBadgeColor = 'bg-purple-100 text-purple-700';
-                                        } else {
-                                            licenseBadgeLabel = 'FREE';
-                                            licenseBadgeColor = 'bg-gray-100 text-gray-600';
-                                        }
-                                    } else {
-                                        licenseBadgeLabel = license.status.toUpperCase();
-                                        licenseBadgeColor = 'bg-gray-100 text-gray-500';
-                                    }
-                                } else {
-                                    licenseBadgeLabel = 'FREE'; // No license = Free/None
-                                    licenseBadgeColor = 'bg-gray-100 text-gray-500';
-                                }
-                                
-                                return (
-                                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                                        {/* USER */}
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-gray-900">{user.name}</div>
-                                            <div className="text-xs text-gray-500">{user.email}</div>
-                                        </td>
-                                        
-                                        {/* STATUS (Merged & Badged) */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col gap-1.5 items-start">
-                                                {/* Login Status Badge (GREEN/RED) */}
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                                    isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                                }`}>
-                                                    {isActive ? 'Active' : 'Inactive'}
-                                                </span>
-                                                
-                                                {/* Last Login Label */}
-                                                <span className="text-[10px] text-gray-400">
-                                                    {lastLoginLabel}
-                                                </span>
-
-                                                {/* License Status Badge */}
-                                                <div className="mt-1 border-t border-gray-100 pt-1 w-full flex flex-col gap-0.5">
-                                                    <span className="text-[9px] font-bold text-gray-300 uppercase tracking-wider">License</span>
-                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider w-fit ${licenseBadgeColor}`}>
-                                                        {licenseBadgeLabel}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        {/* COMPANY */}
-                                        <td className="px-6 py-4">
-                                            {user.billingAddress?.companyName ? (
-                                                <div className="flex items-center gap-1.5">
-                                                    <Building className="w-3 h-3 text-gray-400" />
-                                                    <span className="font-medium text-gray-700">{user.billingAddress.companyName}</span>
-                                                </div>
+                            {events.map(ev => (
+                                <tr key={ev.id} className="hover:bg-gray-50/50 transition-colors group">
+                                    <td className="px-8 py-5 text-[10px] font-bold text-gray-400 whitespace-nowrap">
+                                        {new Date(ev.created_at).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit' })}
+                                    </td>
+                                    <td className="px-8 py-5 font-mono text-xs text-brand-600 font-black">{ev.type}</td>
+                                    <td className="px-8 py-5 text-xs font-bold text-gray-600 max-w-[200px] truncate" title={getCustomerRef(ev)}>
+                                        {getCustomerRef(ev)}
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <span className={`text-[10px] font-black px-3 py-1 rounded-full ${ev.processing_error ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                            {ev.processing_error ? 'Error' : 'Processed'}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-5 text-right">
+                                        <button 
+                                            onClick={() => copyJson(ev)} 
+                                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${
+                                                copiedId === ev.id 
+                                                    ? 'bg-green-500 text-white shadow-lg' 
+                                                    : 'bg-gray-900 text-white hover:bg-brand-500 shadow-md opacity-20 group-hover:opacity-100'
+                                            }`}
+                                        >
+                                            {copiedId === ev.id ? (
+                                                <><Check className="w-3.5 h-3.5" /> Copied</>
                                             ) : (
-                                                <span className="text-gray-300 italic">-</span>
+                                                <><ClipboardCopy className="w-3.5 h-3.5" /> JSON Kopieren</>
                                             )}
-                                        </td>
-
-                                        {/* PLAN & SOURCE */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-gray-900">{displayPlan}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {hasStripe ? (
-                                                        <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-100 flex items-center gap-1 w-fit">
-                                                            <CreditCard className="w-3 h-3" /> Stripe
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200 w-fit">
-                                                            Manual
-                                                        </span>
-                                                    )}
-                                                    {license?.billingCycle && license.billingCycle !== 'none' && (
-                                                        <span className="text-[10px] text-gray-400 capitalize">{license.billingCycle}</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        {/* VALIDITY */}
-                                        <td className="px-6 py-4">
-                                            {license?.validUntil ? (
-                                                <div className="flex flex-col gap-1.5 items-start">
-                                                    {/* Badge 1: Date */}
-                                                    <div className="flex items-center gap-1.5 text-gray-700 text-xs bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                                                        <Calendar className="w-3 h-3 text-gray-400" />
-                                                        {new Date(license.validUntil).toLocaleDateString()}
-                                                    </div>
-
-                                                    {/* Badge 2: Duration */}
-                                                    {daysRemaining !== null && (
-                                                        <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded border ${
-                                                            daysRemaining > 30 ? 'bg-green-50 text-green-700 border-green-100' :
-                                                            daysRemaining > 7 ? 'bg-yellow-50 text-yellow-700 border-yellow-100' :
-                                                            'bg-red-50 text-red-700 border-red-100'
-                                                        }`}>
-                                                            <Clock className="w-3 h-3" />
-                                                            {daysRemaining} Days left
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-300">-</span>
-                                            )}
-                                        </td>
-
-                                        {/* ACTION */}
-                                        <td className="px-6 py-4 text-right">
-                                            <button onClick={() => setEditingUser(user)} className="text-brand-500 hover:bg-brand-50 p-2 rounded-lg transition-colors border border-transparent hover:border-brand-100">
-                                                <Edit className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -689,335 +665,6 @@ const UsersManagement: React.FC = () => {
     );
 };
 
-// --- VIEW 3: MARKETING INSIGHTS ---
-const MarketingInsights: React.FC = () => {
-    const { loading, licenses } = useAdminData();
-
-    // Prepare Pie Data
-    const tierData = [
-        { name: PlanTier.FREE, value: 0 },
-        { name: PlanTier.BUDGET, value: 0 },
-        { name: PlanTier.COST_CONTROL, value: 0 },
-        { name: PlanTier.PRODUCTION, value: 0 },
-    ];
-
-    licenses.forEach(l => {
-        const idx = tierData.findIndex(t => t.name === l.planTier);
-        if (idx > -1) tierData[idx].value++;
-    });
-
-    // Prepare Cycle Data
-    const cycleData = [
-        { name: 'Yearly', value: licenses.filter(l => l.billingCycle === 'yearly').length },
-        { name: 'Monthly', value: licenses.filter(l => l.billingCycle === 'monthly').length },
-    ];
-
-    if (loading) return <div className="p-8 text-center"><RefreshCw className="w-8 h-8 animate-spin mx-auto text-gray-400"/></div>;
-
-    return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <AdminTabs />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center">
-                    <h3 className="font-bold text-gray-900 mb-4 w-full text-left">Plan Distribution</h3>
-                    <div className="w-full h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={tierData}
-                                    innerRadius={60}
-                                    outerRadius={100}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {tierData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={TIER_COLORS[entry.name as PlanTier]} />
-                                    ))}
-                                </Pie>
-                                <RechartsTooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center">
-                    <h3 className="font-bold text-gray-900 mb-4 w-full text-left">Billing Preferences</h3>
-                    <div className="w-full h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={cycleData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                                <Tooltip cursor={{fill: 'transparent'}} />
-                                <Bar dataKey="value" fill="#0093D0" radius={[4, 4, 0, 0]} barSize={50}>
-                                    {cycleData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={CYCLE_COLORS[entry.name.toLowerCase() as keyof typeof CYCLE_COLORS] || '#0093D0'} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- VIEW 4: SYSTEM HEALTH ---
-const SystemHealthView: React.FC = () => {
-    const [checks, setChecks] = useState<SystemCheckResult[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [lastWebhook, setLastWebhook] = useState<string | null>(null);
-
-    const runChecks = async () => {
-        setLoading(true);
-        try {
-            const results = await Promise.all([
-                liveSystemService.checkDatabaseConnection(),
-                liveSystemService.checkAuthService(),
-                liveSystemService.checkRealtime(),
-                liveSystemService.checkStripe(),
-                liveSystemService.checkEmail()
-            ]);
-            setChecks(results);
-
-             // Check last webhook for "Heartbeat" display
-             // This is the ONLY Stripe check we keep here.
-             const { data } = await supabase
-                .from('stripe_events')
-                .select('created_at')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            
-            if (data) setLastWebhook(data.created_at);
-
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { runChecks(); }, []);
-
-    return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <AdminTabs />
-            
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h3 className="text-xl font-bold text-gray-900">System Status</h3>
-                    <p className="text-sm text-gray-500">Real-time operational checks.</p>
-                </div>
-                <button onClick={runChecks} disabled={loading} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
-                </button>
-            </div>
-
-            {/* STRIPE HEARTBEAT CARD */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6 flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-brand-50 text-brand-600 rounded-full">
-                        <Activity className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-gray-900">Stripe Webhook Heartbeat</h4>
-                        <p className="text-sm text-gray-500">
-                            {lastWebhook 
-                                ? `Last signal received: ${new Date(lastWebhook).toLocaleString()}` 
-                                : "No webhooks received yet."}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400 font-mono">LIVE</span>
-                    <div className={`w-3 h-3 rounded-full ${lastWebhook ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-                </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="divide-y divide-gray-100">
-                    {checks.map((check, idx) => (
-                        <div key={idx} className="p-6 flex items-start gap-4 hover:bg-gray-50 transition-colors">
-                            <div className={`p-2 rounded-lg shrink-0 ${
-                                check.status === 'operational' ? 'bg-green-50 text-green-600' :
-                                check.status === 'degraded' ? 'bg-orange-50 text-orange-600' :
-                                'bg-red-50 text-red-600'
-                            }`}>
-                                {check.status === 'operational' ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start">
-                                    <h4 className="font-bold text-gray-900">{check.service}</h4>
-                                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${
-                                        check.status === 'operational' ? 'bg-green-100 text-green-700' : 
-                                        check.status === 'configuring' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-red-100 text-red-700'
-                                    }`}>
-                                        {check.status}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                                    <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {check.latency}ms</span>
-                                </div>
-                                {check.details && (
-                                    <div className="mt-3 text-xs font-mono bg-gray-900 text-gray-300 p-3 rounded-lg whitespace-pre-wrap">
-                                        {check.details}
-                                    </div>
-                                )}
-                                {check.actionLink && (
-                                    <a href={check.actionLink} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-brand-500 hover:underline">
-                                        Fix Issue <ExternalLink className="w-3 h-3"/>
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                    {!loading && checks.length === 0 && (
-                        <div className="p-8 text-center text-gray-400">Initializing checks...</div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-// --- VIEW 5: DEBUG VIEW (SIMPLIFIED TO STRIPE ONLY) ---
-const DebugView: React.FC = () => {
-    const { user } = useAuth();
-    const [events, setEvents] = useState<any[]>([]);
-    
-    // Error States
-    const [stripeError, setStripeError] = useState<string | null>(null);
-
-    const [loading, setLoading] = useState(false);
-    const [copying, setCopying] = useState(false);
-
-    const refresh = async () => {
-        setLoading(true);
-        setStripeError(null);
-
-        try {
-            // 1. Stripe Events (Limit 20)
-            const { data: eData, error: eError } = await supabase
-                .from('stripe_events')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(20);
-            
-            if (eError) {
-                 if (eError.code === '42P01') setStripeError("MISSING_TABLE");
-                 else setStripeError(eError.message);
-            } else if (eData) {
-                setEvents(eData);
-            }
-        } catch (err) {
-            console.error("Refresh Error:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCopyAll = async () => {
-        setCopying(true);
-        const dump = {
-            timestamp: new Date().toISOString(),
-            environment: 'production',
-            currentUser: user?.email,
-            data: { stripeEvents: events }
-        };
-        try {
-            await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
-            setTimeout(() => setCopying(false), 2000);
-        } catch (err) { setCopying(false); }
-    };
-
-    useEffect(() => { refresh(); }, []);
-
-    return (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
-            <AdminTabs />
-            <div className="mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
-                <div>
-                   <h1 className="text-2xl font-bold text-gray-900 mb-2">Stripe Event Log</h1>
-                   <p className="text-gray-500">Live view of incoming webhooks from the payment provider.</p>
-                </div>
-                <div className="flex gap-2">
-                    <button onClick={handleCopyAll} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-bold hover:bg-gray-50">
-                         {copying ? <Check className="w-4 h-4 text-green-600"/> : <Copy className="w-4 h-4"/>} Copy JSON
-                    </button>
-                    <button onClick={refresh} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white border border-gray-900 rounded-lg text-sm font-bold hover:bg-gray-800">
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-                    </button>
-                </div>
-            </div>
-
-            {/* SQL SETUP INSTRUCTION BOX (Visible only on STRIPE ERROR) */}
-            {stripeError && !loading && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8 text-sm text-amber-900">
-                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Database className="w-5 h-5"/> Stripe Table Missing</h3>
-                    <p className="mb-4">
-                        The 'stripe_events' table is missing. Run this script in Supabase:
-                    </p>
-                    <div className="bg-white border border-amber-300 rounded p-4 font-mono text-xs overflow-x-auto text-gray-600 select-all">
-<pre>{`create table if not exists public.stripe_events (
-  id text primary key,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  type text not null,
-  payload jsonb,
-  processing_error text
-);
-alter table public.stripe_events enable row level security;
-create policy "Admins can view stripe events" on public.stripe_events for select to authenticated using (
-  exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
-);
-create policy "Service role can insert stripe events" on public.stripe_events for insert to service_role with check (true);
-create policy "Service role can update stripe events" on public.stripe_events for update to service_role using (true);`}</pre>
-                    </div>
-                </div>
-            )}
-
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
-                 <div className="p-4 bg-gray-50 border-b border-gray-200 font-bold text-gray-700">
-                     <span>Stripe Webhooks (stripe_events)</span>
-                 </div>
-                 <div className="overflow-y-auto max-h-[600px]">
-                     {stripeError ? (
-                         <div className="p-12 text-center text-red-500">Error: {stripeError === "MISSING_TABLE" ? "Table 'stripe_events' is missing." : stripeError}</div>
-                     ) : events.length === 0 ? (
-                         <div className="p-12 text-center text-gray-400">No events found yet.</div> 
-                     ) : (
-                         <div className="divide-y divide-gray-100">
-                             {events.map(ev => (
-                                 <div key={ev.id} className="p-4 hover:bg-gray-50 text-sm">
-                                     <div className="flex justify-between items-start mb-1">
-                                         <span className="font-mono font-bold text-brand-600">{ev.type}</span>
-                                         <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${ev.processing_error ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                             {ev.processing_error ? 'ERROR' : 'OK'}
-                                         </span>
-                                     </div>
-                                     <div className="text-xs text-gray-500 mb-2">{new Date(ev.created_at).toLocaleString()}</div>
-                                     <pre className="text-[10px] bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto">
-                                         {JSON.stringify(ev.payload, null, 2)}
-                                     </pre>
-                                     {ev.processing_error && (
-                                          <div className="mt-2 text-xs text-red-600 font-mono bg-red-50 p-2 rounded border border-red-100">
-                                              Error: {ev.processing_error}
-                                          </div>
-                                     )}
-                                 </div>
-                             ))}
-                         </div>
-                     )}
-                 </div>
-            </div>
-        </div>
-    );
-};
-
-// --- MAIN ROUTING COMPONENT ---
 export const AdminDashboard: React.FC = () => {
     return (
         <div className="pb-20">
