@@ -1,47 +1,33 @@
+
 # KOSMA – SaaS Production Management Prototype
 
 **Status:** Production Candidate  
-**Live Domain:** `https://kosma.io`  
-**Dev/Fallback:** `https://kosma-lake.vercel.app`
+**Live Domain:** `https://kosma.io`
 
 ---
 
-# 🚨 NOTFALL-SETUP (SQL)
+# 🚨 EDGE FUNCTIONS & SLUG MAPPING
 
-Wenn Login, Lizenzen oder DB-Rechte kaputt sind:
-1.  Öffne `supabase/setup.sql`.
-2.  Copy & Paste in den **Supabase SQL Editor**.
-3.  **Run**.
+Um die Verbindung zwischen Dashboard und Cloud herzustellen, **MUSS** beim Deployment der richtige Slug angegeben werden.
 
----
-
-# 1. BUSINESS LOGIC & LIZENZ-MODELL
-
-### 🏷️ Die 4 Lizenz-Stufen (Plans)
-
-| Tier | Zielgruppe | Preis (J/M) | Features |
-| :--- | :--- | :--- | :--- |
-| **Free** | Trial / Student | 0 € | 14 Tage Trial, Read-Only, Keine Exports |
-| **Budget** | Produktionsleiter | 390 € / 39 € | Kalkulation, Unlimited Projects |
-| **Cost Control** | Controller | 590 € / 59 € | Budget + Kostenüberwachung (Soll/Ist) |
-| **Production** | Produzenten | 690 € / 69 € | Budget + Kosten + Finanzierung + Cashflow |
+| Lokaler Ordner | Deployment Befehl (Slug) | Beschreibung |
+| :--- | :--- | :--- |
+| `supabase/functions/admin-action/` | `supabase functions deploy admin-action` | Admin-Eingriffe |
+| `supabase/functions/cancel-subscription/` | `supabase functions deploy swift-action` | Stripe Storno |
+| `supabase/functions/create-billing-portal-session/` | `supabase functions deploy rapid-handler` | Stripe Portal |
+| `supabase/functions/webhook-handler/` | `supabase functions deploy dynamic-endpoint` | Kauf-Bestätigung |
+| `supabase/functions/system-health/` | `supabase functions deploy system-health` | Diagnose |
+| `supabase/functions/stripe-webhook/` | `supabase functions deploy stripe-webhook` | Stripe Events |
+| `supabase/functions/mark-login/` | `supabase functions deploy mark-login` | Login Tracking |
+| `supabase/functions/cron-scheduler/` | `supabase functions deploy cron-scheduler` | Automatisierung |
 
 ---
 
-# 4. EDGE FUNCTIONS & DEPLOYMENT MAPPING
+# 🛠 CORS & SICHERHEIT
 
-| Lokaler Ordner | Function Name (Dashboard) | JWT Verify | Beschreibung |
-| :--- | :--- | :--- | :--- |
-| `supabase/functions/webhook-handler/` | **`dynamic-endpoint`** | OFF* | Verarbeitet den Checkout-Return. |
-| `supabase/functions/stripe-webhook/` | **`stripe-webhook`** | **OFF** | Haupt-Logik. Empfängt Events von Stripe. |
-| `supabase/functions/cancel-subscription/` | **`swift-action`** | ON | Führt Kündigung in Stripe API aus. |
-| `supabase/functions/create-billing-portal-session/` | **`rapid-handler`** | ON | Erzeugt Link zum Stripe Portal. |
-| `supabase/functions/system-health/` | **`swift-service`** | OFF | Health-Checks für Dashboard. |
-| `supabase/functions/admin-action/` | **`admin-action`** | ON | Admin Aktionen (Overrides). |
-| `supabase/functions/cron-scheduler/` | **`cron-scheduler`** | OFF* | Zeitgesteuerte Aufgaben. |
-
----
-
-# 🛠 DEBUGGING: DEEP INSPECTION
-
-[... rest of README ...]
+Alle Funktionen erlauben nur Anfragen von:
+- `https://kosma.io`
+- `https://www.kosma.io`
+- `https://kosma-lake.vercel.app`
+- `http://localhost:5173` (Vite Default)
+- `http://localhost:3000`

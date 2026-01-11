@@ -7,24 +7,21 @@ const allowedOrigins = [
 ];
 
 serve(async (req) => {
-  const origin = req.headers.get("origin");
+  const origin = req.headers.get("origin") || "";
   const corsHeaders = {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin || "") ? origin! : allowedOrigins[0],
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
   };
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  try {
-    const body = await req.json();
-    if (body.action === 'ping') {
-        return new Response(JSON.stringify({ success: true, message: "dynamic-endpoint operational" }), { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        });
-    }
-    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { headers: corsHeaders });
+  const body = await req.json().catch(() => ({}));
+  if (body.action === 'ping') {
+    return new Response(JSON.stringify({ success: true, message: "dynamic-endpoint operational" }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
+
+  return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
 })
