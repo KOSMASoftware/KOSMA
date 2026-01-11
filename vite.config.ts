@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -7,12 +6,26 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     rollupOptions: {
-      external: [/^supabase\/.*/]
+      external: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'react/jsx-runtime',
+        'react-router-dom',
+        'lucide-react',
+        'recharts',
+        '@supabase/supabase-js'
+      ]
     }
   },
-  server: {
-    watch: {
-      ignored: ['**/supabase/**']
-    }
+  optimizeDeps: {
+    exclude: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'lucide-react',
+      'recharts',
+      '@supabase/supabase-js'
+    ]
   }
 });
