@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   };
 
-  const fetchProfile = async (session: Session, retryCount = 0) => {
+  const fetchProfile = async (session: Session) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -52,16 +52,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', session.user.id)
         .maybeSingle();
 
-      if (error && retryCount < 2) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return fetchProfile(session, retryCount + 1);
-      }
+      if (error) console.warn("Profile fetch error:", error.message);
 
       const newUser = constructUser(session.user, data);
       setUser(newUser);
       userIdRef.current = newUser.id;
     } catch (err) {
-      console.error("Profile Fetch Failed:", err);
+      console.error("Profile Fetch Exception:", err);
       setUser(constructUser(session.user, null));
     } finally {
       setIsLoading(false);
@@ -70,17 +67,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) await fetchProfile(session);
-      else setIsLoading(false);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        
+        if (session) {
+          await fetchProfile(session);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("Auth Init Error:", err);
+        setIsLoading(false);
+      }
     };
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
         await fetchProfile(session);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        userIdRef.current = null;
         setIsLoading(false);
       }
     });
@@ -95,7 +103,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     if (!error && data.user) {
-      // Background task, don't await to prevent UI block
       supabase.functions.invoke('mark-login', { body: { user_id: data.user.id } })
         .catch(e => console.warn("Login tracking failed", e));
     }
@@ -126,6 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await supabase.auth.signOut();
     setUser(null);
     userIdRef.current = null;
+    setIsLoading(false);
   };
 
   const refreshProfile = async () => {
