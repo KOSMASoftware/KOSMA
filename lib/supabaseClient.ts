@@ -1,22 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 
-// WICHTIG: Vite benötigt die exakte Schreibweise 'import.meta.env.VARIABLE', 
-// um diese beim Build-Prozess statisch durch den Wert zu ersetzen.
-// Wir nutzen 'fallback'-Strings für den Fall, dass die Variablen in Vercel nicht gesetzt sind.
+// Fallback-Werte für den Prototyp
+let SUPABASE_URL = 'https://zpnbnjvhklgxfhsoczbp.supabase.co';
+let SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwbmJuanZoa2xneGZoc29jemJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzQyNTAsImV4cCI6MjA4MzI1MDI1MH0.hvgH4vGoK4GhzmMb0QQupNafskxWID6aB3PnUlRZ5C8';
 
-// Fix: Silence TypeScript error for env property on ImportMeta to keep Vite's static replacement working
-// @ts-ignore
-const SUPABASE_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_URL) 
-// @ts-ignore
-  ? import.meta.env.VITE_SUPABASE_URL 
-  : 'https://zpnbnjvhklgxfhsoczbp.supabase.co';
-
-// Fix: Silence TypeScript error for env property on ImportMeta to keep Vite's static replacement working
-// @ts-ignore
-const SUPABASE_ANON_KEY = (import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY)
-// @ts-ignore
-  ? import.meta.env.VITE_SUPABASE_ANON_KEY
-  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwbmJuanZoa2xneGZoc29jemJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzQyNTAsImV4cCI6MjA4MzI1MDI1MH0.hvgH4vGoK4GhzmMb0QQupNafskxWID6aB3PnUlRZ5C8';
+try {
+  // Wir nutzen die expliziten Literale, damit Vite sie beim Build finden und ersetzen kann.
+  // Das try-catch verhindert den Absturz, falls import.meta.env zur Laufzeit fehlt.
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) {
+    // @ts-ignore
+    SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  }
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    // @ts-ignore
+    SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  }
+} catch (e) {
+  console.warn("Supabase Config: Using fallback environment values.");
+}
 
 export const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), {
   auth: {
