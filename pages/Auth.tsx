@@ -134,7 +134,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         <div className="space-y-6">
           {mode !== 'update-password' && step === 'initial' && (
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">Email</label>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">EMAIL</label>
               <input 
                 type="email" 
                 placeholder="mail@joachimknaf.de" 
@@ -147,7 +147,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           
           {(mode === 'login' || mode === 'update-password' || step === 'details') && (
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">Password</label>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">PASSWORD</label>
               <input 
                 type="password" 
                 placeholder="......" 
@@ -161,11 +161,11 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           {mode === 'signup' && step === 'details' && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">First Name</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">FIRST NAME</label>
                 <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20" />
               </div>
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">Last Name</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block ml-1">LAST NAME</label>
                 <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20" />
               </div>
             </div>
