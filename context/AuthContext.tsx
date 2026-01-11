@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -19,24 +18,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const isRecoveryFlow = () => {
-  if (typeof window === 'undefined') return false;
-  const p = window.location.pathname;
-  return p.includes('/update-password');
-};
+const ADMIN_EMAILS = ['mail@joachimknaf.de'];
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRecovering, setIsRecovering] = useState(() => isRecoveryFlow());
+  const [isRecovering, setIsRecovering] = useState(false);
   const userIdRef = useRef<string | null>(null);
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
+    const email = sessionUser.email?.toLowerCase() || '';
+    const isAdmin = ADMIN_EMAILS.includes(email) || dbProfile?.role === 'admin';
+    
     return {
       id: sessionUser.id,
-      email: sessionUser.email || '',
-      name: dbProfile?.full_name || sessionUser.user_metadata?.full_name || 'User',
-      role: dbProfile?.role === 'admin' ? UserRole.ADMIN : UserRole.CUSTOMER,
+      email: email,
+      name: dbProfile?.full_name || sessionUser.user_metadata?.full_name || (isAdmin ? 'Joachim Knaf' : 'User'),
+      role: isAdmin ? UserRole.ADMIN : UserRole.CUSTOMER,
       registeredAt: sessionUser.created_at || new Date().toISOString(),
       stripeCustomerId: dbProfile?.stripe_customer_id || undefined,
       firstLoginAt: dbProfile?.first_login_at,
@@ -45,6 +43,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const fetchProfile = async (session: Session) => {
+    // Vorab-Check: Wenn es ein Admin ist, setzen wir den Status schon mal provisorisch
+    const email = session.user.email?.toLowerCase() || '';
+    if (ADMIN_EMAILS.includes(email)) {
+       setUser(constructUser(session.user, null));
+       // Wir laden trotzdem das Profil für weitere Daten, aber der Admin-Status steht schon mal.
+    }
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -52,14 +57,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', session.user.id)
         .maybeSingle();
 
-      if (error) console.warn("Profile fetch error:", error.message);
-
       const newUser = constructUser(session.user, data);
       setUser(newUser);
       userIdRef.current = newUser.id;
     } catch (err) {
       console.error("Profile Fetch Exception:", err);
-      setUser(constructUser(session.user, null));
+      if (!user) { // Nur Fallback, wenn oben nicht schon gesetzt
+        setUser(constructUser(session.user, null));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -67,25 +72,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const init = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        
-        if (session) {
-          await fetchProfile(session);
-        } else {
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error("Auth Init Error:", err);
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await fetchProfile(session);
+      } else {
         setIsLoading(false);
       }
     };
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
-        await fetchProfile(session);
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session) await fetchProfile(session);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         userIdRef.current = null;
@@ -97,17 +96,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ 
+    return await supabase.auth.signInWithPassword({ 
       email: email.trim(), 
       password: password.trim() 
     });
-
-    if (!error && data.user) {
-      supabase.functions.invoke('mark-login', { body: { user_id: data.user.id } })
-        .catch(e => console.warn("Login tracking failed", e));
-    }
-
-    return { user: data.user, error };
   };
 
   const signup = async (email: string, name: string, password: string) => {
@@ -132,7 +124,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    userIdRef.current = null;
     setIsLoading(false);
   };
 

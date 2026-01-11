@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -26,7 +27,7 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
 
     {/* Main Content Area */}
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-      {/* Decorative Dots Left - Positioned relative to the form container */}
+      {/* Decorative Dots Left */}
       <DottedPattern className="absolute left-[10%] xl:left-[20%] top-1/2 -translate-y-1/2 hidden md:grid" />
       
       {/* Decorative Dots Right */}
@@ -94,9 +95,11 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         }
 
         if (user) {
+          // Robust Role Detection
           const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-          const role = profile?.role || 'customer';
-          navigate(role === 'admin' ? '/admin' : '/dashboard');
+          const isAdmin = (user.email?.toLowerCase() === 'mail@joachimknaf.de') || (profile?.role === 'admin');
+          
+          navigate(isAdmin ? '/admin' : '/dashboard');
         }
       } else if (mode === 'signup') {
         if (step === 'initial') {
@@ -147,6 +150,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
                 placeholder="user@demo.de" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAction()}
                 className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-1 focus:ring-[#0093D0] transition-all text-gray-800 placeholder:text-gray-300 bg-white"
               />
             </div>
@@ -160,6 +164,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
                 placeholder="......" 
                 value={password} 
                 onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAction()}
                 className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-1 focus:ring-[#0093D0] transition-all text-gray-800 placeholder:text-gray-300 bg-white"
               />
             </div>
