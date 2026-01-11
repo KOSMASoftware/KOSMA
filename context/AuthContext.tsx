@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserRole } from '../types';
 import { supabase } from '../lib/supabaseClient';
@@ -126,8 +127,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
+    // 1. Authenticate with Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: password.trim() });
     if (error) throw error;
+
+    // 2. CRITICAL: Call Edge Function to update DB timestamps (first_login_at / last_login_at)
+    if (data.user) {
+        try {
+            await supabase.functions.invoke('mark-login', {
+                body: { user_id: data.user.id }
+            });
+        } catch (funcError) {
+            console.error("Failed to track login timestamp:", funcError);
+            // We do not throw here, so the user can still login even if analytics fail
+        }
+    }
   };
 
   const signup = async (email: string, name: string, password: string) => {

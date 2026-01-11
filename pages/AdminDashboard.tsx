@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, LineChart } from 'recharts';
-import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, Play, Wifi, Edit } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, AlertCircle, CheckCircle, Clock, UserX, Mail, ArrowRight, Briefcase, Activity, Server, Database, Shield, Lock, Zap, LayoutDashboard, LineChart as LineChartIcon, ShieldCheck, RefreshCw, AlertTriangle, ChevronUp, ChevronDown, Filter, ArrowUpDown, ExternalLink, Code, Terminal, Copy, Megaphone, Target, ArrowUpRight, CalendarPlus, History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, Play, Wifi, Edit, Trash2 } from 'lucide-react';
 
 const TIER_COLORS = {
   [PlanTier.FREE]: '#1F2937',
@@ -97,6 +97,7 @@ const useAdminData = () => {
             setLoading(true);
             try {
                 // RLS: Admin can see all profiles and licenses
+                // Explicitly selecting fields to ensure we get login data from profiles table
                 const { data: profiles } = await supabase.from('profiles').select('*');
                 const { data: licData } = await supabase.from('licenses').select('*');
                 const { data: invData } = await supabase.from('invoices').select('amount, status');
@@ -107,8 +108,16 @@ const useAdminData = () => {
 
                 if (profiles) {
                     realUsers = profiles.map((p: any) => ({
-                        id: p.id, email: p.email || 'N/A', name: p.full_name || 'User', role: p.role === 'admin' ? UserRole.ADMIN : UserRole.CUSTOMER,
-                        registeredAt: p.created_at || new Date().toISOString(), stripeCustomerId: p.stripe_customer_id, billingAddress: p.billing_address
+                        id: p.id, 
+                        email: p.email || 'N/A', 
+                        name: p.full_name || 'User', 
+                        role: p.role === 'admin' ? UserRole.ADMIN : UserRole.CUSTOMER,
+                        registeredAt: p.created_at || new Date().toISOString(), 
+                        stripeCustomerId: p.stripe_customer_id, 
+                        billingAddress: p.billing_address,
+                        // 1) Daten wirklich aus profiles lesen
+                        firstLoginAt: p.first_login_at || null, 
+                        lastLoginAt: p.last_login_at || null
                     }));
                 }
                 if (licData) {
@@ -247,6 +256,7 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
     }, [overrideDate, license]);
 
     const hasStripeSub = license?.stripeSubscriptionId?.startsWith('sub_');
+    const hasStripeCustomer = !!user.stripeCustomerId;
 
     const handleAddDays = (days: number) => {
         const newDate = new Date(currentValidUntil);
@@ -288,9 +298,39 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
         }
     };
 
+    const handleDeleteUser = async () => {
+        if (!confirm(`Are you sure you want to PERMANENTLY delete user "${user.name}"? This action CANNOT be undone.`)) {
+            return;
+        }
+
+        setUpdating(true);
+        try {
+             const { data: { session } } = await supabase.auth.getSession();
+             const { data, error } = await supabase.functions.invoke('admin-action', {
+                body: { 
+                    action: 'delete_user', 
+                    userId: user.id
+                },
+                headers: { Authorization: `Bearer ${session?.access_token}` }
+            });
+
+            if (error || !data.success) throw new Error(data?.error || error?.message);
+
+            alert("User deleted successfully.");
+            onUpdate();
+            onClose();
+
+        } catch (err: any) {
+            console.error(err);
+            alert(`Failed to delete user: ${err.message}`);
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <h3 className="text-xl font-bold text-gray-900">Edit License</h3>
@@ -351,6 +391,33 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
                              </span>
                          </div>
                     )}
+                </div>
+
+                {/* DELETE USER SECTION */}
+                <div className="border-t border-gray-100 pt-4 mb-6">
+                    <label className="block text-xs font-bold text-red-500 uppercase mb-2">Danger Zone</label>
+                    <div className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg">
+                        <div className="text-xs text-red-800">
+                             <span className="font-bold">Delete User</span>
+                             <p className="text-[10px] opacity-80 mt-1">Irreversible. Removes auth, profile, licenses.</p>
+                        </div>
+                        {hasStripeCustomer ? (
+                             <div className="flex flex-col items-end">
+                                <button disabled className="flex items-center gap-1 px-3 py-2 bg-gray-200 text-gray-500 rounded text-xs font-bold cursor-not-allowed">
+                                    <Trash2 className="w-3 h-3" /> Delete
+                                </button>
+                                <span className="text-[9px] text-gray-400 mt-1 text-right">Cannot delete users<br/>with Stripe account</span>
+                             </div>
+                        ) : (
+                             <button 
+                                onClick={handleDeleteUser} 
+                                disabled={updating}
+                                className="flex items-center gap-1 px-3 py-2 bg-white border border-red-200 text-red-600 rounded text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"
+                             >
+                                <Trash2 className="w-3 h-3" /> {updating ? '...' : 'Delete User'}
+                             </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
@@ -452,10 +519,10 @@ const UsersManagement: React.FC = () => {
                         <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                             <tr>
                                 <th className="px-6 py-4">User</th>
+                                <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4">Company</th>
                                 <th className="px-6 py-4">Plan & Source</th>
                                 <th className="px-6 py-4">Validity (Duration)</th>
-                                <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Action</th>
                             </tr>
                         </thead>
@@ -465,14 +532,85 @@ const UsersManagement: React.FC = () => {
                                 const hasStripe = license?.stripeSubscriptionId?.startsWith('sub_');
                                 const daysRemaining = getDaysRemaining(license?.validUntil);
 
+                                // CALCULATE PLAN DISPLAY
+                                let displayPlan = license?.planTier || PlanTier.FREE;
+                                if (license?.status === SubscriptionStatus.TRIAL) displayPlan = PlanTier.PRODUCTION;
+                                if (!license || license.status === SubscriptionStatus.NONE) displayPlan = PlanTier.FREE;
+
+                                // 2) Anzeige-Logik exakt so
+                                const isActive = !!user.firstLoginAt;
+                                const lastLoginLabel = user.lastLoginAt 
+                                    ? `Last login: ${new Date(user.lastLoginAt).toLocaleDateString()}` 
+                                    : 'Never logged in';
+
+                                // --- LICENSE BADGE LOGIC ---
+                                let licenseBadgeLabel = 'NONE';
+                                let licenseBadgeColor = 'bg-gray-100 text-gray-500';
+
+                                if (license) {
+                                    if (license.status === SubscriptionStatus.TRIAL) {
+                                        licenseBadgeLabel = 'TRIAL';
+                                        licenseBadgeColor = 'bg-blue-100 text-blue-700';
+                                    } else if (license.status === SubscriptionStatus.PAST_DUE) {
+                                        licenseBadgeLabel = 'PAST DUE';
+                                        licenseBadgeColor = 'bg-orange-100 text-orange-700';
+                                    } else if (license.status === SubscriptionStatus.CANCELED) {
+                                        licenseBadgeLabel = 'CANCELED';
+                                        licenseBadgeColor = 'bg-red-100 text-red-700';
+                                    } else if (license.status === SubscriptionStatus.ACTIVE) {
+                                        // CHECK PAID vs FREE
+                                        // Paid Tiers: Budget, Cost Control, Production
+                                        const isPaidTier = license.planTier !== PlanTier.FREE;
+                                        if (isPaidTier) {
+                                            licenseBadgeLabel = 'PAID';
+                                            licenseBadgeColor = 'bg-purple-100 text-purple-700';
+                                        } else {
+                                            licenseBadgeLabel = 'FREE';
+                                            licenseBadgeColor = 'bg-gray-100 text-gray-600';
+                                        }
+                                    } else {
+                                        licenseBadgeLabel = license.status.toUpperCase();
+                                        licenseBadgeColor = 'bg-gray-100 text-gray-500';
+                                    }
+                                } else {
+                                    licenseBadgeLabel = 'FREE'; // No license = Free/None
+                                    licenseBadgeColor = 'bg-gray-100 text-gray-500';
+                                }
+                                
                                 return (
                                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                                        {/* USER */}
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-gray-900">{user.name}</div>
                                             <div className="text-xs text-gray-500">{user.email}</div>
                                         </td>
                                         
-                                        {/* COMPANY COLUMN */}
+                                        {/* STATUS (Merged & Badged) */}
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-1.5 items-start">
+                                                {/* Login Status Badge (GREEN/RED) */}
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                    isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {isActive ? 'Active' : 'Inactive'}
+                                                </span>
+                                                
+                                                {/* Last Login Label */}
+                                                <span className="text-[10px] text-gray-400">
+                                                    {lastLoginLabel}
+                                                </span>
+
+                                                {/* License Status Badge */}
+                                                <div className="mt-1 border-t border-gray-100 pt-1 w-full flex flex-col gap-0.5">
+                                                    <span className="text-[9px] font-bold text-gray-300 uppercase tracking-wider">License</span>
+                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider w-fit ${licenseBadgeColor}`}>
+                                                        {licenseBadgeLabel}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* COMPANY */}
                                         <td className="px-6 py-4">
                                             {user.billingAddress?.companyName ? (
                                                 <div className="flex items-center gap-1.5">
@@ -486,32 +624,28 @@ const UsersManagement: React.FC = () => {
 
                                         {/* PLAN & SOURCE */}
                                         <td className="px-6 py-4">
-                                            {license ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-gray-900">{license.planTier}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {hasStripe ? (
-                                                            <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-100 flex items-center gap-1 w-fit">
-                                                                <CreditCard className="w-3 h-3" /> Stripe
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200 w-fit">
-                                                                Manual
-                                                            </span>
-                                                        )}
-                                                        {license.billingCycle !== 'none' && (
-                                                            <span className="text-[10px] text-gray-400 capitalize">{license.billingCycle}</span>
-                                                        )}
-                                                    </div>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-gray-900">{displayPlan}</span>
                                                 </div>
-                                            ) : (
-                                                <span className="text-gray-400 italic">No license</span>
-                                            )}
+                                                <div className="flex items-center gap-2">
+                                                    {hasStripe ? (
+                                                        <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-100 flex items-center gap-1 w-fit">
+                                                            <CreditCard className="w-3 h-3" /> Stripe
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200 w-fit">
+                                                            Manual
+                                                        </span>
+                                                    )}
+                                                    {license?.billingCycle && license.billingCycle !== 'none' && (
+                                                        <span className="text-[10px] text-gray-400 capitalize">{license.billingCycle}</span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </td>
 
-                                        {/* VALIDITY (TWO BADGES) */}
+                                        {/* VALIDITY */}
                                         <td className="px-6 py-4">
                                             {license?.validUntil ? (
                                                 <div className="flex flex-col gap-1.5 items-start">
@@ -538,19 +672,7 @@ const UsersManagement: React.FC = () => {
                                             )}
                                         </td>
 
-                                        <td className="px-6 py-4">
-                                            {license ? (
-                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                                    license.status === SubscriptionStatus.ACTIVE ? 'bg-green-100 text-green-700' :
-                                                    license.status === SubscriptionStatus.TRIAL ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-gray-100 text-gray-500'
-                                                }`}>
-                                                    {license.status}
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-300">-</span>
-                                            )}
-                                        </td>
+                                        {/* ACTION */}
                                         <td className="px-6 py-4 text-right">
                                             <button onClick={() => setEditingUser(user)} className="text-brand-500 hover:bg-brand-50 p-2 rounded-lg transition-colors border border-transparent hover:border-brand-100">
                                                 <Edit className="w-4 h-4" />

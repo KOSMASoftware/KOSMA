@@ -36,6 +36,9 @@ export interface User {
   registeredAt: string;
   stripeCustomerId?: string;
   billingAddress?: BillingAddress;
+  // App Login Tracking
+  firstLoginAt?: string | null;
+  lastLoginAt?: string | null;
 }
 
 export interface Project {

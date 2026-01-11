@@ -39,16 +39,17 @@ serve(async (req) => {
     // 2. PARSE REQUEST
     const { action, userId, payload } = await req.json();
 
+    // --- ACTION: UPDATE LICENSE ---
     if (action === 'update_license') {
         const { plan_tier, status, admin_override_date } = payload;
         
-        // POINT 5: Date Validation
+        // Date Validation
         if (admin_override_date && isNaN(Date.parse(admin_override_date))) {
             throw new Error("Invalid date format for admin_override_date");
         }
 
         // Fetch current license to check for Stripe connection
-        const { data: license } = await supabaseAdmin.from('licenses').select('*').eq('user_id', userId).single();
+        const { data: license } = await supabaseAdmin.from('licenses').select('*').eq('user_id', userId).maybeSingle();
         
         let stripeSyncInfo = "No Stripe Subscription linked.";
 
@@ -58,7 +59,6 @@ serve(async (req) => {
             
             try {
                 // A. Status Toggle Sync (Cancel/Reactivate)
-                // POINT 4: Mandatory Sync - Check logic and throw on error
                 if (status === 'canceled' && license.status === 'active') {
                     await stripe.subscriptions.update(license.stripe_subscription_id, { cancel_at_period_end: true });
                     stripeSyncInfo = "Stripe set to cancel at period end.";
@@ -67,11 +67,10 @@ serve(async (req) => {
                     stripeSyncInfo = "Stripe cancellation removed.";
                 }
 
-                // B. Date/Extension Sync (The requested feature)
+                // B. Date/Extension Sync
                 if (admin_override_date) {
                     const newAnchor = Math.floor(new Date(admin_override_date).getTime() / 1000);
                     
-                    // POINT 4: Mandatory Sync - Fail if Stripe refuses the anchor update
                     await stripe.subscriptions.update(license.stripe_subscription_id, {
                         billing_cycle_anchor: newAnchor,
                         proration_behavior: 'none'
@@ -79,27 +78,62 @@ serve(async (req) => {
                     stripeSyncInfo = `Stripe billing cycle shifted to ${admin_override_date}`;
                 }
             } catch (stripeErr: any) {
-                // POINT 4: Abort if Sync fails
                 console.error("Stripe Sync Failed:", stripeErr);
                 throw new Error(`Stripe Sync Failed: ${stripeErr.message}. Database was NOT updated.`);
             }
         }
 
-        // DB UPDATE (Only reached if Stripe sync succeeded or wasn't needed)
-        const updateData: any = {};
-        if (plan_tier) updateData.plan_tier = plan_tier;
-        if (status) updateData.status = status;
+        // DB UPSERT (Fix: Use Upsert instead of Update to handle missing rows)
+        const upsertData: any = {
+            user_id: userId,
+            // Default fields if creating new
+            billing_cycle: license?.billing_cycle || 'none',
+            product_name: license?.product_name || 'KOSMA',
+        };
+
+        if (plan_tier) upsertData.plan_tier = plan_tier;
+        if (status) upsertData.status = status;
         
         // Always update override date (even if null to clear it)
-        updateData.admin_valid_until_override = admin_override_date === '' ? null : admin_override_date;
+        upsertData.admin_valid_until_override = admin_override_date === '' ? null : admin_override_date;
 
-        const { error } = await supabaseAdmin.from('licenses').update(updateData).eq('user_id', userId);
-        if (error) throw error;
+        const { error } = await supabaseAdmin.from('licenses').upsert(upsertData, { onConflict: 'user_id' });
+        
+        if (error) {
+            console.error("DB Upsert Error:", error);
+            throw error;
+        }
 
         return new Response(JSON.stringify({ success: true, message: stripeSyncInfo }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    throw new Error("Unknown Action");
+    // --- ACTION: DELETE USER ---
+    if (action === 'delete_user') {
+        if (!userId) throw new Error("Missing userId");
+
+        // 1. Check Constraint: Stripe Customer ID must be NULL
+        const { data: targetProfile, error: fetchError } = await supabaseAdmin
+            .from('profiles')
+            .select('stripe_customer_id')
+            .eq('id', userId)
+            .single();
+        
+        // Allow deletion if profile is missing (cleanup orphan auth user)
+        if (!fetchError && targetProfile?.stripe_customer_id) {
+            throw new Error("Cannot delete user: Active Stripe Customer ID found. Please manage via Stripe Dashboard.");
+        }
+
+        // 2. Perform Clean-up
+        await supabaseAdmin.from('licenses').delete().eq('user_id', userId);
+        await supabaseAdmin.from('profiles').delete().eq('id', userId);
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+        if (deleteError) throw deleteError;
+
+        return new Response(JSON.stringify({ success: true, message: "User deleted successfully" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    throw new Error(`Unknown Action: ${action}`);
 
   } catch (error: any) {
     return new Response(JSON.stringify({ success: false, error: error.message }), {
