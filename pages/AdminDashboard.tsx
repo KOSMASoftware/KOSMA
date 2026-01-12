@@ -297,7 +297,7 @@ const UsersManagement: React.FC = () => {
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</label>
                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
                             <option value="all">Alle Status</option>
-                            <option value="active">Aktiv / Bezahlt</option>
+                            <option value="active">Bezahlt</option>
                             <option value="trial">Trial</option>
                             <option value="past_due">Zahlung offen</option>
                             <option value="canceled">Gekündigt</option>
