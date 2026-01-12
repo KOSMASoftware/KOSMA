@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -127,8 +128,8 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
 
   return (
     <AuthLayout 
-      title={mode === 'signup' ? 'Sign Up' : mode === 'update-password' ? 'Update' : 'Login'}
-      subtitle={mode === 'login' ? 'Welcome to KOSMA' : ''}
+      title={isResetRequest ? 'Reset Password' : mode === 'signup' ? 'Sign Up' : mode === 'update-password' ? 'Update' : 'Login'}
+      subtitle={isResetRequest ? 'Wir schicken dir einen Reset-Link' : mode === 'login' ? 'Welcome to KOSMA' : ''}
     >
       <div className="space-y-10">
         {error && (
@@ -153,7 +154,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
             </div>
           )}
           
-          {(mode === 'login' || mode === 'update-password' || step === 'details') && (
+          {!isResetRequest && (mode === 'login' || mode === 'update-password' || step === 'details') && (
             <div className="space-y-2.5">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block">PASSWORD</label>
               <input 
@@ -186,7 +187,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           disabled={loading}
           className="w-full py-5 bg-[#0093D0] text-white rounded-xl font-bold text-base flex items-center justify-center transition-all hover:bg-[#007fb5] disabled:opacity-50 active:scale-[0.98] shadow-sm"
         >
-          {loading ? 'Processing...' : (mode === 'login' ? 'Log In' : mode === 'signup' ? (step === 'initial' ? 'Continue' : 'Create Account') : 'Update')}
+          {loading ? 'Processing...' : isResetRequest ? 'Reset-Link senden' : (mode === 'login' ? 'Log In' : mode === 'signup' ? (step === 'initial' ? 'Continue' : 'Create Account') : 'Update')}
         </button>
 
         <div className="text-center space-y-4 pt-2">
