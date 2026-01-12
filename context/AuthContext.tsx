@@ -9,7 +9,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isRecovering: boolean;
-  // FIX: Supabase signInWithPassword returns { data, error }. The interface previously used 'user' instead of 'data'.
   login: (email: string, password: string) => Promise<{ data: any, error: any }>;
   signup: (email: string, name: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -20,7 +19,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Absolute Admin-Garantie für dich
 const OWNER_EMAIL = 'mail@joachimknaf.de';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -31,15 +29,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
     const email = sessionUser.email?.toLowerCase().trim() || '';
-    
-    // WICHTIG: Wir ignorieren sessionUser.user_metadata.role, da es oft veraltet ist!
-    // Die Rolle kommt EXKLUSIV aus der Datenbank oder dem E-Mail-Check.
     const isOwner = email === OWNER_EMAIL;
     const isAdmin = isOwner || dbProfile?.role === 'admin';
     
-    console.log(`[Auth] Reconstructing User: ${email}`);
-    console.log(`[Auth] Role from DB: ${dbProfile?.role || 'none'}, isOwner: ${isOwner} -> Final: ${isAdmin ? 'ADMIN' : 'CUSTOMER'}`);
-
     return {
       id: sessionUser.id,
       email: email,
@@ -53,13 +45,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const fetchProfile = async (session: Session) => {
-    const email = session.user.email?.toLowerCase().trim() || '';
-    
-    // Falls du es bist, setzen wir sofort Admin, um Flackern beim Laden zu verhindern
-    if (email === OWNER_EMAIL) {
-       setUser(constructUser(session.user, null));
-    }
-
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -67,14 +52,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', session.user.id)
         .maybeSingle();
 
-      if (error) console.error("[Auth] DB Error:", error.message);
-
       const newUser = constructUser(session.user, data);
       setUser(newUser);
       userIdRef.current = newUser.id;
     } catch (err) {
-      console.error("[Auth] Critical Failure:", err);
-      // Letzter Rettungsanker
       setUser(constructUser(session.user, null));
     } finally {
       setIsLoading(false);
@@ -83,7 +64,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const init = async () => {
-      setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         await fetchProfile(session);
@@ -94,7 +74,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[Auth] Session Event: ${event}`);
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
         if (session) await fetchProfile(session);
       } else if (event === 'SIGNED_OUT') {
@@ -134,12 +113,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    // Radikaler Logout inklusive Speicher-Bereinigung
-    await supabase.auth.signOut();
-    localStorage.removeItem('kosma-auth-token');
-    setUser(null);
-    setIsLoading(false);
-    window.location.hash = '#/login';
+    setIsLoading(true);
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('kosma-auth-token');
+    } finally {
+      setUser(null);
+      setIsLoading(false);
+    }
   };
 
   const refreshProfile = async () => {

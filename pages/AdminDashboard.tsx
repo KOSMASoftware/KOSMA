@@ -7,7 +7,7 @@ import { liveSystemService, SystemCheckResult } from '../services/liveSystemServ
 import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Legend
+  Legend
 } from 'recharts';
 import { 
   Users, CreditCard, TrendingUp, Search, X, Download, Monitor, FolderOpen, Calendar, 
@@ -18,19 +18,58 @@ import {
   History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, 
   Play, Wifi, Edit, Trash2, UserCheck, UserMinus, TrendingDown, Eye, Loader2, 
   BarChart3, ClipboardCopy, ShieldAlert, HeartPulse, HardDrive, KeyRound, Globe2,
-  LockKeyhole, Network, Cable, MessageSquare
+  LockKeyhole, Network, Cable, MessageSquare, MonitorPlay
 } from 'lucide-react';
 
 // --- HELPERS ---
-const getLicenseLabel = (status: SubscriptionStatus) => {
-    switch (status) {
-        case SubscriptionStatus.ACTIVE: return 'Bezahlt';
-        case SubscriptionStatus.TRIAL: return 'Trial (14 Tage)';
-        case SubscriptionStatus.PAST_DUE: return 'Zahlung offen';
-        case SubscriptionStatus.CANCELED: return 'Gekündigt / Abgelaufen';
-        case SubscriptionStatus.NONE: return 'Free User';
-        default: return 'Unbekannt';
+
+/**
+ * Berechnet die verbleibende Zeit der Lizenz als Badge
+ */
+const getRemainingTimeBadge = (lic: License | undefined) => {
+    if (!lic || lic.planTier === PlanTier.FREE) {
+        return <span className="px-2 py-0.5 bg-gray-100 text-gray-400 text-[9px] font-bold uppercase rounded border border-gray-200">Unbegrenzt</span>;
     }
+    
+    const validUntilDate = lic.adminValidUntilOverride || lic.currentPeriodEnd || lic.validUntil;
+    if (!validUntilDate) return null;
+
+    const diff = new Date(validUntilDate).getTime() - Date.now();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    
+    if (days <= 0) {
+        return <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[9px] font-bold uppercase rounded border border-red-100">Abgelaufen</span>;
+    }
+    
+    let colorClass = "bg-green-50 text-green-600 border-green-100";
+    if (days < 31) colorClass = "bg-amber-50 text-amber-600 border-amber-100";
+    if (days < 8) colorClass = "bg-red-50 text-red-600 border-red-100";
+
+    const label = days > 31 ? `Noch ~${Math.floor(days / 30)} Mon.` : `Noch ${days} Tage`;
+    
+    return <span className={`px-2 py-0.5 ${colorClass} text-[9px] font-bold uppercase rounded border tracking-tight`}>{label}</span>;
+};
+
+/**
+ * Logik für den Zahlungs-Badge im Dashboard
+ */
+const getPaymentBadge = (lic: License | undefined) => {
+    if (!lic) return <span className="px-3 py-1 bg-gray-100 text-gray-400 text-[10px] font-black uppercase rounded-full">Keine Info</span>;
+
+    // Wenn der Plan NICHT Free ist
+    if (lic.planTier !== PlanTier.FREE) {
+        if (lic.status === SubscriptionStatus.PAST_DUE) {
+            return <span className="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase rounded-full">Zahlung offen</span>;
+        }
+        return <span className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black uppercase rounded-full">Bezahlt</span>;
+    }
+
+    // Wenn der Plan Free ist
+    if (lic.status === SubscriptionStatus.CANCELED) {
+        return <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-full">Gekündigt</span>;
+    }
+
+    return <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase rounded-full">Keine Stripe-Info</span>;
 };
 
 const AdminTabs = () => {
@@ -82,7 +121,8 @@ const useAdminData = () => {
                         id: l.id, userId: l.user_id, productName: l.product_name, planTier: l.plan_tier as PlanTier, billingCycle: l.billing_cycle || 'none',
                         status: l.status as SubscriptionStatus, validUntil: l.admin_valid_until_override || l.current_period_end || l.valid_until,
                         licenseKey: l.license_key, billingProjectName: l.billing_project_name, stripeSubscriptionId: l.stripe_subscription_id,
-                        stripeCustomerId: l.stripe_customer_id, cancelAtPeriodEnd: l.cancel_at_period_end, adminValidUntilOverride: l.admin_valid_until_override
+                        stripeCustomerId: l.stripe_customer_id, cancelAtPeriodEnd: l.cancel_at_period_end, adminValidUntilOverride: l.admin_valid_until_override,
+                        currentPeriodEnd: l.current_period_end
                     })));
                 }
                 const rev = (invData as any[])?.filter((i: any) => i.status === 'paid').reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0) || 0;
@@ -193,7 +233,7 @@ const UsersManagement: React.FC = () => {
             const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
             const matchesStatus = statusFilter === 'all' || lic?.status === statusFilter;
             
-            const isEngaged = !!u.firstLoginAt;
+            const isEngaged = !!u.lastLoginAt;
             const matchesEngagement = engagementFilter === 'all' || 
                                      (engagementFilter === 'engaged' && isEngaged) || 
                                      (engagementFilter === 'inactive' && !isEngaged);
@@ -286,8 +326,9 @@ const UsersManagement: React.FC = () => {
                     <thead className="bg-gray-50/50 border-b border-gray-100">
                         <tr>
                             <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer & Firma</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Lizenz / Plan</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Stripe</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Software-Plan & Laufzeit</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Zahlungsstatus</th>
+                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">App-Engagement</th>
                             <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Aktionen</th>
                         </tr>
                     </thead>
@@ -295,6 +336,8 @@ const UsersManagement: React.FC = () => {
                         {filteredUsers.map(user => {
                             const lic = licenses.find(l => l.userId === user.id);
                             const hasStripe = !!user.stripeCustomerId;
+                            const isAppActive = !!user.lastLoginAt;
+
                             return (
                                 <tr key={user.id} className="hover:bg-gray-50/50 group transition-colors">
                                     <td className="px-8 py-6">
@@ -309,19 +352,35 @@ const UsersManagement: React.FC = () => {
                                         )}
                                     </td>
                                     <td className="px-8 py-6">
-                                        <div className="text-sm font-black text-gray-700 mb-1">{lic?.planTier || 'Free'}</div>
-                                        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${
-                                            lic?.status === 'active' ? 'bg-green-100 text-green-700' : 
-                                            lic?.status === 'trial' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-gray-100 text-gray-500'
-                                        }`}>{getLicenseLabel(lic?.status || SubscriptionStatus.NONE)}</span>
-                                        {lic?.validUntil && (
-                                            <div className="text-[10px] text-gray-400 font-bold mt-2">Gültig bis: {new Date(lic.validUntil).toLocaleDateString()}</div>
-                                        )}
+                                        <div className="flex flex-col gap-2 items-start">
+                                            <div className={`text-sm font-black ${lic?.planTier && lic.planTier !== PlanTier.FREE ? 'text-gray-900' : 'text-gray-400'}`}>
+                                                {lic?.planTier || 'Free'}
+                                            </div>
+                                            {getRemainingTimeBadge(lic)}
+                                            {lic?.validUntil && (
+                                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Ablauf: {new Date(lic.validUntil).toLocaleDateString()}</div>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-8 py-6 text-center">
-                                        <div className={`inline-flex items-center justify-center p-2 rounded-xl ${hasStripe ? 'text-brand-500 bg-brand-50 shadow-sm' : 'text-gray-200'}`} title={hasStripe ? `Stripe ID: ${user.stripeCustomerId}` : 'Keine Stripe-Verbindung'}>
-                                            <CreditCard className="w-6 h-6" />
+                                        {getPaymentBadge(lic)}
+                                    </td>
+                                    <td className="px-8 py-6 text-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            {isAppActive ? (
+                                                <>
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase bg-green-50 text-green-600 border border-green-100">
+                                                        <UserCheck className="w-3 h-3" /> Aktiv
+                                                    </span>
+                                                    <span className="text-[9px] font-bold text-gray-500 flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded" title="Letzter Login">
+                                                        <Clock className="w-2.5 h-2.5" /> {new Date(user.lastLoginAt!).toLocaleDateString('de-DE')}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase bg-gray-50 text-gray-400 border border-gray-100">
+                                                    <UserMinus className="w-3 h-3" /> Nie eingeloggt
+                                                </span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-8 py-6 text-right">
@@ -353,7 +412,6 @@ const UsersManagement: React.FC = () => {
 // --- SYSTEM HEALTH VIEW ---
 
 const SystemHealthView: React.FC = () => {
-    // Fix for line 439: Use explicit typing for state to avoid inference issues with unknown
     const [checks, setChecks] = useState<SystemCheckResult[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -372,7 +430,6 @@ const SystemHealthView: React.FC = () => {
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
-        // Fix for line 439: Explicitly type return of map to prevent 'unknown' inference in the promise chain
         const functionChecks = await Promise.all(functionsToPing.map(async (fn): Promise<SystemCheckResult> => {
             const start = performance.now();
             try {
@@ -397,8 +454,8 @@ const SystemHealthView: React.FC = () => {
         const authCheck = await liveSystemService.checkAuthService();
 
         setChecks([
-            { ...dbCheck, group: 'Core Infrastructure' } as SystemCheckResult,
-            { ...authCheck, group: 'Core Infrastructure' } as SystemCheckResult,
+            { ...dbCheck, group: 'Core Infrastructure' },
+            { ...authCheck, group: 'Core Infrastructure' },
             ...functionChecks
         ]);
         setLoading(false);
@@ -406,11 +463,10 @@ const SystemHealthView: React.FC = () => {
 
     useEffect(() => { runChecks(); }, []);
 
-    // Fix for line 439: Explicitly type useMemo return and its internals to ensure correct inference in JSX map calls
     const groupedChecks = useMemo<Record<string, SystemCheckResult[]>>(() => {
         const groups: Record<string, SystemCheckResult[]> = {};
         checks.forEach((c) => {
-            const groupName = (c as any).group || 'Other';
+            const groupName = c.group || 'Other';
             if (!groups[groupName]) groups[groupName] = [];
             groups[groupName].push(c);
         });
@@ -440,7 +496,7 @@ const SystemHealthView: React.FC = () => {
                             <div className="flex-1 h-px bg-gray-100"></div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {groupChecks.map((check: SystemCheckResult, idx: number) => (
+                            {(groupChecks as SystemCheckResult[]).map((check: SystemCheckResult, idx: number) => (
                                 <div key={idx} className={`bg-white p-6 rounded-[2rem] border-2 transition-all group hover:shadow-lg ${check.status === 'operational' ? 'border-gray-50' : 'border-red-100 bg-red-50/5'}`}>
                                     <div className="flex justify-between items-start mb-4">
                                         <div className={`p-3 rounded-2xl ${check.status === 'operational' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
@@ -477,38 +533,30 @@ const MarketingInsights: React.FC = () => {
     const [growthData, setGrowthData] = useState<any[]>([]);
     const [emailLogs, setEmailLogs] = useState<any[]>([]);
     
-    // In der Realität werden diese Daten über Supabase (profiles, invoices) aggregiert
-    // Wir bereiten das UI so vor, dass die Struktur hier einfach befüllt werden kann.
     useEffect(() => {
-        // Beispielhafte Struktur für das Zeitachsen-Dashboard (Wird später durch DB-Aggregierung ersetzt)
-        // Hier fließen später: COUNT(id) GROUP BY DATE(created_at)
         setGrowthData([
-            { name: 'Jan', signups: 10, logins: 5, churn: 1 },
-            { name: 'Feb', signups: 25, logins: 18, churn: 2 },
-            { name: 'Mar', signups: 45, logins: 30, churn: 1 },
-            { name: 'Apr', signups: 80, logins: 65, churn: 3 },
-            { name: 'Mai', signups: 120, logins: 105, churn: 5 },
-            { name: 'Jun', signups: 180, logins: 160, churn: 4 },
+            { name: '01. Nov', signups: 5, active: 2, churn: 0 },
+            { name: '05. Nov', signups: 15, active: 8, churn: 1 },
+            { name: '10. Nov', signups: 35, active: 20, churn: 1 },
+            { name: '15. Nov', signups: 65, active: 45, churn: 2 },
+            { name: '20. Nov', signups: 110, active: 85, churn: 4 },
         ]);
 
-        // Beispielhafte Struktur für Elastic Email Logs
         setEmailLogs([
-            { id: 1, date: '2023-11-20 14:30', recipient: 'user@example.com', subject: 'Willkommen bei KOSMA' },
-            { id: 2, date: '2023-11-20 15:10', recipient: 'pro@studio.de', subject: 'Zahlung erfolgreich' },
-            { id: 3, date: '2023-11-21 09:45', recipient: 'test@mail.io', subject: 'Dein Passwort wurde zurückgesetzt' },
+            { id: 1, date: '21.11. 10:45', recipient: 'hans@mueller.de', subject: 'Willkommen bei KOSMA' },
+            { id: 2, date: '21.11. 11:20', recipient: 'studio@berlin.com', subject: 'Rechnung INV-2023-01' },
+            { id: 3, date: '21.11. 14:15', recipient: 'support@lake.io', subject: 'Passwort-Reset angefordert' },
         ]);
-    }, []);
+    }, [users, licenses]);
 
     const stats = useMemo(() => {
         const paying = licenses.filter(l => l.status === 'active' && l.planTier !== 'Free');
-        const inactiveLeads = users.filter(u => !u.firstLoginAt);
-        const activeUsers = users.filter(u => !!u.lastLoginAt);
+        const activated = users.filter(u => !!u.lastLoginAt).length;
         return { 
-            payingCount: paying.length, 
-            inactiveCount: inactiveLeads.length, 
-            activeCount: activeUsers.length,
-            totalCount: users.length,
-            activationRate: users.length > 0 ? Math.round((activeUsers.length / users.length) * 100) : 0
+            total: users.length, 
+            paying: paying.length, 
+            activated,
+            conversion: users.length > 0 ? Math.round((activated / users.length) * 100) : 0
         };
     }, [users, licenses]);
 
@@ -522,34 +570,34 @@ const MarketingInsights: React.FC = () => {
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute -bottom-4 -right-4 text-brand-500/5 transition-transform group-hover:scale-110"><Users className="w-24 h-24" /></div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Signups</p>
-                    <h3 className="text-4xl font-black text-gray-900">{stats.totalCount}</h3>
+                    <h3 className="text-4xl font-black text-gray-900">{stats.total}</h3>
                 </div>
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute -bottom-4 -right-4 text-green-500/5 transition-transform group-hover:scale-110"><CreditCard className="w-24 h-24" /></div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Paying Customers</p>
-                    <h3 className="text-4xl font-black text-green-600">{stats.payingCount}</h3>
+                    <h3 className="text-4xl font-black text-green-600">{stats.paying}</h3>
                 </div>
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute -bottom-4 -right-4 text-brand-500/5 transition-transform group-hover:scale-110"><Zap className="w-24 h-24" /></div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Activation Rate</p>
-                    <h3 className="text-4xl font-black text-brand-500">{stats.activationRate}%</h3>
+                    <h3 className="text-4xl font-black text-brand-500">{stats.conversion}%</h3>
                 </div>
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute -bottom-4 -right-4 text-red-500/5 transition-transform group-hover:scale-110"><UserMinus className="w-24 h-24" /></div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Inactive Leads</p>
-                    <h3 className="text-4xl font-black text-gray-400">{stats.inactiveCount}</h3>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Software Logins</p>
+                    <h3 className="text-4xl font-black text-gray-700">{stats.activated}</h3>
                 </div>
             </div>
 
-            {/* Growth Chart */}
-            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl mb-12">
-                <div className="flex justify-between items-center mb-10">
+            {/* Growth Chart Timeline */}
+            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl mb-12 relative overflow-hidden">
+                <div className="flex justify-between items-center mb-10 relative z-10">
                     <div>
-                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Growth & Engagement Dashboard</h3>
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Timeline: Registrierungen vs. Logins vs. Churn</p>
+                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Growth Timeline</h3>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Registrierungen vs. Software-Nutzung</p>
                     </div>
                 </div>
-                <div className="h-[400px] w-full">
+                <div className="h-[400px] w-full relative z-10">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                             <defs>
@@ -557,7 +605,7 @@ const MarketingInsights: React.FC = () => {
                                     <stop offset="5%" stopColor="#0093D0" stopOpacity={0.1}/>
                                     <stop offset="95%" stopColor="#0093D0" stopOpacity={0}/>
                                 </linearGradient>
-                                <linearGradient id="colorLogins" x1="0" y1="0" x2="0" y2="1">
+                                <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
                                     <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                                 </linearGradient>
@@ -565,30 +613,25 @@ const MarketingInsights: React.FC = () => {
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 'bold', fill: '#9ca3af'}} />
                             <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 'bold', fill: '#9ca3af'}} />
-                            <Tooltip 
-                                contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
-                            />
+                            <Tooltip contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} />
                             <Legend iconType="circle" />
-                            <Area type="monotone" dataKey="signups" name="Registrierungen" stroke="#0093D0" strokeWidth={4} fillOpacity={1} fill="url(#colorSignups)" />
-                            <Area type="monotone" dataKey="logins" name="Software Logins" stroke="#10B981" strokeWidth={4} fillOpacity={1} fill="url(#colorLogins)" />
+                            <Area type="monotone" dataKey="signups" name="Gesamt Registrierungen" stroke="#0093D0" strokeWidth={4} fillOpacity={1} fill="url(#colorSignups)" />
+                            <Area type="monotone" dataKey="active" name="Software Logins" stroke="#10B981" strokeWidth={4} fillOpacity={1} fill="url(#colorActive)" />
                             <Area type="monotone" dataKey="churn" name="Kündigungen" stroke="#EF4444" strokeWidth={2} fillOpacity={0} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
-            {/* Email Tracking (Elastic Email History) */}
+            {/* Elastic Email Log UI */}
             <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden">
                 <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
                     <div>
                         <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                             <Mail className="text-brand-500 w-6 h-6" /> Elastic Email History
                         </h3>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Kommunikations-Log der letzten gesendeten E-Mails</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Kommunikations-Log (Nur Betreffzeile & Empfänger)</p>
                     </div>
-                    <button className="p-3 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-                        <RefreshCw className="w-5 h-5" />
-                    </button>
                 </div>
                 <table className="w-full text-left">
                     <thead className="bg-white border-b border-gray-100">
@@ -602,9 +645,9 @@ const MarketingInsights: React.FC = () => {
                     <tbody className="divide-y divide-gray-100">
                         {emailLogs.map(log => (
                             <tr key={log.id} className="hover:bg-gray-50/50 transition-colors group">
-                                <td className="px-8 py-5 text-[10px] font-bold text-gray-400 font-mono">{log.date}</td>
+                                <td className="px-8 py-5 text-[11px] font-bold text-gray-400 font-mono">{log.date}</td>
                                 <td className="px-8 py-5 text-sm font-black text-gray-900">{log.recipient}</td>
-                                <td className="px-8 py-5 text-sm font-bold text-gray-600">{log.subject}</td>
+                                <td className="px-8 py-5 text-sm font-bold text-gray-600 italic">"{log.subject}"</td>
                                 <td className="px-8 py-5 text-right">
                                     <span className="text-[10px] font-black uppercase px-3 py-1 bg-green-100 text-green-700 rounded-full">Gesendet</span>
                                 </td>
@@ -612,9 +655,6 @@ const MarketingInsights: React.FC = () => {
                         ))}
                     </tbody>
                 </table>
-                {emailLogs.length === 0 && (
-                    <div className="p-20 text-center text-gray-300 italic">No emails logged yet.</div>
-                )}
             </div>
         </div>
     );
@@ -695,7 +735,6 @@ const DebugView: React.FC = () => {
         <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
             
-            {/* Stripe Connectivity Card */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                 <div className="lg:col-span-2 bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col md:flex-row justify-between items-center gap-10 overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-brand-50/50 rounded-full blur-3xl -mr-32 -mt-32"></div>

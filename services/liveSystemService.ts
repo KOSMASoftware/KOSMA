@@ -8,6 +8,8 @@ export interface SystemCheckResult {
   message?: string;
   details?: string;
   actionLink?: string;
+  // Added group property to support categorized system checks in Admin Dashboard
+  group?: string;
 }
 
 export const liveSystemService = {

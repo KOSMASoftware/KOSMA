@@ -26,9 +26,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
   };
 
   if (!user) return <>{children}</>;
@@ -106,7 +106,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans">
-      {/* Mobile Nav Header */}
       <header className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-30">
         <div className="text-xl font-black text-brand-500 tracking-tighter">KOSMA</div>
         <button onClick={() => setIsMobileMenuOpen(true)}>
@@ -114,12 +113,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </button>
       </header>
 
-      {/* Sidebar Desktop */}
       <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col sticky top-0 h-screen">
         {SidebarContent()}
       </aside>
 
-      {/* Mobile Overlay Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
@@ -129,7 +126,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      {/* Main Content */}
       <main className="flex-1 w-full relative overflow-y-auto">
         <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
           {children}
