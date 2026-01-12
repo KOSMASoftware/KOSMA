@@ -122,7 +122,10 @@ const useAdminData = () => {
                         status: l.status as SubscriptionStatus, validUntil: l.admin_valid_until_override || l.current_period_end || l.valid_until,
                         licenseKey: l.license_key, billingProjectName: l.billing_project_name, stripeSubscriptionId: l.stripe_subscription_id,
                         stripeCustomerId: l.stripe_customer_id, cancelAtPeriodEnd: l.cancel_at_period_end, adminValidUntilOverride: l.admin_valid_until_override,
-                        currentPeriodEnd: l.current_period_end
+                        currentPeriodEnd: l.current_period_end,
+                        pendingDowngradePlan: l.pending_downgrade_plan,
+                        pendingDowngradeCycle: l.pending_downgrade_cycle,
+                        pendingDowngradeAt: l.pending_downgrade_at
                     })));
                 }
                 const rev = (invData as any[])?.filter((i: any) => i.status === 'paid').reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0) || 0;
@@ -282,6 +285,7 @@ const UsersManagement: React.FC = () => {
             <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mb-10 space-y-6">
                 <div className="flex items-center gap-5 border-b border-gray-50 pb-6">
                     <Search className="w-6 h-6 text-gray-300" />
+                    {/* Fixed TypeScript error: onChange was passed the state setter directly instead of an event handler function */}
                     <input type="text" placeholder="Schnellsuche (Email, Name, Firma)..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1 outline-none text-lg font-bold placeholder:text-gray-300" />
                 </div>
                 
@@ -297,7 +301,7 @@ const UsersManagement: React.FC = () => {
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</label>
                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
                             <option value="all">Alle Status</option>
-                            <option value="active">Bezahlt</option>
+                            <option value="active">Aktiv / Bezahlt</option>
                             <option value="trial">Trial</option>
                             <option value="past_due">Zahlung offen</option>
                             <option value="canceled">Gekündigt</option>

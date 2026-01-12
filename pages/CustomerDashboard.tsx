@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } from '../types';
-import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, RefreshCw, ChevronRight, Lock, ExternalLink, CalendarMinus } from 'lucide-react';
+import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, RefreshCw, ChevronRight, Lock, ExternalLink, CalendarMinus, TrendingDown } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 
@@ -91,7 +91,10 @@ const useCustomerData = (user: User) => {
                         stripeSubscriptionId: l.stripe_subscription_id,
                         stripeCustomerId: l.stripe_customer_id,
                         cancelAtPeriodEnd: l.cancel_at_period_end,
-                        currentPeriodEnd: l.current_period_end
+                        currentPeriodEnd: l.current_period_end,
+                        pendingDowngradePlan: l.pending_downgrade_plan,
+                        pendingDowngradeCycle: l.pending_downgrade_cycle,
+                        pendingDowngradeAt: l.pending_downgrade_at
                     }));
                     setLicenses(mappedLicenses);
                 } else {
@@ -465,6 +468,11 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                                     <AlertCircle className="w-4 h-4" /> Cancels soon
                                 </div>
                             )}
+                            {activeLicense?.pendingDowngradePlan && (
+                                <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+                                    <TrendingDown className="w-4 h-4" /> Downgrade scheduled
+                                </div>
+                            )}
                         </div>
                     </div>
                     
@@ -481,6 +489,12 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                                     {activeLicense?.cancelAtPeriodEnd ? 'Off' : 'Active'}
                                 </span>
                             </div>
+                            {activeLicense?.pendingDowngradeAt && (
+                                <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-2 mt-2">
+                                    <span className="text-gray-500 font-medium">Downgrade to {activeLicense.pendingDowngradePlan}</span>
+                                    <span className="text-brand-600 font-black">{new Date(activeLicense.pendingDowngradeAt).toLocaleDateString()}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

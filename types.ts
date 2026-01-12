@@ -74,6 +74,11 @@ export interface License {
   adminOverrideReason?: string;
   adminOverrideBy?: string;
   adminOverrideAt?: string;
+
+  // Pending Downgrade Fields
+  pendingDowngradePlan?: string | null;
+  pendingDowngradeCycle?: 'monthly' | 'yearly' | null;
+  pendingDowngradeAt?: string | null;
 }
 
 export interface AuditLog {
