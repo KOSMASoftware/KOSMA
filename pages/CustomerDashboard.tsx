@@ -385,7 +385,23 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
                                         <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(inv.date).toLocaleDateString()}</p>
                                         <p className="font-black text-gray-900">{inv.amount.toFixed(2)} €</p>
                                     </div>
-                                    <span className="text-[10px] font-black uppercase px-2 py-1 rounded-lg bg-green-100 text-green-700">Paid</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${
+                                            inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                                        }`}>
+                                            {inv.status}
+                                        </span>
+                                        {inv.pdfUrl && inv.pdfUrl !== '#' && (
+                                            <a 
+                                                href={inv.pdfUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-gray-300 hover:text-brand-500 transition-colors"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
