@@ -1,5 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
+
+declare const Deno: any;
 
 const allowedOrigins = [
   "https://kosma.io", "https://www.kosma.io", "https://kosma-lake.vercel.app",
@@ -17,22 +20,32 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !anonKey) throw new Error("Cloud Config Missing");
+
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    if (!token) throw new Error("Unauthorized: No token");
+    
+    const supabase = createClient(supabaseUrl, anonKey);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) throw new Error("Unauthorized: Invalid Token");
+
     const body = await req.json().catch(() => ({}));
     if (body.action === 'ping') {
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "create-billing-portal-session operational",
-        timestamp: new Date().toISOString()
-      }), { 
+      return new Response(JSON.stringify({ success: true, message: "create-billing-portal-session operational", user: user.email }), { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
+    // Stripe Portal Logik...
     return new Response(JSON.stringify({ success: true }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
   } catch (error: any) {
     return new Response(JSON.stringify({ success: false, error: error.message }), { 
+      status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
   }

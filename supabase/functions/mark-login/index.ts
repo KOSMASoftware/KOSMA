@@ -10,9 +10,9 @@ const allowedOrigins = [
 ];
 
 serve(async (req) => {
-  const origin = req.headers.get("origin");
+  const origin = req.headers.get("origin") || "";
   const corsHeaders = {
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin || "") ? origin! : allowedOrigins[0],
+    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
   };
@@ -20,15 +20,36 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const body = await req.json();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !anonKey) throw new Error("Cloud Config Missing");
+
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    if (!token) throw new Error("Unauthorized: No token");
+    
+    const supabaseAuth = createClient(supabaseUrl, anonKey);
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    if (authError || !user) throw new Error("Unauthorized: Invalid Token");
+
+    const body = await req.json().catch(() => ({}));
     if (body.action === 'ping') {
-        return new Response(JSON.stringify({ success: true, message: "mark-login operational" }), { 
+        return new Response(JSON.stringify({ success: true, message: "mark-login operational", user: user.email }), { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         });
     }
-    // ... logic ...
-    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (serviceKey) {
+        const admin = createClient(supabaseUrl, serviceKey);
+        await admin.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', user.id);
+    }
+
+    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 })
