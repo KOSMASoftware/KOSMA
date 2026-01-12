@@ -56,21 +56,19 @@ const getRemainingTimeBadge = (lic: License | undefined) => {
 const getPaymentBadge = (lic: License | undefined) => {
     if (!lic) return <span className="px-3 py-1 bg-gray-100 text-gray-400 text-[10px] font-black uppercase rounded-full">Keine Info</span>;
 
-    const hasStripeSub = !!lic.stripeSubscriptionId?.startsWith('sub_');
-
-    if (!hasStripeSub) {
-        if (lic.status === SubscriptionStatus.CANCELED) {
-            return <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-full">Gekündigt</span>;
+    // Wenn der Plan NICHT Free ist
+    if (lic.planTier !== PlanTier.FREE) {
+        if (lic.status === SubscriptionStatus.PAST_DUE) {
+            return <span className="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase rounded-full">Zahlung offen</span>;
         }
-        return <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase rounded-full">Keine Stripe-Info</span>;
-    }
-
-    if (lic.status === SubscriptionStatus.PAST_DUE) {
-        return <span className="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase rounded-full">Zahlung offen</span>;
-    }
-    if (lic.status === SubscriptionStatus.ACTIVE) {
         return <span className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black uppercase rounded-full">Bezahlt</span>;
     }
+
+    // Wenn der Plan Free ist
+    if (lic.status === SubscriptionStatus.CANCELED) {
+        return <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-full">Gekündigt</span>;
+    }
+
     return <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase rounded-full">Keine Stripe-Info</span>;
 };
 
@@ -548,11 +546,30 @@ const MarketingInsights: React.FC = () => {
             { name: '20. Nov', signups: 110, active: 85, churn: 4 },
         ]);
 
-        setEmailLogs([
-            { id: 1, date: '21.11. 10:45', recipient: 'hans@mueller.de', subject: 'Willkommen bei KOSMA' },
-            { id: 2, date: '21.11. 11:20', recipient: 'studio@berlin.com', subject: 'Rechnung INV-2023-01' },
-            { id: 3, date: '21.11. 14:15', recipient: 'support@lake.io', subject: 'Passwort-Reset angefordert' },
-        ]);
+        const fetchEmails = async () => {
+             const { data: emailData } = await supabase
+                .from('email_events')
+                .select('id, user_id, event_key, template_name, created_at')
+                .order('created_at', { ascending: false });
+
+             const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, email, full_name');
+
+             // Fix: explicit Map types
+             const profileById = new Map<string, any>((profiles || []).map((p: any) => [p.id, p]));
+
+             setEmailLogs(
+                (emailData || []).map((e: any) => ({
+                  id: e.id,
+                  date: new Date(e.created_at).toLocaleString('de-DE'),
+                  recipient: profileById.get(e.user_id)?.email || 'unknown',
+                  subject: e.template_name || e.event_key,
+                  eventKey: e.event_key
+                }))
+             );
+        };
+        fetchEmails();
     }, [users, licenses]);
 
     const stats = useMemo(() => {

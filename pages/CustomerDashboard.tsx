@@ -428,11 +428,6 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
 
-    const hasStripeSub = !!activeLicense?.stripeSubscriptionId?.startsWith('sub_');
-    const isAutoRenew = hasStripeSub && activeLicense?.status === 'active' && !activeLicense?.cancelAtPeriodEnd;
-    const autoRenewLabel = hasStripeSub ? (isAutoRenew ? 'Active' : 'Off') : '—';
-    const autoRenewClass = isAutoRenew ? 'text-green-600' : 'text-amber-600';
-
     useEffect(() => {
         if (searchParams.get('stripe_success') === 'true' || searchParams.get('checkout') === 'success') {
             setIsPolling(true);
@@ -506,8 +501,8 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                             </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-gray-500 font-medium">Auto-renew</span>
-                                <span className={`${autoRenewClass} font-black`}>
-                                    {autoRenewLabel}
+                                <span className={`${activeLicense?.cancelAtPeriodEnd ? 'text-amber-600' : 'text-green-600'} font-black`}>
+                                    {activeLicense?.cancelAtPeriodEnd ? 'Off' : 'Active'}
                                 </span>
                             </div>
                             {activeLicense?.pendingDowngradeAt && (
