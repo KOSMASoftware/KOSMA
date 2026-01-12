@@ -561,15 +561,20 @@ const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: 
                         <Building className="w-6 h-6 text-brand-500" /> Billing Info
                     </h3>
                     {billingAddress ? (
-                        <div className="space-y-2 text-gray-600 font-medium">
+                        <div className="space-y-2 text-gray-600 font-medium mb-8">
                             <p className="text-gray-900 font-black">{billingAddress.companyName || user.name}</p>
                             <p>{billingAddress.street}</p>
                             <p>{billingAddress.zip} {billingAddress.city}</p>
                             <p className="text-xs uppercase font-bold text-gray-400 pt-4">VAT: {billingAddress.vatId || 'Not provided'}</p>
                         </div>
                     ) : (
-                        <p className="text-gray-400 italic text-sm">No billing address stored yet. This will be updated after your first purchase.</p>
+                        <p className="text-gray-400 italic text-sm mb-8">No billing address stored yet. This will be updated after your first purchase.</p>
                     )}
+                    
+                    <button onClick={handlePortal} disabled={loadingPortal} className="w-full py-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-900 text-sm font-black flex items-center justify-center gap-3 hover:bg-gray-100 transition-all">
+                        {loadingPortal ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings className="w-5 h-5" />}
+                        Update Billing Address
+                    </button>
                 </div>
 
                 <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50">
