@@ -230,12 +230,10 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                             : "Choose the tier that matches your production workflow."}
                     </p>
                 </div>
-                {!isManagedViaPortal && (
-                    <div className="inline-flex bg-gray-100 rounded-2xl p-1.5 shadow-inner">
-                        <button onClick={() => setBillingInterval('yearly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
-                        <button onClick={() => setBillingInterval('monthly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
-                    </div>
-                )}
+                <div className="inline-flex bg-gray-100 rounded-2xl p-1.5 shadow-inner">
+                    <button onClick={() => setBillingInterval('yearly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
+                    <button onClick={() => setBillingInterval('monthly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -277,7 +275,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                                         disabled={loadingPortal}
                                         className={`w-full py-4 rounded-2xl border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white flex items-center justify-center gap-2`}
                                     >
-                                        {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : "Plan Downgrade"}
+                                        {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : "Downgrade"}
                                     </button>
                                 ) : isManagedViaPortal ? (
                                     <button
@@ -286,7 +284,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                                         className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 transition-all"
                                     >
                                         {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
-                                        Manage in Portal
+                                        Upgrade
                                     </button>
                                 ) : (
                                     <button
@@ -406,33 +404,10 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
 const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: Invoice[], refresh: () => void }> = ({ user, licenses, invoices, refresh }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isPolling, setIsPolling] = useState(false);
-    const [cancelling, setCancelling] = useState(false);
     const { refreshProfile } = useAuth();
 
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
-
-    const handleCancelSubscription = async () => {
-        if (!confirm("Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period.")) {
-            return;
-        }
-
-        setCancelling(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('cancel-subscription');
-            
-            if (error) throw error;
-            if (data?.success === false) throw new Error(data.error || "Cancellation failed");
-
-            alert("Cancellation requested. Your status will update once Stripe confirms the change.");
-            setIsPolling(true); 
-        } catch (err: any) {
-            console.error("Cancellation error:", err);
-            alert(`Could not cancel subscription: ${err.message}`);
-        } finally {
-            setCancelling(false);
-        }
-    };
 
     useEffect(() => {
         if (searchParams.get('stripe_success') === 'true' || searchParams.get('checkout') === 'success') {
@@ -507,17 +482,6 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                                 </span>
                             </div>
                         </div>
-
-                        {hasStripeId && activeLicense?.status === 'active' && !activeLicense.cancelAtPeriodEnd && (
-                            <button 
-                                onClick={handleCancelSubscription}
-                                disabled={cancelling}
-                                className="w-full mt-6 py-2.5 rounded-xl border border-red-100 text-red-600 bg-red-50/50 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
-                                {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarMinus className="w-3 h-3" />}
-                                Cancel Subscription
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
@@ -527,8 +491,12 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
     );
 };
 
-const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, billingAddress, refresh }) => {
+const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, licenses, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+
+    const activeLicense = licenses[0];
+    const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
 
     const handlePortal = async () => {
         setLoadingPortal(true);
@@ -544,6 +512,28 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
             alert("Payment account not found or Stripe is unreachable.");
         } finally {
             setLoadingPortal(false);
+        }
+    };
+
+    const handleCancelSubscription = async () => {
+        if (!confirm("Are you sure you want to cancel your subscription? Your access will remain active until the end of the current billing period.")) {
+            return;
+        }
+
+        setCancelling(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('cancel-subscription');
+            
+            if (error) throw error;
+            if (data?.success === false) throw new Error(data.error || "Cancellation failed");
+
+            alert("Cancellation requested. Your account status will update once Stripe confirms the change.");
+            refresh();
+        } catch (err: any) {
+            console.error("Cancellation error:", err);
+            alert(`Could not cancel subscription: ${err.message}`);
+        } finally {
+            setCancelling(false);
         }
     };
 
@@ -575,10 +565,23 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
                     <p className="text-sm text-gray-500 mb-8 leading-relaxed font-medium">
                         Securely manage your credit cards and subscription preferences in the Stripe customer portal.
                     </p>
-                    <button onClick={handlePortal} disabled={loadingPortal} className="w-full py-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-900 text-sm font-black flex items-center justify-center gap-3 hover:bg-gray-100 transition-all">
-                        {loadingPortal ? <Loader2 className="w-5 h-5 animate-spin" /> : <ExternalLink className="w-5 h-5" />}
-                        Open Portal
-                    </button>
+                    <div className="flex flex-col gap-3">
+                        <button onClick={handlePortal} disabled={loadingPortal} className="w-full py-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-900 text-sm font-black flex items-center justify-center gap-3 hover:bg-gray-100 transition-all">
+                            {loadingPortal ? <Loader2 className="w-5 h-5 animate-spin" /> : <ExternalLink className="w-5 h-5" />}
+                            Open Portal
+                        </button>
+                        
+                        {hasStripeId && activeLicense?.status === 'active' && !activeLicense.cancelAtPeriodEnd && (
+                            <button 
+                                onClick={handleCancelSubscription}
+                                disabled={cancelling}
+                                className="w-full py-2.5 rounded-xl border border-red-100 text-red-600 bg-red-50/50 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarMinus className="w-3 h-3" />}
+                                Cancel Subscription
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -600,7 +603,7 @@ export const CustomerDashboard: React.FC = () => {
             <Routes>
                 <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} />} />
                 <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} />} />
-                <Route path="settings" element={<SettingsView user={user} billingAddress={billingAddress} refresh={refresh} />} />
+                <Route path="settings" element={<SettingsView user={user} licenses={licenses} billingAddress={billingAddress} refresh={refresh} />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </div>
