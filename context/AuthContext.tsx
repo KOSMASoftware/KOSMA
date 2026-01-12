@@ -26,6 +26,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
   const userIdRef = useRef<string | null>(null);
+  const initTimedOutRef = useRef(false);
+
+  const clearLocalSession = () => {
+    try {
+      localStorage.removeItem('kosma-auth-token');
+    } catch (e) {
+      console.error("Could not clear local session", e);
+    }
+  };
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
     const email = sessionUser.email?.toLowerCase().trim() || '';
@@ -63,18 +72,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
+    let mounted = true;
+
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await fetchProfile(session);
-      } else {
-        setIsLoading(false);
+      const timer = setTimeout(() => {
+        if (mounted) {
+          console.warn("[Auth] Init timeout - forcing logout state");
+          initTimedOutRef.current = true;
+          clearLocalSession();
+          setIsLoading(false);
+        }
+      }, 4000);
+
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        clearTimeout(timer);
+
+        if (initTimedOutRef.current) return;
+
+        if (error) throw error;
+
+        if (mounted) {
+          if (data?.session) {
+            await fetchProfile(data.session);
+          } else {
+            setIsLoading(false);
+          }
+        }
+      } catch (err) {
+        clearTimeout(timer);
+        if (initTimedOutRef.current) return;
+
+        console.warn("[Auth] Init Error:", err);
+        if (mounted) {
+          clearLocalSession();
+          setIsLoading(false);
+        }
       }
     };
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+      if (initTimedOutRef.current) return;
+
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         if (session) await fetchProfile(session);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -83,7 +124,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -116,7 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       await supabase.auth.signOut();
-      localStorage.removeItem('kosma-auth-token');
+      clearLocalSession();
     } finally {
       setUser(null);
       setIsLoading(false);
