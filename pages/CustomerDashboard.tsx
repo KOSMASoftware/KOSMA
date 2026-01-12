@@ -142,7 +142,6 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
-            // CORRECT SLUG: create-billing-portal-session
             const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
                 body: { returnUrl: window.location.href },
                 headers: { Authorization: `Bearer ${session.access_token}` }
@@ -152,6 +151,25 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
         } catch (e) {
             console.error(e);
             alert("Could not open billing portal. Please try again.");
+        } finally {
+            setLoadingPortal(false);
+        }
+    };
+
+    const handleDowngrade = async (targetPlan: PlanTier, targetCycle: 'yearly' | 'monthly') => {
+        setLoadingPortal(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('schedule-downgrade', {
+                body: { planTier: targetPlan, billingCycle: targetCycle }
+            });
+            if (error || data?.success === false) {
+                throw new Error(data?.error || error?.message || 'Downgrade failed');
+            }
+            const dateLabel = new Date(data.effectiveAt).toLocaleDateString('de-DE');
+            alert(`Downgrade geplant zum Periodenende (${dateLabel}).`);
+        } catch (err: any) {
+            console.error("Downgrade error:", err);
+            alert(`Fehler: ${err.message}`);
         } finally {
             setLoadingPortal(false);
         }
@@ -208,7 +226,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                     <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Expand Your Tools</h3>
                     <p className="text-gray-500 mt-1">
                         {isManagedViaPortal 
-                            ? "Manage your active subscription in the Stripe Customer Portal." 
+                            ? "Manage your active subscription in the Stripe Customer Portal or plan a downgrade." 
                             : "Choose the tier that matches your production workflow."}
                     </p>
                 </div>
@@ -222,7 +240,15 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {plans.map((plan) => {
-                    const isCurrent = plan.name === currentTier;
+                    const isCurrent = plan.name === currentTier && billingInterval === currentCycle;
+                    
+                    // Downgrade Rank Logic
+                    const planRank: Record<string, number> = { "Free": 0, "Budget": 1, "Cost Control": 2, "Production": 3 };
+                    const currentRank = planRank[currentTier] || 0;
+                    const targetRank = planRank[plan.name] || 0;
+                    const isSameTier = currentTier === plan.name;
+                    const isDowngrade = targetRank < currentRank || (isSameTier && currentCycle === 'yearly' && billingInterval === 'monthly');
+
                     return (
                         <div key={plan.name} className={`relative bg-white rounded-3xl shadow-sm border border-gray-100 border-t-[10px] ${plan.colorClass} p-8 flex flex-col h-full hover:shadow-xl transition-all duration-300 group`}>
                             {isCurrent && (
@@ -237,24 +263,40 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                                 <span className="text-sm text-gray-400 block mt-1 font-bold">{billingInterval === 'yearly' ? 'per year' : 'per month'}</span>
                             </div>
 
-                            {isManagedViaPortal ? (
-                                <button
-                                    onClick={handlePortalRedirect}
-                                    disabled={loadingPortal}
-                                    className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 mb-8 transition-all"
-                                >
-                                    {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
-                                    Manage Plan
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => handlePurchase(plan.name, billingInterval)}
-                                    disabled={isCurrent}
-                                    className={`w-full py-4 rounded-2xl border-2 text-sm font-bold transition-all mb-8 shadow-sm ${isCurrent ? 'border-gray-100 text-gray-300 cursor-not-allowed' : `border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white`}`}
-                                >
-                                    {isCurrent ? "Currently Active" : "Get Started"}
-                                </button>
-                            )}
+                            <div className="flex flex-col gap-3 mb-8">
+                                {isCurrent ? (
+                                    <button
+                                        disabled
+                                        className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-300 text-sm font-bold cursor-not-allowed"
+                                    >
+                                        Currently Active
+                                    </button>
+                                ) : (isManagedViaPortal && isDowngrade) ? (
+                                    <button
+                                        onClick={() => handleDowngrade(plan.name, billingInterval)}
+                                        disabled={loadingPortal}
+                                        className={`w-full py-4 rounded-2xl border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white flex items-center justify-center gap-2`}
+                                    >
+                                        {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : "Plan Downgrade"}
+                                    </button>
+                                ) : isManagedViaPortal ? (
+                                    <button
+                                        onClick={handlePortalRedirect}
+                                        disabled={loadingPortal}
+                                        className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 transition-all"
+                                    >
+                                        {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
+                                        Manage in Portal
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => handlePurchase(plan.name, billingInterval)}
+                                        className={`w-full py-4 rounded-2xl border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white`}
+                                    >
+                                        Get Started
+                                    </button>
+                                )}
+                            </div>
                             
                             <div className="border-t border-gray-100 pt-8 flex-1">
                                 <ul className="space-y-4 text-left text-sm text-gray-600 font-medium">
@@ -377,7 +419,6 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
 
         setCancelling(true);
         try {
-            // CORRECT SLUG: cancel-subscription
             const { data, error } = await supabase.functions.invoke('cancel-subscription');
             
             if (error) throw error;
@@ -493,7 +534,6 @@ const SettingsView: React.FC<{ user: User, billingAddress: BillingAddress | null
         setLoadingPortal(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            // CORRECT SLUG: create-billing-portal-session
             const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
                 body: { returnUrl: window.location.href },
                 headers: { Authorization: `Bearer ${session?.access_token}` }
