@@ -308,7 +308,7 @@ const UsersManagement: React.FC = () => {
                         <select value={engagementFilter} onChange={e => setEngagementFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
                             <option value="all">Alle</option>
                             <option value="engaged">Eingeloggt (Aktiv)</option>
-                            <option value="inactive">Nie eingeloggt (Lead)</option>
+                            <option value="inactive">Nie eingeloggt</option>
                         </select>
                     </div>
                     <div className="space-y-2">
