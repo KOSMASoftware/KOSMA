@@ -56,19 +56,21 @@ const getRemainingTimeBadge = (lic: License | undefined) => {
 const getPaymentBadge = (lic: License | undefined) => {
     if (!lic) return <span className="px-3 py-1 bg-gray-100 text-gray-400 text-[10px] font-black uppercase rounded-full">Keine Info</span>;
 
-    // Wenn der Plan NICHT Free ist
-    if (lic.planTier !== PlanTier.FREE) {
-        if (lic.status === SubscriptionStatus.PAST_DUE) {
-            return <span className="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase rounded-full">Zahlung offen</span>;
+    const hasStripeSub = !!lic.stripeSubscriptionId?.startsWith('sub_');
+
+    if (!hasStripeSub) {
+        if (lic.status === SubscriptionStatus.CANCELED) {
+            return <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-full">Gekündigt</span>;
         }
+        return <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase rounded-full">Keine Stripe-Info</span>;
+    }
+
+    if (lic.status === SubscriptionStatus.PAST_DUE) {
+        return <span className="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase rounded-full">Zahlung offen</span>;
+    }
+    if (lic.status === SubscriptionStatus.ACTIVE) {
         return <span className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black uppercase rounded-full">Bezahlt</span>;
     }
-
-    // Wenn der Plan Free ist
-    if (lic.status === SubscriptionStatus.CANCELED) {
-        return <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-full">Gekündigt</span>;
-    }
-
     return <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase rounded-full">Keine Stripe-Info</span>;
 };
 
