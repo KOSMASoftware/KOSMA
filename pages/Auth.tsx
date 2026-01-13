@@ -81,7 +81,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         await resetPassword(email);
         setStep('success');
       } else if (mode === 'login') {
-        const { data, error: loginError } = await login(email, password);
+        // Timeout Wrapper für Login
+        const { data, error: loginError } = await Promise.race([
+          login(email, password),
+          new Promise<any>((_, reject) => 
+            setTimeout(() => reject(new Error("Login timeout. Please try again.")), 15000)
+          )
+        ]);
         
         if (loginError) {
           setError(loginError.message || "Invalid credentials.");

@@ -113,7 +113,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (initTimedOutRef.current) return;
+      // Ignoriere INITIAL_SESSION, falls wir bereits im Timeout-Zustand sind
+      if (initTimedOutRef.current && event === 'INITIAL_SESSION') return;
 
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         if (session) await fetchProfile(session);
