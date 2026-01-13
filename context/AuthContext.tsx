@@ -159,12 +159,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     setIsLoading(true);
     try {
-      await supabase.auth.signOut();
-      clearLocalSession();
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      console.warn("Sign out failed:", err);
     } finally {
+      clearLocalSession();
       setUser(null);
       setIsLoading(false);
     }
+    supabase.auth.signOut().catch(() => {});
   };
 
   const refreshProfile = async () => {
