@@ -70,18 +70,21 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         const extract = (key: string) => {
             const regex = new RegExp(`[#?&]${key}=([^&]*)`);
             const match = fullHash.match(regex);
-            return match ? match[1] : null;
+            return match ? decodeURIComponent(match[1]) : null;
         };
 
         const accessToken = extract('access_token');
         const refreshToken = extract('refresh_token');
 
         if (accessToken && refreshToken) {
-            localStorage.setItem('kosma-auth-token', JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
-            refreshProfile();
+            localStorage.setItem('kosma-auth-token', JSON.stringify({ 
+                access_token: accessToken, 
+                refresh_token: refreshToken,
+                user: { id: 'pending' }
+            }));
         }
     }
-  }, [mode, refreshProfile]);
+  }, [mode]);
 
   const handleAction = async () => {
     if (loading) return;

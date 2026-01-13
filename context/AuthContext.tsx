@@ -207,6 +207,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!res.ok) {
         const data = await res.json();
         throw new Error(data.msg || data.error?.message || data.error || 'Update failed');
+    } else {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        setUser(null);
     }
   };
 
@@ -234,12 +238,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const refreshProfile = async () => {
-    // Use stored token to re-verify
     const tokenStr = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (tokenStr) {
-        const session = JSON.parse(tokenStr);
-        // We assume session is still valid if we are here, or fetchProfile will fail gracefully
-        await fetchProfile(session.user);
+    if (!tokenStr) return;
+
+    const session = JSON.parse(tokenStr);
+
+    if (session.user?.id && session.user.id !== 'pending') {
+      await fetchProfile(session.user);
+      return;
+    }
+
+    // Fallback: validate token via API and use real user
+    try {
+        const res = await fetch('/api/supabase-auth-user', {
+            method: 'POST',
+            body: JSON.stringify({ access_token: session.access_token }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (res.ok) {
+            const { user: validatedUser } = await res.json();
+            await fetchProfile(validatedUser);
+        }
+    } catch (e) {
+        console.warn("Profile refresh failed", e);
     }
   };
 
