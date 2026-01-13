@@ -146,7 +146,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
             const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
-                body: { returnUrl: `${window.location.origin}/#/dashboard/settings` },
+                body: { returnUrl: `${window.location.origin}/#/billing-return` },
                 headers: { Authorization: `Bearer ${session.access_token}` }
             });
             if (data?.url) window.location.href = data.url;
@@ -537,7 +537,7 @@ const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase.functions.invoke('create-billing-portal-session', {
-                body: { returnUrl: `${window.location.origin}/#/dashboard/settings` },
+                body: { returnUrl: `${window.location.origin}/#/billing-return` },
                 headers: { Authorization: `Bearer ${session?.access_token}` }
             });
             if (data?.url) window.location.href = data.url;

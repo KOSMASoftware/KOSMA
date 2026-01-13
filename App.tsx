@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -6,6 +7,7 @@ import { Landing } from './pages/Landing';
 import { AuthPage } from './pages/Auth';
 import { CustomerDashboard } from './pages/CustomerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { BillingReturn } from './pages/BillingReturn';
 import { UserRole } from './types';
 import { Loader2 } from 'lucide-react';
 
@@ -46,6 +48,7 @@ const App: React.FC = () => {
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/signup" element={<AuthPage mode="signup" />} />
           <Route path="/update-password" element={<AuthPage mode="update-password" />} />
+          <Route path="/billing-return" element={<BillingReturn />} />
 
           {/* Kunden-Bereich: Admins werden hier rausgeworfen nach /admin */}
           <Route 
