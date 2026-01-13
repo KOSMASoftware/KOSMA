@@ -77,18 +77,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const init = async () => {
       const timer = setTimeout(() => {
         if (mounted) {
-          console.warn("[Auth] Init timeout - forcing logout state");
-          initTimedOutRef.current = true;
-          clearLocalSession();
+          console.warn("[Auth] Init timeout - continuing without forcing logout");
           setIsLoading(false);
         }
-      }, 4000);
+      }, 15000);
 
       try {
         const { data, error } = await supabase.auth.getSession();
         clearTimeout(timer);
-
-        if (initTimedOutRef.current) return;
 
         if (error) throw error;
 
@@ -101,8 +97,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (err) {
         clearTimeout(timer);
-        if (initTimedOutRef.current) return;
-
+        
         console.warn("[Auth] Init Error:", err);
         if (mounted) {
           clearLocalSession();
@@ -113,9 +108,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Ignoriere INITIAL_SESSION, falls wir bereits im Timeout-Zustand sind
-      if (initTimedOutRef.current && event === 'INITIAL_SESSION') return;
-
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         if (session) await fetchProfile(session);
       } else if (event === 'SIGNED_OUT') {
