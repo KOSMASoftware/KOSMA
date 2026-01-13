@@ -20,21 +20,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const OWNER_EMAIL = 'mail@joachimknaf.de';
+const AUTH_TOKEN_KEY = 'kosma-auth-token';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(false);
   const userIdRef = useRef<string | null>(null);
-  const initTimedOutRef = useRef(false);
-
-  const clearLocalSession = () => {
-    try {
-      localStorage.removeItem('kosma-auth-token');
-    } catch (e) {
-      console.error("Could not clear local session", e);
-    }
-  };
 
   const constructUser = (sessionUser: any, dbProfile: any | null): User => {
     const email = sessionUser.email?.toLowerCase().trim() || '';
@@ -53,19 +45,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   };
 
-  const fetchProfile = async (session: Session) => {
+  // Helper to sync the session to Supabase client for RLS
+  const syncSupabaseSession = async (session: any) => {
+    if (session?.access_token && session?.refresh_token) {
+        await supabase.auth.setSession({ 
+            access_token: session.access_token, 
+            refresh_token: session.refresh_token 
+        });
+    }
+  };
+
+  const fetchProfile = async (sessionUser: any) => {
     try {
+      // Need valid session on client for RLS to work
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', sessionUser.id)
         .maybeSingle();
 
-      const newUser = constructUser(session.user, data);
+      const newUser = constructUser(sessionUser, data);
       setUser(newUser);
       userIdRef.current = newUser.id;
     } catch (err) {
-      setUser(constructUser(session.user, null));
+      setUser(constructUser(sessionUser, null));
     } finally {
       setIsLoading(false);
     }
@@ -75,62 +78,95 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let mounted = true;
 
     const init = async () => {
+      // Manual Timeout
       const timer = setTimeout(() => {
         if (mounted) {
-          console.warn("[Auth] Init timeout - continuing without forcing logout");
-          setIsLoading(false);
+            console.warn("[Auth] Init timeout - continuing");
+            setIsLoading(false);
         }
       }, 15000);
 
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const tokenStr = localStorage.getItem(AUTH_TOKEN_KEY);
+        if (!tokenStr) {
+            clearTimeout(timer);
+            setIsLoading(false);
+            return;
+        }
+
+        const session = JSON.parse(tokenStr);
+        if (!session.access_token) throw new Error("Invalid token structure");
+
+        // Validate via API
+        const res = await fetch('/api/supabase-auth-user', {
+            method: 'POST',
+            body: JSON.stringify({ access_token: session.access_token }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
         clearTimeout(timer);
 
-        if (error) throw error;
-
-        if (mounted) {
-          if (data?.session) {
-            await fetchProfile(data.session);
-          } else {
-            setIsLoading(false);
-          }
+        if (res.ok) {
+            const { user: validatedUser } = await res.json();
+            if (mounted) {
+                // Restore session to supabase client for Data Access
+                await syncSupabaseSession(session);
+                await fetchProfile(validatedUser);
+            }
+        } else {
+            console.warn("[Auth] Token invalid or expired");
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            if (mounted) setIsLoading(false);
         }
+
       } catch (err) {
         clearTimeout(timer);
-        
         console.warn("[Auth] Init Error:", err);
         if (mounted) {
-          clearLocalSession();
+          localStorage.removeItem(AUTH_TOKEN_KEY);
           setIsLoading(false);
         }
       }
     };
+    
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        if (session) await fetchProfile(session);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        userIdRef.current = null;
-        setIsLoading(false);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    // We no longer rely on supabase.auth.onAuthStateChange for Auth Status
+    return () => { mounted = false; };
   }, []);
 
   const login = async (email: string, password: string) => {
-    return await supabase.auth.signInWithPassword({ 
-      email: email.trim(), 
-      password: password.trim() 
-    });
+    try {
+        const res = await fetch('/api/supabase-login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await res.json();
+        
+        if (!res.ok) {
+            return { data: null, error: { message: data.error_description || data.error || 'Login failed' } };
+        }
+
+        // data is the Session object
+        localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify(data));
+        
+        // Sync & Fetch
+        await syncSupabaseSession(data);
+        await fetchProfile(data.user);
+
+        return { data: { user: data.user, session: data }, error: null };
+    } catch (e: any) {
+        return { data: null, error: { message: e.message || 'Network error' } };
+    }
   };
 
   const signup = async (email: string, name: string, password: string) => {
+    // Signup still uses client for now, or could be moved to API. 
+    // Keeping client as per "no other API changes" instruction unless strictly necessary.
+    // However, prompts implied "All Auth Flows server side". 
+    // But specific instructions were for Login/Logout/Session.
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -152,20 +188,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     setIsLoading(true);
     try {
-      await supabase.auth.signOut({ scope: 'local' });
+        const tokenStr = localStorage.getItem(AUTH_TOKEN_KEY);
+        if (tokenStr) {
+            const session = JSON.parse(tokenStr);
+            await fetch('/api/supabase-logout', {
+                method: 'POST',
+                body: JSON.stringify({ access_token: session.access_token }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
     } catch (err) {
-      console.warn("Sign out failed:", err);
+      console.warn("Sign out API failed:", err);
     } finally {
-      clearLocalSession();
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      // Clean up internal supabase client state
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       setUser(null);
       setIsLoading(false);
     }
-    supabase.auth.signOut().catch(() => {});
   };
 
   const refreshProfile = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) await fetchProfile(session);
+    // Use stored token to re-verify
+    const tokenStr = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (tokenStr) {
+        const session = JSON.parse(tokenStr);
+        // We assume session is still valid if we are here, or fetchProfile will fail gracefully
+        await fetchProfile(session.user);
+    }
   };
 
   return (

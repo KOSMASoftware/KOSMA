@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabaseClient';
 import { Loader2 } from 'lucide-react';
 
 export const BillingReturn: React.FC = () => {
@@ -10,15 +9,27 @@ export const BillingReturn: React.FC = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        const tokenStr = localStorage.getItem('kosma-auth-token');
+        if (!tokenStr) throw new Error("No local session");
+
+        const session = JSON.parse(tokenStr);
+        
+        // Verify via API
+        const res = await fetch('/api/supabase-auth-user', {
+            method: 'POST',
+            body: JSON.stringify({ access_token: session.access_token }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!res.ok) throw new Error("Invalid session");
+
+        // Valid session
+        await refreshProfile();
+        navigate('/dashboard/settings', { replace: true });
+      } catch (e) {
         navigate('/login', { replace: true });
-        return;
       }
-      // Aktualisiere Profil/Lizenzdaten im Context
-      await refreshProfile();
-      // Zurück zu Settings
-      navigate('/dashboard/settings', { replace: true });
     };
     checkSession();
   }, [navigate, refreshProfile]);
