@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
@@ -62,6 +62,27 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   const isResetRequest = searchParams.get('reset') === 'true';
   const isConfigError = error.toLowerCase().includes('configuration') || error.toLowerCase().includes('keys');
 
+  // Handle URL hash parsing for password reset flow
+  useEffect(() => {
+    if (mode === 'update-password') {
+        const fullHash = window.location.hash + window.location.search; 
+        // Search in the whole string for params
+        const extract = (key: string) => {
+            const regex = new RegExp(`[#?&]${key}=([^&]*)`);
+            const match = fullHash.match(regex);
+            return match ? match[1] : null;
+        };
+
+        const accessToken = extract('access_token');
+        const refreshToken = extract('refresh_token');
+
+        if (accessToken && refreshToken) {
+            localStorage.setItem('kosma-auth-token', JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
+            refreshProfile();
+        }
+    }
+  }, [mode, refreshProfile]);
+
   const handleAction = async () => {
     if (loading) return;
     setError('');
@@ -123,9 +144,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
 
   if (step === 'success') {
     return (
-      <AuthLayout title="Success" subtitle="Check your email">
+      <AuthLayout title="Success" subtitle={mode === 'update-password' ? 'Your password has been updated' : 'Check your email'}>
         <div className="text-center space-y-6">
-          <p className="text-gray-600">Instructions have been sent.</p>
+          <p className="text-gray-600">
+             {mode === 'update-password' 
+               ? 'You can now login with your new password.'
+               : 'Instructions have been sent.'}
+          </p>
           <Link to="/login" className="text-[#0093D0] font-bold hover:underline">Back to Login</Link>
         </div>
       </AuthLayout>

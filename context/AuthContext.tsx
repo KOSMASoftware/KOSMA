@@ -163,26 +163,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signup = async (email: string, name: string, password: string) => {
-    // Signup still uses client for now, or could be moved to API. 
-    // Keeping client as per "no other API changes" instruction unless strictly necessary.
-    // However, prompts implied "All Auth Flows server side". 
-    // But specific instructions were for Login/Logout/Session.
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } }
+    const res = await fetch('/api/supabase-signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, full_name: name }),
+      headers: { 'Content-Type': 'application/json' }
     });
-    if (error) throw error;
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || data.error?.message || data.error || 'Signup failed');
+    
+    // If session is present (auto-confirm), log in
+    if (data.session) {
+       localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify(data.session));
+       await syncSupabaseSession(data.session);
+       await fetchProfile(data.user);
+    }
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-    if (error) throw error;
+    const res = await fetch('/api/supabase-reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, redirect_to: `${window.location.origin}/#/update-password` }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.msg || data.error?.message || data.error || 'Reset failed');
+    }
   };
 
   const updatePassword = async (password: string) => {
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) throw error;
+    const tokenStr = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!tokenStr) throw new Error("No session found");
+    const session = JSON.parse(tokenStr);
+
+    const res = await fetch('/api/supabase-update-password', {
+        method: 'POST',
+        body: JSON.stringify({ access_token: session.access_token, password }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.msg || data.error?.message || data.error || 'Update failed');
+    }
   };
 
   const logout = async () => {
