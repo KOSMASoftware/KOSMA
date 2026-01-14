@@ -280,12 +280,13 @@ export const HelpPage: React.FC = () => {
           <div className="space-y-8">
              {HELP_DATA.map(cat => (
                <div key={cat.id}>
-                  <div 
-                    className={`flex items-center gap-2 font-bold mb-3 ${cat.id === selectedCategoryId ? 'text-brand-600' : 'text-gray-900'}`}
+                  <button 
+                    onClick={() => { setSelectedCategoryId(cat.id); setSelectedArticleId(null); }}
+                    className={`flex items-center gap-2 font-bold mb-3 w-full text-left transition-colors hover:text-brand-600 ${cat.id === selectedCategoryId ? 'text-brand-600' : 'text-gray-900'}`}
                   >
                      <cat.icon className={`w-4 h-4 ${cat.id === selectedCategoryId ? 'text-brand-500' : 'text-gray-400'}`} />
                      {cat.title}
-                  </div>
+                  </button>
                   {cat.id === selectedCategoryId && (
                     <div className="pl-6 space-y-1 border-l-2 border-gray-100">
                        {cat.articles.map(art => (
