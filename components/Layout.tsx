@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { LogOut, LayoutDashboard, Settings, CreditCard, ShieldCheck, LineChart, Server, Menu, X, Zap, TrendingUp, Bug, HelpCircle } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, CreditCard, ShieldCheck, LineChart, Server, Menu, X, Zap, TrendingUp, Bug, CircleHelp } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const NavItem = ({ to, icon: Icon, label, active, onClick }: { to: string; icon: any; label: string; active: boolean; onClick?: () => void }) => (
@@ -67,7 +67,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                />
                <NavItem 
                   to="/help" 
-                  icon={HelpCircle} 
+                  icon={CircleHelp} 
                   label="Help Center" 
                   active={location.pathname === '/help'} 
                   onClick={onClick}
@@ -89,7 +89,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <div className="pt-4 mt-4 border-t border-gray-100">
                 <NavItem 
                   to="/help" 
-                  icon={HelpCircle} 
+                  icon={CircleHelp} 
                   label="Help & Docs" 
                   active={location.pathname === '/help'} 
                   onClick={onClick}

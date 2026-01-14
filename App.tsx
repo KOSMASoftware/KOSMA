@@ -71,15 +71,8 @@ const App: React.FC = () => {
             } 
           />
 
-          {/* Help Page: Accessible for all authenticated users */}
-          <Route 
-            path="/help" 
-            element={
-              <ProtectedRoute>
-                <HelpPage />
-              </ProtectedRoute>
-            } 
-          />
+          {/* Help Page: Accessible for everyone */}
+          <Route path="/help" element={<HelpPage />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
