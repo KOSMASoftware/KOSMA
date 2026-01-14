@@ -203,7 +203,7 @@ export const HelpPage: React.FC = () => {
               <div>
                  <h4 className="font-bold text-gray-900 mb-2">Brauchst du mehr Hilfe?</h4>
                  <p className="text-sm text-gray-600 mb-4">Wenn du Probleme mit KOSMA hast, findest du die Antwort vielleicht in unserem Learning Campus.</p>
-                 <a href="#" className="text-sm font-black text-brand-500 hover:underline">Zum Learning Campus -></a>
+                 <a href="#" className="text-sm font-black text-brand-500 hover:underline">Zum Learning Campus {'->'}</a>
               </div>
            </div>
            <div className="bg-white rounded-[2rem] p-8 border border-gray-100 flex gap-6 items-start">
@@ -213,7 +213,7 @@ export const HelpPage: React.FC = () => {
               <div>
                  <h4 className="font-bold text-gray-900 mb-2">Fehler melden?</h4>
                  <p className="text-sm text-gray-600 mb-4">Du hast einen Bug gefunden oder hast einen Feature-Wunsch? Schreib uns direkt.</p>
-                 <a href="#" className="text-sm font-black text-brand-500 hover:underline">Support kontaktieren -></a>
+                 <a href="#" className="text-sm font-black text-brand-500 hover:underline">Support kontaktieren {'->'}</a>
               </div>
            </div>
         </div>
