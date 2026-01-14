@@ -56,6 +56,10 @@ const getRemainingTimeBadge = (lic: License | undefined) => {
 const getPaymentBadge = (lic: License | undefined) => {
     if (!lic) return <span className="px-3 py-1 bg-gray-100 text-gray-400 text-[10px] font-black uppercase rounded-full">Keine Info</span>;
 
+    if (lic.status === SubscriptionStatus.TRIAL) {
+        return <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-black uppercase rounded-full">Trial</span>;
+    }
+
     const hasStripeSub = !!lic.stripeSubscriptionId?.startsWith('sub_');
 
     if (!hasStripeSub) {
@@ -190,7 +194,7 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
                     <div>
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Status - Händisch</label>
                         <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
-                            <option value="active">Bezahlt / Aktiv</option>
+                            <option value="active">Bezahlt</option>
                             <option value="trial">Trial (Production)</option>
                             <option value="past_due">Zahlung offen</option>
                             <option value="canceled">Gekündigt</option>
@@ -303,7 +307,7 @@ const UsersManagement: React.FC = () => {
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</label>
                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none appearance-none">
                             <option value="all">Alle Status</option>
-                            <option value="active">Aktiv / Bezahlt</option>
+                            <option value="active">Bezahlt</option>
                             <option value="trial">Trial</option>
                             <option value="past_due">Zahlung offen</option>
                             <option value="canceled">Gekündigt</option>
