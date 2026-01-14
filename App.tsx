@@ -7,6 +7,7 @@ import { Landing } from './pages/Landing';
 import { AuthPage } from './pages/Auth';
 import { CustomerDashboard } from './pages/CustomerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { HelpPage } from './pages/Help';
 import { BillingReturn } from './pages/BillingReturn';
 import { UserRole } from './types';
 import { Loader2 } from 'lucide-react';
@@ -66,6 +67,16 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute requiredRole={UserRole.ADMIN}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Help Page: Accessible for all authenticated users */}
+          <Route 
+            path="/help" 
+            element={
+              <ProtectedRoute>
+                <HelpPage />
               </ProtectedRoute>
             } 
           />

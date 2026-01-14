@@ -128,7 +128,7 @@ export const Landing: React.FC = () => {
           <div className="hidden md:flex gap-6 text-sm font-medium text-gray-700">
             <a href="#pricing" className="hover:text-brand-500">Pricing</a>
             <Link to="#" className="hover:text-brand-500">Learning Campus</Link>
-            <Link to="#" className="hover:text-brand-500">Help</Link>
+            <Link to="/help" className="hover:text-brand-500">Help</Link>
           </div>
         </div>
         
