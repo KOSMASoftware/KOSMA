@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { MarketingLayout } from '../components/layout/MarketingLayout';
 
 const DottedPattern = ({ className }: { className?: string }) => (
   <div className={`grid grid-cols-4 gap-3 opacity-20 ${className}`}>
@@ -13,24 +14,16 @@ const DottedPattern = ({ className }: { className?: string }) => (
   </div>
 );
 
+// Wrapper that uses MarketingLayout but maintains the inner centering and pattern logic
 const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?: string }> = ({ children, title, subtitle }) => (
-  <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900 overflow-hidden">
-    <header className="w-full max-w-7xl mx-auto px-8 py-10 flex justify-between items-center z-20">
-      <Link to="/" className="text-2xl font-bold text-[#0093D0] tracking-tight">KOSMA</Link>
-      <div className="flex items-center gap-10 text-sm font-bold">
-        <Link to="#" className="text-[#0093D0] hover:text-[#007fb5] transition-colors">Download</Link>
-        <Link to="/login" className="text-gray-900 hover:text-[#0093D0] transition-colors">Login</Link>
-        <Link to="/signup" className="bg-[#111827] text-white px-7 py-2.5 rounded-md hover:bg-black transition-colors">Sign Up</Link>
-      </div>
-    </header>
-
-    <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+  <MarketingLayout>
+    <div className="flex-1 flex flex-col items-center justify-center p-4 relative min-h-[calc(100vh-200px)]">
       <DottedPattern className="absolute left-[10%] xl:left-[20%] top-1/2 -translate-y-1/2 hidden md:grid" />
       <DottedPattern className="absolute right-[10%] xl:right-[20%] top-1/2 -translate-y-1/2 hidden md:grid" />
 
-      <div className="w-full max-w-[440px] z-10 -mt-24">
-        <div className="text-center mb-16">
-          <h1 className="text-[72px] font-bold text-[#111827] mb-2 leading-none tracking-tight">
+      <div className="w-full max-w-[440px] z-10 py-12">
+        <div className="text-center mb-12">
+          <h1 className="text-[64px] font-bold text-[#111827] mb-2 leading-none tracking-tight">
             {title}
           </h1>
           {subtitle && (
@@ -42,7 +35,7 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
         {children}
       </div>
     </div>
-  </div>
+  </MarketingLayout>
 );
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {

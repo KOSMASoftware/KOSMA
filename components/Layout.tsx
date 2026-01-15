@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { LogOut, LayoutDashboard, Settings, CreditCard, ShieldCheck, LineChart, Server, Menu, X, Zap, TrendingUp, Bug, CircleHelp } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, CreditCard, ShieldCheck, LineChart, Server, X, Zap, TrendingUp, Bug, CircleHelp } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AppShell } from './layout/AppShell';
 
 const NavItem = ({ to, icon: Icon, label, active, onClick }: { to: string; icon: any; label: string; active: boolean; onClick?: () => void }) => (
   <Link
@@ -36,23 +37,27 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const isCustomer = user.role === UserRole.CUSTOMER;
   const isAdmin = user.role === UserRole.ADMIN;
 
+  // Shared Sidebar Logic
   const SidebarContent = (onClick?: () => void) => (
     <>
-      <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+      <div className="p-6 border-b border-gray-100 flex justify-between items-center h-[72px]">
         <div>
           <div className="flex items-center gap-2 font-black text-2xl text-brand-500 tracking-tighter">
             <span>KOSMA</span>
           </div>
-          <div className="mt-2 text-[10px] font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full inline-block tracking-[0.2em]">
+          <div className="mt-1 text-[10px] font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full inline-block tracking-[0.2em]">
             {isAdmin ? 'ADMIN AREA' : 'CUSTOMER AREA'}
           </div>
         </div>
-        <button className="md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
-          <X className="w-6 h-6 text-gray-400" />
-        </button>
+        {/* Only show close button if passed (mobile mode) */}
+        {onClick && (
+          <button className="md:hidden" onClick={onClick}>
+            <X className="w-6 h-6 text-gray-400" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {isCustomer && (
           <>
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Overview" active={location.pathname === '/dashboard'} onClick={onClick} />
@@ -121,32 +126,19 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans">
-      <header className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-30">
-        <div className="text-xl font-black text-brand-500 tracking-tighter">KOSMA</div>
-        <button onClick={() => setIsMobileMenuOpen(true)}>
-          <Menu className="w-6 h-6 text-gray-600" />
-        </button>
-      </header>
-
-      <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col sticky top-0 h-screen">
-        {SidebarContent()}
-      </aside>
-
-      {isMobileMenuOpen && (
+    <AppShell
+      sidebar={SidebarContent()}
+      onMobileMenuClick={() => setIsMobileMenuOpen(true)}
+      mobileMenu={isMobileMenuOpen ? (
         <div className="fixed inset-0 z-50 md:hidden animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
           <aside className="absolute inset-y-0 left-0 w-4/5 max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
             {SidebarContent(() => setIsMobileMenuOpen(false))}
           </aside>
         </div>
-      )}
-
-      <main className="flex-1 w-full relative overflow-y-auto">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
-          {children}
-        </div>
-      </main>
-    </div>
+      ) : null}
+    >
+      {children}
+    </AppShell>
   );
 };
