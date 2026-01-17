@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Download } from 'lucide-react';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -11,6 +11,10 @@ interface MarketingLayoutProps {
 
 export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hideNavLinks = false }) => {
   const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+  const linkClass = (path: string) => `transition-colors ${isActive(path) ? 'text-brand-500' : 'hover:text-brand-500'}`;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
@@ -20,10 +24,11 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
           <Link to="/" className="text-2xl font-black text-brand-500 tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
           
           {!hideNavLinks && (
-            <div className="hidden md:flex gap-6 text-sm font-bold text-gray-500">
-              <Link to="/pricing" className="hover:text-brand-500 transition-colors">Pricing</Link>
-              <Link to="/learning" className="hover:text-brand-500 transition-colors">Learning Campus</Link>
-              <Link to="/help" className="hover:text-brand-500 transition-colors">Knowledge Base</Link>
+            <div className="hidden lg:flex gap-6 text-sm font-bold text-gray-500">
+              <Link to="/pricing" className={linkClass('/pricing')}>Pricing</Link>
+              <Link to="/learning" className={linkClass('/learning')}>Learning Campus</Link>
+              <Link to="/help" className={linkClass('/help')}>Knowledge Base</Link>
+              <Link to="/contact" className={linkClass('/contact')}>Contact</Link>
             </div>
           )}
         </div>
@@ -39,7 +44,10 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
           ) : (
             <>
               <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors">Login</Link>
-              <Link to="/signup" className="bg-gray-900 text-white px-5 py-2 rounded-xl hover:bg-brand-500 transition-all shadow-lg shadow-gray-900/10">Get Started</Link>
+              <Link to="/signup" className="text-gray-900 hover:text-brand-500 transition-colors">Get Started</Link>
+              <Link to="/download" className="bg-brand-500 text-white px-5 py-2 rounded-xl hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2">
+                <Download className="w-4 h-4" /> Download
+              </Link>
             </>
           )}
         </div>
