@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
 import { Globe, ChevronDown } from 'lucide-react';
+import { Footer } from '../components/layout/Footer';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
@@ -266,6 +267,9 @@ export const Landing: React.FC = () => {
 
           {/* FEATURES SECTION */}
           <FeaturesSection />
+
+          {/* FOOTER */}
+          <Footer />
       </div>
     </PulsingDotsBackground>
   );
