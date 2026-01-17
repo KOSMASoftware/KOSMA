@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
+import { Globe, ChevronDown } from 'lucide-react';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
@@ -183,11 +184,18 @@ export const Landing: React.FC = () => {
           {/* HEADER OVERLAY */}
           <div className="absolute top-0 left-0 w-full z-20 flex justify-between items-center p-6 md:px-12 pointer-events-none">
               <div className="pointer-events-auto">
-              <Link to="/" className="text-2xl font-black text-white tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
+                <Link to="/" className="text-2xl font-black text-white tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
               </div>
-              <div className="pointer-events-auto flex gap-6 text-sm font-bold text-white/90">
-              <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-              <Link to="/login" className="hover:text-white transition-colors">Login</Link>
+              <div className="pointer-events-auto flex items-center gap-6 text-sm font-bold text-white/90">
+                {/* Language Picker (Visual only) */}
+                <div className="hidden md:flex items-center gap-1.5 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 border-r border-white/20 pr-4">
+                  <Globe className="w-4 h-4" />
+                  <span className="text-xs uppercase">EN</span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </div>
+                
+                <Link to="/pricing" className="hover:text-white transition-colors hidden sm:block">Pricing</Link>
+                <Link to="/login" className="hover:text-white transition-colors">Login</Link>
               </div>
           </div>
 
