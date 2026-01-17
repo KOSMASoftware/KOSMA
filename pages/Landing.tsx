@@ -163,6 +163,14 @@ export const Landing: React.FC = () => {
     }
   };
 
+  const scrollToFeatures = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = document.getElementById('features');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="flex flex-col w-full font-sans">
         {/* HERO SECTION */}
@@ -229,7 +237,8 @@ export const Landing: React.FC = () => {
                 </Link>
                 <a
                 href="#features"
-                className="rounded-xl px-6 py-4 text-sm font-bold border border-white/15 bg-white/10 text-white/90 backdrop-blur hover:bg-white/20 transition-all"
+                onClick={scrollToFeatures}
+                className="rounded-xl px-6 py-4 text-sm font-bold border border-white/15 bg-white/10 text-white/90 backdrop-blur hover:bg-white/20 transition-all cursor-pointer"
                 >
                 See it in action
                 </a>
