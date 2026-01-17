@@ -17,27 +17,39 @@ type Dot = {
   scaleAmp: number;
 };
 
-// Fixed wedge formation (Keil-Form rechts)
-const DOTS_SOURCE: Array<Pick<Dot, "x" | "y" | "r" | "gray">> = [
-  { x: 0.92, y: 0.86, r: 64, gray: 215 },
-  { x: 0.86, y: 0.80, r: 54, gray: 225 },
-  { x: 0.95, y: 0.72, r: 44, gray: 230 },
+// Fixed layout per specification
+const DOTS_FIXED = [
+  // rechts außen (dunkler, größer)
+  { x: 0.94, y: 0.82, r: 54, gray: 200 },
+  { x: 0.95, y: 0.68, r: 44, gray: 205 },
+  { x: 0.93, y: 0.54, r: 36, gray: 210 },
 
-  { x: 0.80, y: 0.70, r: 50, gray: 220 },
-  { x: 0.90, y: 0.62, r: 42, gray: 232 },
-  { x: 0.84, y: 0.58, r: 38, gray: 228 },
+  // Mitte
+  { x: 0.88, y: 0.74, r: 46, gray: 215 },
+  { x: 0.86, y: 0.62, r: 38, gray: 220 },
+  { x: 0.86, y: 0.50, r: 32, gray: 225 },
 
-  { x: 0.74, y: 0.66, r: 34, gray: 232 },
-  { x: 0.70, y: 0.58, r: 28, gray: 235 },
-  { x: 0.66, y: 0.62, r: 24, gray: 236 },
-  { x: 0.62, y: 0.56, r: 20, gray: 238 },
+  // nach links auslaufend (heller, kleiner)
+  { x: 0.80, y: 0.70, r: 34, gray: 228 },
+  { x: 0.78, y: 0.58, r: 28, gray: 232 },
+  { x: 0.76, y: 0.48, r: 22, gray: 236 },
+  { x: 0.72, y: 0.40, r: 18, gray: 240 },
 
-  { x: 0.88, y: 0.48, r: 36, gray: 232 },
-  { x: 0.94, y: 0.52, r: 28, gray: 238 },
-  { x: 0.78, y: 0.88, r: 34, gray: 230 },
+  // obere Kante
+  { x: 0.90, y: 0.40, r: 26, gray: 220 },
+  { x: 0.84, y: 0.36, r: 20, gray: 232 },
+  { x: 0.78, y: 0.32, r: 16, gray: 240 },
 ];
 
-interface PulsingDotsBackgroundProps {
+export function PulsingDotsBackground({
+  children,
+  className,
+  containerClassName,
+  background = "#ffffff",
+  dotCount,
+  grayRange, // Optional overrides for Auth page
+  radiusRange, // Optional overrides for Auth page
+}: {
   children?: React.ReactNode;
   className?: string;
   containerClassName?: string;
@@ -45,21 +57,7 @@ interface PulsingDotsBackgroundProps {
   dotCount?: number;
   grayRange?: [number, number];
   radiusRange?: [number, number];
-  speed?: number;
-  alphaRange?: [number, number];
-}
-
-export function PulsingDotsBackground({
-  children,
-  className,
-  containerClassName,
-  background = "#ffffff",
-  dotCount = 13,
-  grayRange = [215, 238],
-  radiusRange = [20, 64],
-  speed = 1,
-  alphaRange = [0.22, 0.34],
-}: PulsingDotsBackgroundProps) {
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const [isSafari, setIsSafari] = useState(false);
@@ -75,25 +73,35 @@ export function PulsingDotsBackground({
   const dots: Dot[] = useMemo(() => {
     const rand = (min: number, max: number) => min + Math.random() * (max - min);
     
-    // Slice dots based on count preference, maintaining the order of the source array
-    const baseDots = DOTS_SOURCE.slice(0, Math.min(dotCount, DOTS_SOURCE.length));
+    // Use the fixed dots as source, slice if dotCount is provided
+    const sourceDots = DOTS_FIXED.slice(0, dotCount ?? DOTS_FIXED.length);
 
-    return baseDots.map((d) => ({
-      ...d,
-      // Map original fixed values to new dynamic ranges if needed, 
-      // or just randomize within the requested range for variety.
-      // Here we randomize within the range to respect the "Mood" config.
-      r: rand(radiusRange[0], radiusRange[1]),
-      gray: Math.floor(rand(grayRange[0], grayRange[1])),
-      
-      phase: rand(0, Math.PI * 2),
-      speed: rand(0.6, 1.1) * speed,
-      alpha: rand(alphaRange[0], alphaRange[1]),
-      blur: rand(8, 16),
-      blurAmp: rand(3, 8),
-      scaleAmp: rand(0.02, 0.05),
-    }));
-  }, [dotCount, grayRange, radiusRange, speed, alphaRange]);
+    return sourceDots.map((d) => {
+        // Allow overriding gray/radius for specific variants (like Auth)
+        // If ranges are provided, map the fixed value to the new range or randomize
+        let finalR = d.r;
+        let finalGray = d.gray;
+
+        if (radiusRange) {
+           finalR = rand(radiusRange[0], radiusRange[1]);
+        }
+        if (grayRange) {
+           finalGray = Math.floor(rand(grayRange[0], grayRange[1]));
+        }
+
+        return {
+          ...d,
+          r: finalR,
+          gray: finalGray,
+          phase: rand(0, Math.PI * 2),
+          speed: rand(0.6, 1.1),
+          alpha: rand(0.22, 0.34),
+          blur: rand(8, 16),
+          blurAmp: rand(3, 8),
+          scaleAmp: rand(0.02, 0.05),
+        };
+    });
+  }, [dotCount, grayRange, radiusRange]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -135,7 +143,7 @@ export function PulsingDotsBackground({
         const y = d.y * window.innerHeight;
         const r = d.r * scale;
 
-        // Fade towards left
+        // Fade nach links
         const fade = Math.min(1, Math.max(0, (d.x - 0.55) / 0.45));
 
         ctx.save();

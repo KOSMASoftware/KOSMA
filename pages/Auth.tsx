@@ -17,8 +17,6 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
           dotCount={12}
           grayRange={[220, 240]}
           radiusRange={[12, 40]}
-          speed={0.6}
-          alphaRange={[0.12, 0.22]}
         />
       </div>
 

@@ -141,13 +141,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   );
 
   return (
-    <PulsingDotsBackground 
-      dotCount={7} 
-      radiusRange={[10, 20]} 
-      alphaRange={[0.05, 0.15]} 
-      speed={0.5}
-      containerClassName="z-0"
-    >
+    <PulsingDotsBackground containerClassName="z-0">
       <AppShell
         sidebar={SidebarContent()}
         onMobileMenuClick={() => setIsMobileMenuOpen(true)}

@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
+import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
@@ -58,7 +59,7 @@ const FeaturesSection: React.FC = () => {
   const active = modules.find(m => m.id === activeId) ?? modules[0];
 
   return (
-    <section id="features" className="bg-white py-24 md:py-32 px-6">
+    <section id="features" className="relative z-10 py-24 md:py-32 px-6">
       <div className="mx-auto max-w-6xl space-y-10">
 
         {/* Headline */}
@@ -172,90 +173,92 @@ export const Landing: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full font-sans">
-        {/* HERO SECTION */}
-        <div
-        className="relative w-full h-screen min-h-[600px] overflow-hidden text-white"
-        style={{ background: BG }}
-        >
-        {/* HEADER OVERLAY */}
-        <div className="absolute top-0 left-0 w-full z-20 flex justify-between items-center p-6 md:px-12 pointer-events-none">
-            <div className="pointer-events-auto">
-            <Link to="/" className="text-2xl font-black text-white tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
-            </div>
-            <div className="pointer-events-auto flex gap-6 text-sm font-bold text-white/90">
-            <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-            <Link to="/login" className="hover:text-white transition-colors">Login</Link>
-            </div>
-        </div>
+    <PulsingDotsBackground>
+      <div className="flex flex-col w-full font-sans">
+          {/* HERO SECTION */}
+          <div
+          className="relative w-full h-screen min-h-[600px] overflow-hidden text-white z-20"
+          style={{ background: BG }}
+          >
+          {/* HEADER OVERLAY */}
+          <div className="absolute top-0 left-0 w-full z-20 flex justify-between items-center p-6 md:px-12 pointer-events-none">
+              <div className="pointer-events-auto">
+              <Link to="/" className="text-2xl font-black text-white tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
+              </div>
+              <div className="pointer-events-auto flex gap-6 text-sm font-bold text-white/90">
+              <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+              <Link to="/login" className="hover:text-white transition-colors">Login</Link>
+              </div>
+          </div>
 
-        {/* Subtle circles motif */}
-        <div
-            className="absolute inset-0 opacity-[0.22] pointer-events-none"
-            style={{
-            filter: 'blur(0.2px)',
-            background:
-                'radial-gradient(circle at 85% 50%, rgba(255,255,255,0.22) 0 14px, transparent 15px),\n' +
-                'radial-gradient(circle at 90% 35%, rgba(255,255,255,0.18) 0 14px, transparent 15px),\n' +
-                'radial-gradient(circle at 95% 55%, rgba(255,255,255,0.20) 0 14px, transparent 15px),\n' +
-                'radial-gradient(circle at 80% 70%, rgba(255,255,255,0.16) 0 14px, transparent 15px),\n' +
-                'radial-gradient(circle at 88% 82%, rgba(255,255,255,0.12) 0 14px, transparent 15px)'
-            }}
-        />
+          {/* Subtle circles motif */}
+          <div
+              className="absolute inset-0 opacity-[0.22] pointer-events-none"
+              style={{
+              filter: 'blur(0.2px)',
+              background:
+                  'radial-gradient(circle at 85% 50%, rgba(255,255,255,0.22) 0 14px, transparent 15px),\n' +
+                  'radial-gradient(circle at 90% 35%, rgba(255,255,255,0.18) 0 14px, transparent 15px),\n' +
+                  'radial-gradient(circle at 95% 55%, rgba(255,255,255,0.20) 0 14px, transparent 15px),\n' +
+                  'radial-gradient(circle at 80% 70%, rgba(255,255,255,0.16) 0 14px, transparent 15px),\n' +
+                  'radial-gradient(circle at 88% 82%, rgba(255,255,255,0.12) 0 14px, transparent 15px)'
+              }}
+          />
 
-        <div className="absolute inset-0 cursor-crosshair" onClick={randomize} />
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
+          <div className="absolute inset-0 cursor-crosshair" onClick={randomize} />
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
 
-        <div className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none">
-            <div className="max-w-4xl w-full">
-            <h1
-                className="m-0 font-black tracking-[-0.04em] leading-[0.95] text-[clamp(38px,6vw,86px)]"
-                style={{ textShadow: '0 0 24px rgba(0,0,0,0.65)' }}
-            >
-                Bring AI to your budget
-            </h1>
-            <p className="mt-4 mx-auto max-w-2xl text-[clamp(14px,1.6vw,18px)] leading-[1.45] text-white/80">
-                Simply the most advanced{' '}
-                <MorphingText
-                  words={[
-                    'Budgeting',
-                    'Financing',
-                    'Cash Flow',
-                    'Cost Control'
-                  ]}
-                />{' '}
-                Software
-            </p>
+          <div className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none">
+              <div className="max-w-4xl w-full">
+              <h1
+                  className="m-0 font-black tracking-[-0.04em] leading-[0.95] text-[clamp(38px,6vw,86px)]"
+                  style={{ textShadow: '0 0 24px rgba(0,0,0,0.65)' }}
+              >
+                  Bring AI to your budget
+              </h1>
+              <p className="mt-4 mx-auto max-w-2xl text-[clamp(14px,1.6vw,18px)] leading-[1.45] text-white/80">
+                  Simply the most advanced{' '}
+                  <MorphingText
+                    words={[
+                      'Budgeting',
+                      'Financing',
+                      'Cash Flow',
+                      'Cost Control'
+                    ]}
+                  />{' '}
+                  Software
+              </p>
 
-            <div className="mt-8 flex flex-wrap gap-4 justify-center pointer-events-auto">
-                <Link
-                to="/download"
-                className="rounded-xl px-6 py-4 text-sm font-bold border border-white/10 transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-brand-500/20"
-                style={{ background: BRAND, color: '#061018' }}
-                >
-                Get started
-                </Link>
-                <a
-                href="#features"
-                onClick={scrollToFeatures}
-                className="rounded-xl px-6 py-4 text-sm font-bold border border-white/15 bg-white/10 text-white/90 backdrop-blur hover:bg-white/20 transition-all cursor-pointer"
-                >
-                See it in action
-                </a>
-            </div>
-            </div>
-        </div>
+              <div className="mt-8 flex flex-wrap gap-4 justify-center pointer-events-auto">
+                  <Link
+                  to="/download"
+                  className="rounded-xl px-6 py-4 text-sm font-bold border border-white/10 transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-brand-500/20"
+                  style={{ background: BRAND, color: '#061018' }}
+                  >
+                  Get started
+                  </Link>
+                  <a
+                  href="#features"
+                  onClick={scrollToFeatures}
+                  className="rounded-xl px-6 py-4 text-sm font-bold border border-white/15 bg-white/10 text-white/90 backdrop-blur hover:bg-white/20 transition-all cursor-pointer"
+                  >
+                  See it in action
+                  </a>
+              </div>
+              </div>
+          </div>
 
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-8 z-10 text-[10px] tracking-[0.2em] uppercase text-white/40 flex gap-6 pointer-events-none">
-            <span>Move cursor</span>
-            <span>Click to randomize</span>
-        </div>
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-8 z-10 text-[10px] tracking-[0.2em] uppercase text-white/40 flex gap-6 pointer-events-none">
+              <span>Move cursor</span>
+              <span>Click to randomize</span>
+          </div>
 
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(80% 60% at 50% 10%, rgba(0,147,213,0.10), transparent)' }} />
-        </div>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(80% 60% at 50% 10%, rgba(0,147,213,0.10), transparent)' }} />
+          </div>
 
-        {/* FEATURES SECTION */}
-        <FeaturesSection />
-    </div>
+          {/* FEATURES SECTION */}
+          <FeaturesSection />
+      </div>
+    </PulsingDotsBackground>
   );
 };
