@@ -46,9 +46,9 @@ export interface HelpCategory {
 export const HELP_DATA: HelpCategory[] = [
   {
     id: 'first-steps',
-    title: 'Erste Schritte',
+    title: 'First Steps',
     iconKey: 'Rocket',
-    description: 'Alles für den perfekten Start in KOSMA.',
+    description: 'Get started quickly with KOSMA.',
     articles: [
       {
         id: 'registration',
@@ -106,9 +106,9 @@ export const HELP_DATA: HelpCategory[] = [
   },
   {
     id: 'budgeting',
-    title: 'Kalkulieren',
+    title: 'Budgeting',
     iconKey: 'Calculator',
-    description: 'Budgets erstellen, Positionen bearbeiten und Vorlagen nutzen.',
+    description: 'Create budgets, edit items, and use templates.',
     articles: [
       {
         id: 'create-budget',
@@ -127,51 +127,51 @@ export const HELP_DATA: HelpCategory[] = [
   },
   {
     id: 'financing',
-    title: 'Finanzierung',
+    title: 'Financing',
     iconKey: 'PieChart',
-    description: 'Finanzierungspläne und Mittelabfluss.',
+    description: 'Financing plans and funding structures.',
     articles: []
   },
   {
     id: 'cash-flow',
     title: 'Cash Flow',
     iconKey: 'Coins',
-    description: 'Liquiditätsplanung und Zahlungsströme.',
+    description: 'Cash flow planning and payment schedules.',
     articles: []
   },
   {
     id: 'cost-control',
-    title: 'Kostenkontrolle',
+    title: 'Cost Control',
     iconKey: 'TrendingUp',
-    description: 'Soll-Ist Vergleiche und Kostenüberwachung.',
+    description: 'Track actuals vs. budget and forecast updates.',
     articles: []
   },
   {
     id: 'printing',
-    title: 'Drucken & Teilen',
+    title: 'Printing & Sharing',
     iconKey: 'Printer',
-    description: 'PDF Exporte, Wasserzeichen und Team-Sharing.',
+    description: 'Export, print, and share project data.',
     articles: []
   },
   {
     id: 'admin',
-    title: 'Projektverwaltung',
+    title: 'Project Management',
     iconKey: 'Settings',
-    description: 'Projekte archivieren, löschen oder umbenennen.',
+    description: 'Manage projects, members, and permissions.',
     articles: []
   },
   {
     id: 'license',
-    title: 'Lizenz',
+    title: 'Licensing',
     iconKey: 'ShieldCheck',
-    description: 'Abonnements, Laufzeiten und Upgrades.',
+    description: 'Licenses, upgrades, and cancellations.',
     articles: []
   },
   {
     id: 'faq',
     title: 'FAQ',
     iconKey: 'CircleHelp',
-    description: 'Häufig gestellte Fragen zu Account und Technik.',
+    description: 'Frequently asked questions.',
     articles: []
   }
 ];

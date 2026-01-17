@@ -63,7 +63,7 @@ const ArticleDetail = ({ article }: { article: KnowledgeArticle }) => {
              {relatedLearning.length > 0 && (
                 <div className="bg-brand-50/50 rounded-2xl p-6 border border-brand-100">
                    <h3 className="font-black text-brand-900 uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4" /> Praktische Anwendung
+                      <GraduationCap className="w-4 h-4" /> Apply this knowledge
                    </h3>
                    <ul className="space-y-3">
                       {relatedLearning.map(learn => (
@@ -83,7 +83,7 @@ const ArticleDetail = ({ article }: { article: KnowledgeArticle }) => {
              
              {article.synonyms && (
                 <div className="p-6">
-                   <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-2">Synonyme</h3>
+                   <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-2">Synonyms</h3>
                    <div className="flex flex-wrap gap-2">
                       {article.synonyms.map(syn => (
                         <span key={syn} className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
@@ -120,12 +120,12 @@ const KnowledgeBaseContent: React.FC = () => {
   // View: Article Detail
   if (id) {
     const article = KNOWLEDGE_ARTICLES.find(a => a.id === id);
-    if (!article) return <div className="text-center py-20">Artikel nicht gefunden.</div>;
+    if (!article) return <div className="text-center py-20">Article not found.</div>;
     
     return (
        <div className="max-w-7xl mx-auto pb-20 pt-8 px-4">
           <button onClick={() => navigate('/help')} className="mb-8 flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors">
-             <ArrowLeft className="w-4 h-4" /> Zurück zur Übersicht
+             <ArrowLeft className="w-4 h-4" /> Back to overview
           </button>
           <ArticleDetail article={article} />
        </div>
@@ -138,7 +138,7 @@ const KnowledgeBaseContent: React.FC = () => {
        <div className="text-center mb-16">
           <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter mb-6">Knowledge Base</h1>
           <p className="text-xl text-gray-500 font-medium max-w-2xl mx-auto mb-10">
-             Die zentrale Datenbank für Begriffe, Konzepte und Logiken in KOSMA.
+             The central reference for terms, concepts, and logic in KOSMA.
           </p>
           
           <div className="relative max-w-2xl mx-auto group">
@@ -149,7 +149,7 @@ const KnowledgeBaseContent: React.FC = () => {
                    type="text" 
                    value={search}
                    onChange={e => setSearch(e.target.value)}
-                   placeholder="Suche nach Begriffen (z.B. 'Magic Link', 'Markup')..." 
+                   placeholder="Search for terms (e.g. 'Magic Link', 'Markup')..." 
                    className="w-full p-4 outline-none text-lg bg-transparent font-medium"
                 />
              </div>
@@ -167,7 +167,7 @@ const KnowledgeBaseContent: React.FC = () => {
                          ))}
                       </div>
                    ) : (
-                      <div className="p-8 text-center text-gray-400 italic">Keine Treffer.</div>
+                      <div className="p-8 text-center text-gray-400 italic">No results.</div>
                    )}
                 </div>
              )}

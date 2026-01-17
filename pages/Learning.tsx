@@ -7,7 +7,7 @@ import {
   Maximize2, Minimize2, ChevronUp, Filter, ShieldCheck, Coins
 } from 'lucide-react';
 import { HELP_DATA, HelpCategory, HelpArticle, HelpStep, HelpMedia } from '../data/helpArticles';
-import { UserRoleFilter } from '../data/taxonomy';
+import { UserRoleFilter, ROLE_LABELS } from '../data/taxonomy';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Layout as DashboardLayout } from '../components/Layout';
@@ -70,7 +70,7 @@ const SearchBar = ({ value, onChange }: { value: string, onChange: (v: string) =
                 type="text" 
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                placeholder="Suche nach Themen, z.B. 'Registrierung'..." 
+                placeholder="Search for topics, e.g. 'Registration'..." 
                 className="w-full py-5 outline-none text-lg text-gray-900 placeholder:text-gray-400 font-medium bg-transparent"
             />
         </div>
@@ -94,7 +94,7 @@ const RoleFilterBar = ({ active, onChange }: { active: string, onChange: (r: any
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
-            {role}
+            {ROLE_LABELS[role]}
           </button>
         ))}
       </div>
@@ -151,7 +151,7 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-2 mb-4">
          {article.roles?.map(r => (
-           <span key={r} className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider">{r}</span>
+           <span key={r} className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider">{ROLE_LABELS[r]}</span>
          ))}
       </div>
       <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-8 tracking-tight leading-tight">
@@ -164,7 +164,7 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
               <CheckCircle className="w-5 h-5 text-brand-500" />
            </div>
            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-brand-500 mb-1">Zusammenfassung</p>
+              <p className="text-xs font-black uppercase tracking-widest text-brand-500 mb-1">Summary</p>
               {article.entry.summary}
            </div>
         </div>
@@ -176,9 +176,9 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
           className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-brand-500 transition-colors uppercase tracking-wider"
         >
           {allOpen ? (
-            <><Minimize2 className="w-4 h-4" /> Alle schließen</>
+            <><Minimize2 className="w-4 h-4" /> Close all</>
           ) : (
-            <><Maximize2 className="w-4 h-4" /> Alle öffnen</>
+            <><Maximize2 className="w-4 h-4" /> Open all</>
           )}
         </button>
       </div>
@@ -233,10 +233,10 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
       </div>
       
       <div className="mt-20 pt-10 border-t border-gray-100 text-center">
-         <p className="text-sm text-gray-500 font-medium">War dieser Artikel hilfreich?</p>
+         <p className="text-sm text-gray-500 font-medium">Was this article helpful?</p>
          <div className="flex justify-center gap-4 mt-4">
-            <button className="px-6 py-2 rounded-full border border-gray-200 hover:border-gray-900 hover:bg-gray-900 hover:text-white transition-all text-sm font-bold">Ja, danke</button>
-            <button className="px-6 py-2 rounded-full border border-gray-200 hover:border-gray-900 hover:bg-gray-900 hover:text-white transition-all text-sm font-bold">Nicht wirklich</button>
+            <button className="px-6 py-2 rounded-full border border-gray-200 hover:border-gray-900 hover:bg-gray-900 hover:text-white transition-all text-sm font-bold">Yes, thanks</button>
+            <button className="px-6 py-2 rounded-full border border-gray-200 hover:border-gray-900 hover:bg-gray-900 hover:text-white transition-all text-sm font-bold">Not really</button>
          </div>
       </div>
     </div>
@@ -277,7 +277,6 @@ const LearningPageContent: React.FC = () => {
     const results: { category: HelpCategory, article: HelpArticle }[] = [];
     
     // Search in original data to ensure we find everything even if role filtered?
-    // Actually typically search overrides filters. Let's search in filteredData for consistency or HELP_DATA?
     // Using HELP_DATA to allow finding everything via search
     HELP_DATA.forEach(cat => {
       cat.articles.forEach(art => {
@@ -299,7 +298,7 @@ const LearningPageContent: React.FC = () => {
       <div className="max-w-6xl mx-auto pb-20 pt-8 px-4">
         <div className="text-center mb-8">
            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Learning Campus</h1>
-           <p className="text-gray-500 text-lg">Schritt-für-Schritt Anleitungen für den perfekten Workflow.</p>
+           <p className="text-gray-500 text-lg">Step-by-step guides for the perfect budget.</p>
            <div className="mt-8">
               <SearchBar value={searchQuery} onChange={setSearchQuery} />
            </div>
@@ -322,7 +321,7 @@ const LearningPageContent: React.FC = () => {
                   <h3 className="text-xl font-black text-gray-900 mb-2">{cat.title}</h3>
                   <p className="text-sm text-gray-500 leading-relaxed mb-6 flex-1">{cat.description}</p>
                   <div className="flex items-center gap-2 text-xs font-black text-brand-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
-                    {cat.articles.length} Artikel <ChevronRight className="w-3 h-3" />
+                    {cat.articles.length} Articles <ChevronRight className="w-3 h-3" />
                   </div>
                </button>
              );
@@ -336,9 +335,9 @@ const LearningPageContent: React.FC = () => {
                  <CircleHelp className="w-6 h-6" />
               </div>
               <div>
-                 <h4 className="font-bold text-gray-900 mb-2">Begriffe nachschlagen?</h4>
-                 <p className="text-sm text-gray-600 mb-4">Suchst du nach Definitionen oder technischen Erklärungen? Schau in die Knowledge Base.</p>
-                 <Link to="/help" className="text-sm font-black text-brand-500 hover:underline">Zur Knowledge Base {'->'}</Link>
+                 <h4 className="font-bold text-gray-900 mb-2">Look up terms?</h4>
+                 <p className="text-sm text-gray-600 mb-4">Looking for definitions or explanations? Check the Knowledge Base.</p>
+                 <Link to="/help" className="text-sm font-black text-brand-500 hover:underline">Go to Knowledge Base {'->'}</Link>
               </div>
            </div>
            <div className="bg-white rounded-[2rem] p-8 border border-gray-100 flex gap-6 items-start">
@@ -346,9 +345,9 @@ const LearningPageContent: React.FC = () => {
                  <MessageCircle className="w-6 h-6" />
               </div>
               <div>
-                 <h4 className="font-bold text-gray-900 mb-2">Fehler melden?</h4>
-                 <p className="text-sm text-gray-600 mb-4">Du hast einen Bug gefunden oder hast einen Feature-Wunsch? Schreib uns direkt.</p>
-                 <a href="#" className="text-sm font-black text-brand-500 hover:underline">Support kontaktieren {'->'}</a>
+                 <h4 className="font-bold text-gray-900 mb-2">Report a bug?</h4>
+                 <p className="text-sm text-gray-600 mb-4">Found a bug or have a feature request? Contact us directly.</p>
+                 <a href="#" className="text-sm font-black text-brand-500 hover:underline">Contact support {'->'}</a>
               </div>
            </div>
         </div>
@@ -367,7 +366,7 @@ const LearningPageContent: React.FC = () => {
            <SearchBar value={searchQuery} onChange={setSearchQuery} />
         </div>
         
-        <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">{searchResults.length} Ergebnisse gefunden</h2>
+        <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-6">{searchResults.length} results found</h2>
         
         <div className="space-y-4">
            {searchResults.map((res, idx) => {
@@ -394,7 +393,7 @@ const LearningPageContent: React.FC = () => {
            {searchResults.length === 0 && (
              <div className="text-center py-20 text-gray-400">
                <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
-               <p>Keine Ergebnisse für "{searchQuery}"</p>
+               <p>No results for "{searchQuery}"</p>
              </div>
            )}
         </div>
@@ -410,7 +409,7 @@ const LearningPageContent: React.FC = () => {
             onClick={() => { setSelectedCategoryId(null); setSelectedArticleId(null); }} 
             className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 mb-8 hover:text-brand-500 transition-colors"
           >
-             <ArrowLeft className="w-4 h-4" /> Zurück zur Übersicht
+             <ArrowLeft className="w-4 h-4" /> Back to overview
           </button>
 
           <div className="space-y-8">
@@ -440,7 +439,7 @@ const LearningPageContent: React.FC = () => {
                              {art.title}
                            </button>
                          ))}
-                         {cat.articles.length === 0 && <span className="text-xs text-gray-300 italic pl-3">Keine Artikel</span>}
+                         {cat.articles.length === 0 && <span className="text-xs text-gray-300 italic pl-3">No Articles</span>}
                       </div>
                     )}
                  </div>
@@ -458,7 +457,7 @@ const LearningPageContent: React.FC = () => {
               className="flex items-center gap-2 text-sm font-bold text-gray-500 mb-6 bg-white p-3 rounded-xl border border-gray-100 shadow-sm w-full justify-center"
             >
               <ArrowLeft className="w-4 h-4" /> 
-              {selectedArticleId ? 'Zurück zur Kategorie' : 'Zurück zur Übersicht'}
+              {selectedArticleId ? 'Back to category' : 'Back to overview'}
          </button>
        </div>
 
@@ -493,7 +492,7 @@ const LearningPageContent: React.FC = () => {
 
                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
                   <div className="p-8 border-b border-gray-100 bg-gray-50/50">
-                     <h3 className="font-black text-gray-400 text-xs uppercase tracking-widest">Artikel in diesem Bereich</h3>
+                     <h3 className="font-black text-gray-400 text-xs uppercase tracking-widest">Articles in this section</h3>
                   </div>
                   <div className="divide-y divide-gray-100">
                      {selectedCategory!.articles.map(art => (
@@ -512,7 +511,7 @@ const LearningPageContent: React.FC = () => {
                        </button>
                      ))}
                      {selectedCategory!.articles.length === 0 && (
-                        <div className="p-12 text-center text-gray-400 italic">In Kürze verfügbar.</div>
+                        <div className="p-12 text-center text-gray-400 italic">Coming soon.</div>
                      )}
                   </div>
                </div>
