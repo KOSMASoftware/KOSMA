@@ -1,4 +1,6 @@
 
+import { UserRoleFilter } from './taxonomy';
+
 export interface HelpMedia {
   kind: 'image' | 'video';
   bucket: string;
@@ -28,6 +30,7 @@ export interface HelpEntry {
 export interface HelpArticle {
   id: string;
   title: string;
+  roles?: UserRoleFilter[]; // New Role Filter
   tags?: string[];
   entry: HelpEntry;
 }
@@ -35,14 +38,9 @@ export interface HelpArticle {
 export interface HelpCategory {
   id: string;
   title: string;
-  iconKey: string; // Changed from React Component to string key
+  iconKey: string; 
   description?: string;
   articles: HelpArticle[];
-}
-
-export interface HelpKnowledgeBase {
-  version: string;
-  categories: HelpCategory[];
 }
 
 export const HELP_DATA: HelpCategory[] = [
@@ -55,6 +53,7 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: 'registration',
         title: 'Registrierung Website / Konto eröffnen',
+        roles: ['Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'], // Alle relevant
         entry: {
           id: 'entry-registration',
           summary: 'Lade zuerst die Software herunter, führe dann die Registrierung aus und bestätige diese per E-Mail.',
@@ -93,6 +92,7 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: 'interface',
         title: 'Die Benutzeroberfläche verstehen',
+        roles: ['Produktion', 'Herstellungsleitung'],
         entry: {
           id: 'entry-interface',
           summary: 'Lerne die wichtigsten Bereiche kennen: Projektliste, Navigation und Detail-Ansichten.',
@@ -113,6 +113,7 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: 'create-budget',
         title: 'Ein neues Budget erstellen',
+        roles: ['Produktion', 'Herstellungsleitung'],
         entry: {
           id: 'entry-create-budget',
           summary: 'Erstelle ein Budget basierend auf einer leeren Vorlage oder importiere bestehende Daten.',

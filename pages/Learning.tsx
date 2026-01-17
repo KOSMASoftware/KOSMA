@@ -4,9 +4,10 @@ import {
   Search, ChevronRight, Home, ArrowLeft, FileText, CheckCircle, 
   AlertTriangle, Lightbulb, Image as ImageIcon, ChevronDown,
   CircleHelp, MessageCircle, Rocket, Calculator, PieChart, TrendingUp, Settings, Printer, Share2, Download,
-  Maximize2, Minimize2, ChevronUp
+  Maximize2, Minimize2, ChevronUp, Filter
 } from 'lucide-react';
 import { HELP_DATA, HelpCategory, HelpArticle, HelpStep, HelpMedia } from '../data/helpArticles';
+import { UserRoleFilter } from '../data/taxonomy';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Layout as DashboardLayout } from '../components/Layout';
@@ -56,7 +57,7 @@ const Breadcrumbs = ({
 );
 
 const SearchBar = ({ value, onChange }: { value: string, onChange: (v: string) => void }) => (
-  <div className="relative w-full max-w-2xl mx-auto mb-12">
+  <div className="relative w-full max-w-2xl mx-auto mb-8">
     <div className="relative group">
         <div className="absolute inset-0 bg-brand-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         <div className="relative bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center overflow-hidden focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
@@ -74,6 +75,30 @@ const SearchBar = ({ value, onChange }: { value: string, onChange: (v: string) =
     </div>
   </div>
 );
+
+const RoleFilterBar = ({ active, onChange }: { active: string, onChange: (r: any) => void }) => {
+  const roles: (UserRoleFilter | 'Alle')[] = ['Alle', 'Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'];
+
+  return (
+    <div className="flex justify-center mb-12">
+      <div className="inline-flex flex-wrap justify-center gap-2 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+        {roles.map((role) => (
+          <button
+            key={role}
+            onClick={() => onChange(role)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              active === role
+                ? 'bg-brand-500 text-white shadow-md'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+          >
+            {role}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const MediaRenderer = ({ media }: { media: HelpMedia }) => {
   const publicUrl = supabase.storage.from(media.bucket).getPublicUrl(media.path).data.publicUrl;
@@ -122,6 +147,11 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center gap-2 mb-4">
+         {article.roles?.map(r => (
+           <span key={r} className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider">{r}</span>
+         ))}
+      </div>
       <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-8 tracking-tight leading-tight">
         {article.title}
       </h1>
@@ -215,10 +245,25 @@ const LearningPageContent: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+  const [activeRoleFilter, setActiveRoleFilter] = useState<UserRoleFilter | 'Alle'>('Alle');
+
+  // Filter Data based on Role
+  const filteredData = useMemo(() => {
+    return HELP_DATA.map(cat => ({
+      ...cat,
+      articles: cat.articles.filter(art => {
+        // Falls roles fehlt oder leer ist, behandle es als "Alle" (für jeden sichtbar)
+        // Sonst prüfe ob der activeRoleFilter enthalten ist
+        if (!art.roles || art.roles.length === 0) return true;
+        if (activeRoleFilter === 'Alle') return true;
+        return art.roles.includes(activeRoleFilter);
+      })
+    })).filter(cat => cat.articles.length > 0 || searchQuery); // Keep empty cats only if searching (to show no results better?) actually better to hide empty cats in grid
+  }, [activeRoleFilter, searchQuery]);
 
   const selectedCategory = useMemo(() => 
-    HELP_DATA.find(c => c.id === selectedCategoryId), 
-  [selectedCategoryId]);
+    filteredData.find(c => c.id === selectedCategoryId), 
+  [selectedCategoryId, filteredData]);
 
   const selectedArticle = useMemo(() => 
     selectedCategory?.articles.find(a => a.id === selectedArticleId), 
@@ -229,7 +274,7 @@ const LearningPageContent: React.FC = () => {
     const lowerQ = searchQuery.toLowerCase();
     const results: { category: HelpCategory, article: HelpArticle }[] = [];
     
-    HELP_DATA.forEach(cat => {
+    filteredData.forEach(cat => {
       cat.articles.forEach(art => {
         const titleMatch = art.title.toLowerCase().includes(lowerQ);
         const summaryMatch = (art.entry.summary || '').toLowerCase().includes(lowerQ);
@@ -241,22 +286,25 @@ const LearningPageContent: React.FC = () => {
       });
     });
     return results;
-  }, [searchQuery]);
+  }, [searchQuery, filteredData]);
 
   // View: Root (Grid)
   if (!selectedCategory && !searchQuery) {
     return (
       <div className="max-w-6xl mx-auto pb-20 pt-8 px-4">
-        <div className="text-center mb-16">
+        <div className="text-center mb-8">
            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Learning Campus</h1>
            <p className="text-gray-500 text-lg">Schritt-für-Schritt Anleitungen für den perfekten Workflow.</p>
-           <div className="mt-10">
+           <div className="mt-8">
               <SearchBar value={searchQuery} onChange={setSearchQuery} />
            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {HELP_DATA.map((cat) => {
+        <RoleFilterBar active={activeRoleFilter} onChange={setActiveRoleFilter} />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+           {filteredData.map((cat) => {
+             if (cat.articles.length === 0) return null; // Don't show empty categories in grid
              const IconComponent = ICON_MAP[cat.iconKey] || CircleHelp;
              return (
                <button 
@@ -362,7 +410,8 @@ const LearningPageContent: React.FC = () => {
           </button>
 
           <div className="space-y-8">
-             {HELP_DATA.map(cat => {
+             {filteredData.map(cat => {
+               if (cat.articles.length === 0) return null;
                const CatIcon = ICON_MAP[cat.iconKey] || CircleHelp;
                return (
                  <div key={cat.id}>
@@ -451,7 +500,9 @@ const LearningPageContent: React.FC = () => {
                          className="w-full text-left p-6 hover:bg-gray-50 transition-colors flex justify-between items-center group"
                        >
                           <div>
-                            <h4 className="font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{art.title}</h4>
+                            <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{art.title}</h4>
+                            </div>
                             <p className="text-sm text-gray-500 mt-1 line-clamp-1">{art.entry.summary || ''}</p>
                           </div>
                           <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-brand-500 transition-colors" />

@@ -3,7 +3,7 @@ import { Rocket, Calculator, PieChart, TrendingUp, Settings, Printer, Share2, Ci
 
 // --- SHARED TYPES ---
 
-export type UserRoleFilter = 'all' | 'producer' | 'line-producer' | 'accountant' | 'student';
+export type UserRoleFilter = 'Produktion' | 'Herstellungsleitung' | 'Finanzbuchhaltung';
 
 export interface HelpMedia {
   kind: 'image' | 'video';
@@ -31,10 +31,9 @@ export const DOC_ICONS: Record<string, any> = {
   'Film': Film
 };
 
-export const ROLE_LABELS: Record<UserRoleFilter, string> = {
-  'all': 'Alle Rollen',
-  'producer': 'Produzent',
-  'line-producer': 'Herstellungsleiter',
-  'accountant': 'Finanzbuchhaltung',
-  'student': 'Studenten/Starter'
+export const ROLE_LABELS: Record<UserRoleFilter | 'Alle', string> = {
+  'Alle': 'Alle',
+  'Produktion': 'Produktion',
+  'Herstellungsleitung': 'Herstellungsleitung',
+  'Finanzbuchhaltung': 'Finanzbuchhaltung'
 };
