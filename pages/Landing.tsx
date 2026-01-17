@@ -7,35 +7,55 @@ const BRAND = '#0093D5';
 const BG = '#0b0f14';
 
 const FeaturesSection: React.FC = () => {
-  const features = [
+  const modules = [
     {
       id: 'budgeting',
       title: 'Budgeting',
-      desc: 'Build budgets with precision and speed.',
-      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
+      features: [
+        { title: 'Budget Structure & Templates', desc: 'Build budgets from proven templates and keep a consistent top‑sheet structure.' },
+        { title: 'Line Item Details', desc: 'Edit units, rates, fringes, and markups directly inside each account line.' },
+        { title: 'Formula & Variables', desc: 'Use formulas and globals to automate calculations across the entire budget.' },
+        { title: 'Scenario Versions', desc: 'Create alternate budget versions and compare totals instantly.' }
+      ]
     },
     {
       id: 'financing',
       title: 'Financing',
-      desc: 'Plan funding and track financing structures.',
-      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
+      features: [
+        { title: 'Funding Sources', desc: 'Define and manage financing sources and assign them to producers.' },
+        { title: 'Funding Logic', desc: 'Connect financing lines to budget effects and calculate funding amounts.' },
+        { title: 'Co‑Production Splits', desc: 'Track cost shares across partners and countries in one financing view.' },
+        { title: 'Print‑Ready Financing', desc: 'Generate clean, shareable financing reports at any time.' }
+      ]
     },
     {
       id: 'cashflow',
       title: 'Cash Flow',
-      desc: 'Model cash flow and payment schedules.',
-      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
+      features: [
+        { title: 'Milestones & Phases', desc: 'Set milestones and phases to automate cash‑flow logic.' },
+        { title: 'Payment Rules', desc: 'Apply cash‑flow rules by date, milestone, or cycle.' },
+        { title: 'Dynamic Forecasting', desc: 'See how changes in the budget instantly affect cash‑flow.' },
+        { title: 'Producer Views', desc: 'Separate cash‑flow views by producer or funding entity.' }
+      ]
     },
     {
       id: 'cost-control',
       title: 'Cost Control',
-      desc: 'Compare plan vs. actuals and forecast updates.',
-      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
+      features: [
+        { title: 'Planned vs Actual', desc: 'Compare budgeted values against actuals in real time.' },
+        { title: 'Forecast Updates', desc: 'Update forecasts per account and track deviations immediately.' },
+        { title: 'Accounting Imports', desc: 'Import accounting data and map it directly to KOSMA accounts.' },
+        { title: 'Variance Tracking', desc: 'Highlight overruns and cost drivers with clear variance indicators.' }
+      ]
     }
   ];
 
-  const [activeId, setActiveId] = useState(features[0].id);
-  const active = features.find(f => f.id === activeId) ?? features[0];
+  const [activeId, setActiveId] = useState(modules[0].id);
+  const active = modules.find(m => m.id === activeId) ?? modules[0];
 
   return (
     <section id="features" className="bg-white py-24 md:py-32 px-6">
@@ -49,19 +69,19 @@ const FeaturesSection: React.FC = () => {
           </p>
         </div>
 
-        {/* TOP TABS */}
+        {/* TOP TABS (Module Switcher) */}
         <div className="flex flex-wrap gap-3">
-          {features.map(f => (
+          {modules.map(m => (
             <button
-              key={f.id}
-              onClick={() => setActiveId(f.id)}
+              key={m.id}
+              onClick={() => setActiveId(m.id)}
               className={`px-4 py-2 rounded-full text-sm font-bold transition-all border ${
-                activeId === f.id
+                activeId === m.id
                   ? 'bg-brand-500 text-white border-brand-500 shadow'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
               }`}
             >
-              {f.title}
+              {m.title}
             </button>
           ))}
         </div>
@@ -76,21 +96,13 @@ const FeaturesSection: React.FC = () => {
           />
         </div>
 
-        {/* BOTTOM FEATURES */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {features.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setActiveId(f.id)}
-              className={`text-left p-4 rounded-2xl border transition-all ${
-                activeId === f.id
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'border-gray-100 bg-white hover:border-gray-300'
-              }`}
-            >
-              <h3 className="text-sm font-bold text-gray-900">{f.title}</h3>
-              <p className="text-sm text-gray-500 mt-1">{f.desc}</p>
-            </button>
+        {/* BOTTOM FEATURES (4 Items per Module) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {active.features.map((f, i) => (
+            <div key={i} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-gray-200 transition-colors">
+              <h3 className="font-bold text-gray-900 mb-2">{f.title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+            </div>
           ))}
         </div>
       </div>
