@@ -1,11 +1,102 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Shield, Layout, Globe, Cpu, Layers } from 'lucide-react';
 import { MorphingText } from '../components/MorphingText';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
+
+const FeaturesSection: React.FC = () => {
+  const features = [
+    {
+      id: 'budgeting',
+      title: 'Budgeting',
+      desc: 'Build budgets with precision and speed.',
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+    },
+    {
+      id: 'financing',
+      title: 'Financing',
+      desc: 'Plan funding and track financing structures.',
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+    },
+    {
+      id: 'cashflow',
+      title: 'Cash Flow',
+      desc: 'Model cash flow and payment schedules.',
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+    },
+    {
+      id: 'cost-control',
+      title: 'Cost Control',
+      desc: 'Compare plan vs. actuals and forecast updates.',
+      mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+    }
+  ];
+
+  const [activeId, setActiveId] = useState(features[0].id);
+  const active = features.find(f => f.id === activeId) ?? features[0];
+
+  return (
+    <section id="features" className="bg-white py-24 md:py-32 px-6">
+      <div className="mx-auto max-w-6xl space-y-10">
+
+        {/* Headline */}
+        <div className="max-w-2xl">
+          <h2 className="text-4xl font-semibold lg:text-5xl text-gray-900">Built for production teams</h2>
+          <p className="mt-6 text-lg text-gray-600">
+            Focused tools for budgeting, financing, cash flow, and cost control.
+          </p>
+        </div>
+
+        {/* TOP TABS */}
+        <div className="flex flex-wrap gap-3">
+          {features.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setActiveId(f.id)}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all border ${
+                activeId === f.id
+                  ? 'bg-brand-500 text-white border-brand-500 shadow'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              {f.title}
+            </button>
+          ))}
+        </div>
+
+        {/* MEDIA AREA */}
+        <div className="relative rounded-3xl overflow-hidden border border-gray-200 bg-gray-50 aspect-[88/36]">
+          <img
+            key={active.id}
+            src={active.mediaSrc}
+            alt={`${active.title} preview`}
+            className="absolute inset-0 w-full h-full object-cover animate-in fade-in duration-500"
+          />
+        </div>
+
+        {/* BOTTOM FEATURES */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {features.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setActiveId(f.id)}
+              className={`text-left p-4 rounded-2xl border transition-all ${
+                activeId === f.id
+                  ? 'border-brand-500 bg-brand-50'
+                  : 'border-gray-100 bg-white hover:border-gray-300'
+              }`}
+            >
+              <h3 className="text-sm font-bold text-gray-900">{f.title}</h3>
+              <p className="text-sm text-gray-500 mt-1">{f.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
 
 export const Landing: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -141,35 +232,7 @@ export const Landing: React.FC = () => {
         </div>
 
         {/* FEATURES SECTION */}
-        <section id="features" className="bg-white py-32 px-6">
-            <div className="max-w-7xl mx-auto">
-                <div className="text-center mb-24">
-                    <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Production Intelligence</h2>
-                    <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-                        Powerful tools designed for the complexities of modern film production.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {[
-                        { icon: Zap, title: "Real-time Calculation", desc: "Instant updates across all budget lines and summaries." },
-                        { icon: Shield, title: "Secure & Local", desc: "Your data stays on your machine, synced only when you say so." },
-                        { icon: Layout, title: "Intuitive Interface", desc: "Designed for speed and clarity in high-pressure environments." },
-                        { icon: Globe, title: "Multi-Currency", desc: "Handle international productions with dynamic exchange rates." },
-                        { icon: Cpu, title: "AI Forecasting", desc: "Predict cost overruns before they impact your bottom line." },
-                        { icon: Layers, title: "Scenario Planning", desc: "Create unlimited budget versions and compare them instantly." }
-                    ].map((feature, i) => (
-                        <div key={i} className="p-8 rounded-[2rem] border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                            <div className="w-14 h-14 rounded-2xl bg-white border border-gray-100 flex items-center justify-center mb-6 text-brand-500 group-hover:bg-brand-500 group-hover:text-white transition-colors shadow-sm">
-                                <feature.icon className="w-7 h-7" />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                            <p className="text-gray-500 leading-relaxed">{feature.desc}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
+        <FeaturesSection />
     </div>
   );
 };
