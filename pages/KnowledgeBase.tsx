@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ExternalLink,
-  CornerDownRight, Hash, GraduationCap, LayoutDashboard
+  CornerDownRight, Hash, GraduationCap, LayoutDashboard, PieChart
 } from 'lucide-react';
 import { KNOWLEDGE_CATEGORIES, KNOWLEDGE_ARTICLES, KnowledgeArticle } from '../data/knowledge-data';
 import { LEARNING_DATA } from '../data/learning-data';
@@ -12,6 +12,13 @@ import { useAuth } from '../context/AuthContext';
 import { Layout as DashboardLayout } from '../components/Layout';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { SmartLink } from '../components/SmartLink';
+
+// --- COLOR MAPPING ---
+const CATEGORY_COLORS: Record<string, string> = {
+  'core': '#305583',      // Blue Dark
+  'interface': '#0093D5', // Brand Blue
+  'finance': '#07929E',   // Taxes Teal
+};
 
 // --- COMPONENTS ---
 
@@ -177,18 +184,32 @@ const KnowledgeBaseContent: React.FC = () => {
        {/* Categories */}
        {!search && (
           <div className="space-y-12">
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {KNOWLEDGE_CATEGORIES.map(cat => {
                    const Icon = DOC_ICONS[cat.iconKey] || BookOpen;
+                   const cardColor = CATEGORY_COLORS[cat.id] || '#0093D5';
+                   
                    return (
-                      <div key={cat.id} className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col h-full">
-                         <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 mb-6">
-                            <Icon className="w-6 h-6" />
+                      <div 
+                        key={cat.id} 
+                        className="bg-white p-8 rounded-[2rem] border border-gray-100 border-t-[8px] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col h-full items-center"
+                        style={{ borderTopColor: cardColor }}
+                      >
+                         <div className="flex justify-center mb-6">
+                            <Icon 
+                                className="w-12 h-12 opacity-90 transition-transform hover:scale-110" 
+                                style={{ color: cardColor }}
+                            />
                          </div>
-                         <h3 className="text-xl font-black text-gray-900 mb-2">{cat.title}</h3>
-                         <p className="text-sm text-gray-500 mb-6 flex-1">{cat.description}</p>
                          
-                         <div className="space-y-3">
+                         <h3 
+                            className="text-2xl font-black mb-4 text-center"
+                            style={{ color: cardColor }}
+                         >{cat.title}</h3>
+                         
+                         <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-1 text-center w-full">{cat.description}</p>
+                         
+                         <div className="w-full space-y-3 border-t border-gray-100 pt-6 mt-auto">
                             {KNOWLEDGE_ARTICLES.filter(a => a.categoryId === cat.id).map(art => (
                                <Link to={`/help/${art.id}`} key={art.id} className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-brand-600 transition-colors group">
                                   <CornerDownRight className="w-4 h-4 text-gray-300 group-hover:text-brand-400" />

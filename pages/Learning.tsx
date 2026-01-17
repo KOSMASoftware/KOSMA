@@ -30,6 +30,19 @@ const ICON_MAP: Record<string, any> = {
   'Coins': Coins
 };
 
+// --- COLOR MAPPING ---
+const CATEGORY_COLORS: Record<string, string> = {
+  'first-steps': '#5CB912', // Green
+  'budgeting': '#0093D5',   // Brand Blue
+  'financing': '#305583',   // Blue Dark
+  'cash-flow': '#FD7A36',   // Cashflow Orange
+  'cost-control': '#7A62D2',// Cost Control Purple
+  'printing': '#ADB5BD',    // Tags Gray
+  'admin': '#495057',       // Notes Dark Gray
+  'license': '#F03D3E',     // Red
+  'faq': '#07929E',         // Taxes Teal
+};
+
 // --- COMPONENTS ---
 
 const Breadcrumbs = ({ 
@@ -306,22 +319,35 @@ const LearningPageContent: React.FC = () => {
 
         <RoleFilterBar active={activeRoleFilter} onChange={setActiveRoleFilter} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
            {filteredData.map((cat) => {
              const IconComponent = ICON_MAP[cat.iconKey] || CircleHelp;
+             const cardColor = CATEGORY_COLORS[cat.id] || '#0093D5';
              return (
                <button 
                   key={cat.id} 
                   onClick={() => setSelectedCategoryId(cat.id)}
-                  className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all text-left group h-full flex flex-col"
+                  className="bg-white p-8 rounded-[2rem] border border-gray-100 border-t-[8px] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-left group h-full flex flex-col items-start"
+                  style={{ borderTopColor: cardColor }}
                >
-                  <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 mb-6 group-hover:bg-brand-500 group-hover:text-white transition-colors">
-                    <IconComponent className="w-6 h-6" />
+                  <div className="flex justify-center mb-6 w-full">
+                    <IconComponent 
+                        className="w-12 h-12 opacity-90 transition-transform group-hover:scale-110" 
+                        style={{ color: cardColor }}
+                    />
                   </div>
-                  <h3 className="text-xl font-black text-gray-900 mb-2">{cat.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed mb-6 flex-1">{cat.description}</p>
-                  <div className="flex items-center gap-2 text-xs font-black text-brand-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
-                    {cat.articles.length} Articles <ChevronRight className="w-3 h-3" />
+                  
+                  <h3 
+                    className="text-2xl font-black mb-4 w-full text-center"
+                    style={{ color: cardColor }}
+                  >{cat.title}</h3>
+                  
+                  <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-1 text-center w-full">{cat.description}</p>
+                  
+                  <div className="w-full border-t border-gray-100 pt-6 mt-auto">
+                    <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">
+                        {cat.articles.length} Articles <ChevronRight className="w-3 h-3" />
+                    </div>
                   </div>
                </button>
              );
@@ -329,7 +355,7 @@ const LearningPageContent: React.FC = () => {
         </div>
 
         {/* Footer Teasers */}
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="mt-24 grid grid-cols-1 md:grid-cols-2 gap-8">
            <div className="bg-brand-50 rounded-[2rem] p-8 border border-brand-100 flex gap-6 items-start">
               <div className="p-3 bg-white rounded-full text-brand-500 shrink-0">
                  <CircleHelp className="w-6 h-6" />
