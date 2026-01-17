@@ -62,15 +62,17 @@ const FeaturesSection: React.FC = () => {
       <div className="mx-auto max-w-6xl space-y-10">
 
         {/* Headline */}
-        <div className="max-w-2xl">
+        <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl font-semibold lg:text-5xl text-gray-900">Built for production teams</h2>
           <p className="mt-6 text-lg text-gray-600">
             Focused tools for budgeting, financing, cash flow, and cost control.
+            <br className="hidden md:block" />
+            Discover the latest features designed to optimize your workflow.
           </p>
         </div>
 
-        {/* TOP TABS (Module Switcher) */}
-        <div className="flex flex-wrap gap-3">
+        {/* TOP TABS (Module Switcher) - Centered */}
+        <div className="flex flex-wrap justify-center gap-3">
           {modules.map(m => (
             <button
               key={m.id}
