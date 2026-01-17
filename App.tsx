@@ -4,6 +4,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
+import { Pricing } from './pages/Pricing';
 import { AuthPage } from './pages/Auth';
 import { CustomerDashboard } from './pages/CustomerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -47,6 +48,7 @@ const App: React.FC = () => {
       <HashRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/signup" element={<AuthPage mode="signup" />} />
           <Route path="/update-password" element={<AuthPage mode="update-password" />} />

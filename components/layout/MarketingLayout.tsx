@@ -21,7 +21,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
           
           {!hideNavLinks && (
             <div className="hidden md:flex gap-6 text-sm font-bold text-gray-500">
-              <Link to="/#pricing" className="hover:text-brand-500 transition-colors">Pricing</Link>
+              <Link to="/pricing" className="hover:text-brand-500 transition-colors">Pricing</Link>
               <Link to="/learning" className="hover:text-brand-500 transition-colors">Learning Campus</Link>
               <Link to="/help" className="hover:text-brand-500 transition-colors">Knowledge Base</Link>
             </div>
