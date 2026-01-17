@@ -5,6 +5,7 @@ import { UserRole } from '../types';
 import { LogOut, LayoutDashboard, Settings, CreditCard, ShieldCheck, LineChart, Server, X, Zap, TrendingUp, Bug, CircleHelp, BookOpen, GraduationCap } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell } from './layout/AppShell';
+import { PulsingDotsBackground } from './ui/pulsing-dots-background';
 
 const NavItem = ({ to, icon: Icon, label, active, onClick }: { to: string; icon: any; label: string; active: boolean; onClick?: () => void }) => (
   <Link
@@ -140,19 +141,27 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   );
 
   return (
-    <AppShell
-      sidebar={SidebarContent()}
-      onMobileMenuClick={() => setIsMobileMenuOpen(true)}
-      mobileMenu={isMobileMenuOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-4/5 max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
-            {SidebarContent(() => setIsMobileMenuOpen(false))}
-          </aside>
-        </div>
-      ) : null}
+    <PulsingDotsBackground 
+      dotCount={7} 
+      radiusRange={[10, 20]} 
+      alphaRange={[0.05, 0.15]} 
+      speed={0.5}
+      containerClassName="z-0"
     >
-      {children}
-    </AppShell>
+      <AppShell
+        sidebar={SidebarContent()}
+        onMobileMenuClick={() => setIsMobileMenuOpen(true)}
+        mobileMenu={isMobileMenuOpen ? (
+          <div className="fixed inset-0 z-50 md:hidden animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+            <aside className="absolute inset-y-0 left-0 w-4/5 max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
+              {SidebarContent(() => setIsMobileMenuOpen(false))}
+            </aside>
+          </div>
+        ) : null}
+      >
+        {children}
+      </AppShell>
+    </PulsingDotsBackground>
   );
 };

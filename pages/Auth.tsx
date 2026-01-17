@@ -5,23 +5,24 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
+import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
 
-const DottedPattern = ({ className }: { className?: string }) => (
-  <div className={`grid grid-cols-4 gap-3 opacity-20 ${className}`}>
-    {[...Array(16)].map((_, i) => (
-      <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#0093D0]" />
-    ))}
-  </div>
-);
-
-// Wrapper that uses MarketingLayout but maintains the inner centering and pattern logic
+// Wrapper that uses MarketingLayout but maintains the inner centering
 const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?: string }> = ({ children, title, subtitle }) => (
   <MarketingLayout>
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative min-h-[calc(100vh-200px)]">
-      <DottedPattern className="absolute left-[10%] xl:left-[20%] top-1/2 -translate-y-1/2 hidden md:grid" />
-      <DottedPattern className="absolute right-[10%] xl:right-[20%] top-1/2 -translate-y-1/2 hidden md:grid" />
+      {/* Replaced DottedPattern with specific PulsingDotsBackground configuration for Auth */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <PulsingDotsBackground 
+          dotCount={12}
+          grayRange={[220, 240]}
+          radiusRange={[12, 40]}
+          speed={0.6}
+          alphaRange={[0.12, 0.22]}
+        />
+      </div>
 
-      <div className="w-full max-w-[440px] z-10 py-12">
+      <div className="w-full max-w-[440px] z-10 py-12 relative">
         <div className="text-center mb-12">
           <h1 className="text-[64px] font-bold text-[#111827] mb-2 leading-none tracking-tight">
             {title}
@@ -32,7 +33,11 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
             </p>
           )}
         </div>
-        {children}
+        
+        {/* Added background to card for better readability over dots */}
+        <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-white">
+            {children}
+        </div>
       </div>
     </div>
   </MarketingLayout>
