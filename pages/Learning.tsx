@@ -38,7 +38,7 @@ const Breadcrumbs = ({
 }) => (
   <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 overflow-x-auto whitespace-nowrap">
     <button onClick={() => onNavigate(null)} className="hover:text-brand-500 transition-colors flex items-center gap-1">
-      <Home className="w-3.5 h-3.5" /> Hilfe
+      <Home className="w-3.5 h-3.5" /> Learning Campus
     </button>
     {items.map((item, idx) => (
       <React.Fragment key={idx}>
@@ -100,8 +100,6 @@ const MediaRenderer = ({ media }: { media: HelpMedia }) => {
 };
 
 const ArticleView = ({ article }: { article: HelpArticle }) => {
-  // Accordion State
-  // Initially collapse all steps for cleaner overview
   const [openStepIds, setOpenStepIds] = useState<Set<string>>(new Set());
 
   const allStepIds = useMemo(() => article.entry.steps.map(s => s.id), [article]);
@@ -128,7 +126,6 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
         {article.title}
       </h1>
 
-      {/* Abstract / Summary Box */}
       {article.entry.summary && (
         <div className="bg-blue-50/50 border border-blue-100 p-6 rounded-2xl mb-10 flex gap-4 text-blue-900/80 leading-relaxed font-medium">
            <div className="bg-white p-2 rounded-full h-fit shadow-sm border border-blue-100 shrink-0">
@@ -141,7 +138,6 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
         </div>
       )}
 
-      {/* Global Controls */}
       <div className="flex justify-end mb-6">
         <button 
           onClick={toggleAll}
@@ -155,7 +151,6 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
         </button>
       </div>
 
-      {/* Steps Accordion */}
       <div className="space-y-4">
         {article.entry.steps.map((step, idx) => {
           const isOpen = openStepIds.has(step.id);
@@ -181,7 +176,6 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
                  <div className="px-5 pb-8 pl-[4.5rem] animate-in slide-in-from-top-2 duration-200">
                     <p className="text-gray-600 leading-relaxed mb-4">{step.content}</p>
 
-                    {/* On-Demand Media Loading */}
                     {step.media && (
                       <MediaRenderer media={step.media} />
                     )}
@@ -206,7 +200,6 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
         })}
       </div>
       
-      {/* Footer / Feedback */}
       <div className="mt-20 pt-10 border-t border-gray-100 text-center">
          <p className="text-sm text-gray-500 font-medium">War dieser Artikel hilfreich?</p>
          <div className="flex justify-center gap-4 mt-4">
@@ -218,14 +211,11 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
   );
 };
 
-// --- CONTENT COMPONENT (Logic & Views) ---
-
-const HelpPageContent: React.FC = () => {
+const LearningPageContent: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
 
-  // Helper to resolve objects
   const selectedCategory = useMemo(() => 
     HELP_DATA.find(c => c.id === selectedCategoryId), 
   [selectedCategoryId]);
@@ -234,7 +224,6 @@ const HelpPageContent: React.FC = () => {
     selectedCategory?.articles.find(a => a.id === selectedArticleId), 
   [selectedCategory, selectedArticleId]);
 
-  // Search Logic (Updated for Entry/Steps schema)
   const searchResults = useMemo(() => {
     if (!searchQuery) return [];
     const lowerQ = searchQuery.toLowerCase();
@@ -254,15 +243,13 @@ const HelpPageContent: React.FC = () => {
     return results;
   }, [searchQuery]);
 
-  // --- VIEWS ---
-
-  // 1. Root View (Grid of Categories)
+  // View: Root (Grid)
   if (!selectedCategory && !searchQuery) {
     return (
       <div className="max-w-6xl mx-auto pb-20 pt-8 px-4">
         <div className="text-center mb-16">
-           <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">How can we help?</h1>
-           <p className="text-gray-500 text-lg">Find answers, solve problems, and level-up.</p>
+           <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Learning Campus</h1>
+           <p className="text-gray-500 text-lg">Schritt-für-Schritt Anleitungen für den perfekten Workflow.</p>
            <div className="mt-10">
               <SearchBar value={searchQuery} onChange={setSearchQuery} />
            </div>
@@ -290,16 +277,16 @@ const HelpPageContent: React.FC = () => {
            })}
         </div>
 
-        {/* Learning Campus Teaser */}
+        {/* Footer Teasers */}
         <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-8">
            <div className="bg-brand-50 rounded-[2rem] p-8 border border-brand-100 flex gap-6 items-start">
               <div className="p-3 bg-white rounded-full text-brand-500 shrink-0">
                  <CircleHelp className="w-6 h-6" />
               </div>
               <div>
-                 <h4 className="font-bold text-gray-900 mb-2">Brauchst du mehr Hilfe?</h4>
-                 <p className="text-sm text-gray-600 mb-4">Wenn du Probleme mit KOSMA hast, findest du die Antwort vielleicht in unserem Learning Campus.</p>
-                 <Link to="/learning" className="text-sm font-black text-brand-500 hover:underline">Zum Learning Campus {'->'}</Link>
+                 <h4 className="font-bold text-gray-900 mb-2">Begriffe nachschlagen?</h4>
+                 <p className="text-sm text-gray-600 mb-4">Suchst du nach Definitionen oder technischen Erklärungen? Schau in die Knowledge Base.</p>
+                 <Link to="/help" className="text-sm font-black text-brand-500 hover:underline">Zur Knowledge Base {'->'}</Link>
               </div>
            </div>
            <div className="bg-white rounded-[2rem] p-8 border border-gray-100 flex gap-6 items-start">
@@ -317,7 +304,7 @@ const HelpPageContent: React.FC = () => {
     );
   }
 
-  // 2. Search Results View
+  // View: Search Results
   if (searchQuery) {
     return (
       <div className="max-w-4xl mx-auto pb-20 pt-8 px-4">
@@ -363,11 +350,9 @@ const HelpPageContent: React.FC = () => {
     );
   }
 
-  // 3. Category / Article View (Two Column Layout)
+  // View: Category/Article
   return (
     <div className="max-w-7xl mx-auto pb-20 pt-8 px-4 flex flex-col md:flex-row gap-12 items-start">
-       
-       {/* Sidebar Navigation */}
        <aside className="w-full md:w-64 shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)] overflow-y-auto hidden md:block">
           <button 
             onClick={() => { setSelectedCategoryId(null); setSelectedArticleId(null); }} 
@@ -412,7 +397,6 @@ const HelpPageContent: React.FC = () => {
           </div>
        </aside>
 
-       {/* Mobile Back Button (visible only on mobile) */}
        <div className="md:hidden w-full">
          <button 
               onClick={() => { 
@@ -426,7 +410,6 @@ const HelpPageContent: React.FC = () => {
          </button>
        </div>
 
-       {/* Main Content Area */}
        <main className="flex-1 min-w-0">
           {selectedArticle ? (
             <>
@@ -434,7 +417,7 @@ const HelpPageContent: React.FC = () => {
                 <Breadcrumbs 
                     items={[
                         { label: selectedCategory!.title, id: selectedCategory!.id },
-                        { label: selectedArticle.title, id: null } // current
+                        { label: selectedArticle.title, id: null }
                     ]}
                     onNavigate={(id) => {
                         if (id) { setSelectedCategoryId(id); setSelectedArticleId(null); }
@@ -445,7 +428,6 @@ const HelpPageContent: React.FC = () => {
               <ArticleView article={selectedArticle} />
             </>
           ) : (
-            // Category Overview (when category selected but no article)
             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-brand-50 text-brand-500 rounded-2xl flex items-center justify-center">
@@ -487,22 +469,8 @@ const HelpPageContent: React.FC = () => {
   );
 };
 
-// --- MAIN WRAPPER COMPONENT ---
-
-export const HelpPage: React.FC = () => {
+export const LearningPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-
-  if (isAuthenticated) {
-    return (
-      <DashboardLayout>
-        <HelpPageContent />
-      </DashboardLayout>
-    );
-  }
-
-  return (
-    <MarketingLayout>
-      <HelpPageContent />
-    </MarketingLayout>
-  );
+  const Wrapper = isAuthenticated ? DashboardLayout : MarketingLayout;
+  return <Wrapper><LearningPageContent /></Wrapper>;
 };

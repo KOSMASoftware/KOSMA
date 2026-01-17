@@ -7,7 +7,8 @@ import { Landing } from './pages/Landing';
 import { AuthPage } from './pages/Auth';
 import { CustomerDashboard } from './pages/CustomerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { HelpPage } from './pages/Help';
+import { LearningPage } from './pages/Learning';
+import { KnowledgeBasePage } from './pages/KnowledgeBase';
 import { BillingReturn } from './pages/BillingReturn';
 import { UserRole } from './types';
 import { Loader2 } from 'lucide-react';
@@ -71,9 +72,18 @@ const App: React.FC = () => {
             } 
           />
 
-          {/* Help Page: Accessible for everyone */}
-          <Route path="/help" element={<HelpPage />} />
+          {/* DOCUMENTATION */}
+          {/* 1. Learning Campus (Old Help Page Logic, route /learning) */}
+          <Route path="/learning" element={<LearningPage />} />
+          <Route path="/learning/*" element={<LearningPage />} />
           
+          {/* 2. Knowledge Base (New Explorative Page, route /help) */}
+          <Route path="/help" element={<KnowledgeBasePage />} />
+          <Route path="/help/:id" element={<KnowledgeBasePage />} />
+          
+          {/* Redirects */}
+          <Route path="/knowledge/*" element={<Navigate to="/help" replace />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>

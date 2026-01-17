@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { LogOut, LayoutDashboard, Settings, CreditCard, ShieldCheck, LineChart, Server, X, Zap, TrendingUp, Bug, CircleHelp } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, CreditCard, ShieldCheck, LineChart, Server, X, Zap, TrendingUp, Bug, CircleHelp, BookOpen, GraduationCap } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell } from './layout/AppShell';
 
@@ -49,7 +49,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             {isAdmin ? 'ADMIN AREA' : 'CUSTOMER AREA'}
           </div>
         </div>
-        {/* Only show close button if passed (mobile mode) */}
         {onClick && (
           <button className="md:hidden" onClick={onClick}>
             <X className="w-6 h-6 text-gray-400" />
@@ -63,18 +62,26 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <NavItem to="/dashboard" icon={LayoutDashboard} label="Overview" active={location.pathname === '/dashboard'} onClick={onClick} />
             <NavItem to="/dashboard/subscription" icon={CreditCard} label="Subscription" active={location.pathname === '/dashboard/subscription'} onClick={onClick} />
             <div className="pt-4 mt-4 border-t border-gray-100">
+               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 mb-2">Support</p>
+               <NavItem 
+                  to="/learning" 
+                  icon={GraduationCap} 
+                  label="Learning Campus" 
+                  active={location.pathname.startsWith('/learning')} 
+                  onClick={onClick}
+               />
+               <NavItem 
+                  to="/help" 
+                  icon={BookOpen} 
+                  label="Knowledge Base" 
+                  active={location.pathname.startsWith('/help')} 
+                  onClick={onClick}
+               />
                <NavItem 
                   to="/dashboard/settings" 
                   icon={Settings} 
                   label="Settings" 
                   active={location.pathname.includes('settings')} 
-                  onClick={onClick}
-               />
-               <NavItem 
-                  to="/help" 
-                  icon={CircleHelp} 
-                  label="Help Center" 
-                  active={location.pathname === '/help'} 
                   onClick={onClick}
                />
             </div>
@@ -93,10 +100,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </div>
             <div className="pt-4 mt-4 border-t border-gray-100">
                 <NavItem 
+                  to="/learning" 
+                  icon={GraduationCap} 
+                  label="Learning Campus" 
+                  active={location.pathname.startsWith('/learning')} 
+                  onClick={onClick}
+               />
+                <NavItem 
                   to="/help" 
-                  icon={CircleHelp} 
-                  label="Help & Docs" 
-                  active={location.pathname === '/help'} 
+                  icon={BookOpen} 
+                  label="Knowledge Base" 
+                  active={location.pathname.startsWith('/help')} 
                   onClick={onClick}
                />
             </div>
