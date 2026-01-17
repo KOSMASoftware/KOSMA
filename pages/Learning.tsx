@@ -4,7 +4,7 @@ import {
   Search, ChevronRight, Home, ArrowLeft, FileText, CheckCircle, 
   AlertTriangle, Lightbulb, Image as ImageIcon, ChevronDown,
   CircleHelp, MessageCircle, Rocket, Calculator, PieChart, TrendingUp, Settings, Printer, Share2, Download,
-  Maximize2, Minimize2, ChevronUp, Filter
+  Maximize2, Minimize2, ChevronUp, Filter, ShieldCheck, Coins
 } from 'lucide-react';
 import { HELP_DATA, HelpCategory, HelpArticle, HelpStep, HelpMedia } from '../data/helpArticles';
 import { UserRoleFilter } from '../data/taxonomy';
@@ -25,7 +25,9 @@ const ICON_MAP: Record<string, any> = {
   'Printer': Printer,
   'FileText': FileText,
   'Share2': Share2,
-  'Download': Download
+  'Download': Download,
+  'ShieldCheck': ShieldCheck,
+  'Coins': Coins
 };
 
 // --- COMPONENTS ---
@@ -258,8 +260,8 @@ const LearningPageContent: React.FC = () => {
         if (activeRoleFilter === 'Alle') return true;
         return art.roles.includes(activeRoleFilter);
       })
-    })).filter(cat => cat.articles.length > 0 || searchQuery); // Keep empty cats only if searching (to show no results better?) actually better to hide empty cats in grid
-  }, [activeRoleFilter, searchQuery]);
+    })); // Removed empty filter to show all tiles
+  }, [activeRoleFilter]); // searchQuery is handled separately
 
   const selectedCategory = useMemo(() => 
     filteredData.find(c => c.id === selectedCategoryId), 
@@ -274,7 +276,10 @@ const LearningPageContent: React.FC = () => {
     const lowerQ = searchQuery.toLowerCase();
     const results: { category: HelpCategory, article: HelpArticle }[] = [];
     
-    filteredData.forEach(cat => {
+    // Search in original data to ensure we find everything even if role filtered?
+    // Actually typically search overrides filters. Let's search in filteredData for consistency or HELP_DATA?
+    // Using HELP_DATA to allow finding everything via search
+    HELP_DATA.forEach(cat => {
       cat.articles.forEach(art => {
         const titleMatch = art.title.toLowerCase().includes(lowerQ);
         const summaryMatch = (art.entry.summary || '').toLowerCase().includes(lowerQ);
@@ -286,7 +291,7 @@ const LearningPageContent: React.FC = () => {
       });
     });
     return results;
-  }, [searchQuery, filteredData]);
+  }, [searchQuery]);
 
   // View: Root (Grid)
   if (!selectedCategory && !searchQuery) {
@@ -304,7 +309,6 @@ const LearningPageContent: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
            {filteredData.map((cat) => {
-             if (cat.articles.length === 0) return null; // Don't show empty categories in grid
              const IconComponent = ICON_MAP[cat.iconKey] || CircleHelp;
              return (
                <button 
@@ -411,7 +415,6 @@ const LearningPageContent: React.FC = () => {
 
           <div className="space-y-8">
              {filteredData.map(cat => {
-               if (cat.articles.length === 0) return null;
                const CatIcon = ICON_MAP[cat.iconKey] || CircleHelp;
                return (
                  <div key={cat.id}>

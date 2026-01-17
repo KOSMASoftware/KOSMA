@@ -129,12 +129,19 @@ export const HELP_DATA: HelpCategory[] = [
     id: 'financing',
     title: 'Finanzierung',
     iconKey: 'PieChart',
-    description: 'Finanzierungspläne und Cashflow-Management.',
+    description: 'Finanzierungspläne und Mittelabfluss.',
+    articles: []
+  },
+  {
+    id: 'cash-flow',
+    title: 'Cash Flow',
+    iconKey: 'Coins',
+    description: 'Liquiditätsplanung und Zahlungsströme.',
     articles: []
   },
   {
     id: 'cost-control',
-    title: 'Cost Control',
+    title: 'Kostenkontrolle',
     iconKey: 'TrendingUp',
     description: 'Soll-Ist Vergleiche und Kostenüberwachung.',
     articles: []
@@ -151,6 +158,13 @@ export const HELP_DATA: HelpCategory[] = [
     title: 'Projektverwaltung',
     iconKey: 'Settings',
     description: 'Projekte archivieren, löschen oder umbenennen.',
+    articles: []
+  },
+  {
+    id: 'license',
+    title: 'Lizenz',
+    iconKey: 'ShieldCheck',
+    description: 'Abonnements, Laufzeiten und Upgrades.',
     articles: []
   },
   {
