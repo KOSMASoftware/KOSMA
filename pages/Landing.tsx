@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Zap, Shield, Layout, Globe, Cpu, Layers } from 'lucide-react';
+import { MorphingText } from '../components/MorphingText';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
@@ -101,7 +102,16 @@ export const Landing: React.FC = () => {
                 Bring AI to your budget
             </h1>
             <p className="mt-4 mx-auto max-w-2xl text-[clamp(14px,1.6vw,18px)] leading-[1.45] text-white/80">
-                Detect deviations earlier. Bring order to costs, cash flow, and forecasts.
+                Simply the most advanced{' '}
+                <MorphingText
+                  words={[
+                    'Budgeting',
+                    'Financing',
+                    'Cash Flow',
+                    'Cost Control'
+                  ]}
+                />{' '}
+                Software
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4 justify-center pointer-events-auto">
