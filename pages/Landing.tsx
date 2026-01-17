@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
-import { Globe, ChevronDown, CheckCircle, ArrowRight, Download } from 'lucide-react';
+import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
 import { Footer } from '../components/layout/Footer';
 
 const BRAND = '#0093D5';
@@ -17,10 +17,34 @@ const FeaturesSection: React.FC = () => {
       color: '#0093D5', // Brand Blue
       mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
       features: [
-        { title: 'Template-Driven Budgets', desc: 'Start in minutes with proven top‑sheet structures.' },
-        { title: 'Line-Item Precision', desc: 'Edit rates, fringes, and markups without spreadsheet errors.' },
-        { title: 'Globals & Formulas', desc: 'Change once, update everywhere.' },
-        { title: 'Scenario Versions', desc: 'Compare alternatives in seconds.' }
+        { 
+          title: 'Split costs between producers', 
+          desc: 'Clear cost ownership and faster co‑production reporting.',
+          pain: 'Costs are split manually across partners, making co‑production budgets messy.',
+          solution: 'KOSMA lets you assign costs to multiple producers directly in settings.',
+          impact: 'Clear cost ownership and faster co‑production reporting.'
+        },
+        { 
+          title: 'Define fringes & supplements', 
+          desc: 'Consistent, compliant cost calculations across all accounts.',
+          pain: 'Fringes and wage supplements are calculated differently across projects.',
+          solution: 'Define standard fringes and wage supplements once in settings.',
+          impact: 'Consistent, compliant cost calculations across all accounts.'
+        },
+        { 
+          title: 'Assign fringes to accounts', 
+          desc: 'Accurate labor costs with fewer manual corrections.',
+          pain: 'Applying fringes per account is slow and error‑prone.',
+          solution: 'Assign fringes and supplements directly to specific accounts.',
+          impact: 'Accurate labor costs with fewer manual corrections.'
+        },
+        { 
+          title: 'Define extra costs', 
+          desc: 'Full visibility of true personnel costs in one place.',
+          pain: 'Extra personnel costs are tracked outside the budget.',
+          solution: 'Define extra cost types (travel, catering, hotels) in KOSMA.',
+          impact: 'Full visibility of true personnel costs in one place.'
+        }
       ]
     },
     {
@@ -29,10 +53,34 @@ const FeaturesSection: React.FC = () => {
       color: '#305583', // Blue Dark
       mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
       features: [
-        { title: 'Funding Sources', desc: 'Manage sources and assign to producers instantly.' },
-        { title: 'Funding Logic', desc: 'Connect lines to effects to calculate funding automatically.' },
-        { title: 'Co-Production Splits', desc: 'Track cost shares across partners in one view.' },
-        { title: 'Print-Ready Financing', desc: 'Generate shareable reports without formatting pain.' }
+        { 
+          title: 'Financing plan templates', 
+          desc: 'Faster setup with consistent financing structure.',
+          pain: 'Each financing plan starts from scratch.',
+          solution: 'Load a financing plan template and adapt it quickly.',
+          impact: 'Faster setup with consistent financing structure.'
+        },
+        { 
+          title: 'Manage financing sources', 
+          desc: 'Clear funding ownership and easier partner reporting.',
+          pain: 'Financing sources and producer shares are scattered across files.',
+          solution: 'Edit financing sources and assign them to producers directly.',
+          impact: 'Clear funding ownership and easier partner reporting.'
+        },
+        { 
+          title: 'Funding effects as variables', 
+          desc: 'Accurate funding calculations tied to real budget data.',
+          pain: 'Funding logic is hard to integrate with budget effects.',
+          solution: 'Use funding effects as variables in the financing plan.',
+          impact: 'Accurate funding calculations tied to real budget data.'
+        },
+        { 
+          title: 'Link expenses to sources', 
+          desc: 'Transparent funding allocation and stronger auditability.',
+          pain: 'It’s unclear which funding source covers which expense effect.',
+          solution: 'Connect expense effects to specific financing sources.',
+          impact: 'Transparent funding allocation and stronger auditability.'
+        }
       ]
     },
     {
@@ -41,10 +89,34 @@ const FeaturesSection: React.FC = () => {
       color: '#FD7A36', // Cashflow Orange
       mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
       features: [
-        { title: 'Milestones & Phases', desc: 'Automate logic based on production schedule.' },
-        { title: 'Payment Rules', desc: 'Apply rules by date or milestone effortlessly.' },
-        { title: 'Dynamic Forecasting', desc: 'Instant updates when budget changes.' },
-        { title: 'Producer Views', desc: 'Separate views for different funding entities.' }
+        { 
+          title: 'Define milestones & phases', 
+          desc: 'Cash‑flow stays aligned with production timelines.',
+          pain: 'Cash‑flow rules have to be updated manually whenever schedules change.',
+          solution: 'Define milestones and phases to automate cash‑flow logic.',
+          impact: 'Cash‑flow stays aligned with production timelines.'
+        },
+        { 
+          title: 'Create cash‑flow rules', 
+          desc: 'Consistent payment schedules with less manual work.',
+          pain: 'Payment timing is handled in separate spreadsheets.',
+          solution: 'Create cash‑flow rules directly inside KOSMA.',
+          impact: 'Consistent payment schedules with less manual work.'
+        },
+        { 
+          title: 'Build a cash‑flow plan', 
+          desc: 'Immediate financial visibility for production planning.',
+          pain: 'Budget and financing data don’t automatically translate into cash‑flow.',
+          solution: 'Generate a cash‑flow plan from budget + financing.',
+          impact: 'Immediate financial visibility for production planning.'
+        },
+        { 
+          title: 'Add loans/transfers', 
+          desc: 'Complete cash‑flow picture without external tools.',
+          pain: 'Inter‑producer transfers and loans are tracked separately.',
+          solution: 'Add loans or transfers directly into the cash‑flow plan.',
+          impact: 'Complete cash‑flow picture without external tools.'
+        }
       ]
     },
     {
@@ -53,16 +125,48 @@ const FeaturesSection: React.FC = () => {
       color: '#7A62D2', // Extra Costs Purple
       mediaSrc: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
       features: [
-        { title: 'Planned vs Actual', desc: 'Compare real-time data against your budget.' },
-        { title: 'Forecast Updates', desc: 'Track deviations immediately per account.' },
-        { title: 'Accounting Imports', desc: 'Map accounting data directly to KOSMA.' },
-        { title: 'Variance Tracking', desc: 'Spot overruns before they become problems.' }
+        { 
+          title: 'Compare plan vs actuals', 
+          desc: 'Immediate visibility of overruns and deviations.',
+          pain: 'Actual costs live outside the budget and are hard to reconcile.',
+          solution: 'Match actual costs against the budget in Cost Control.',
+          impact: 'Immediate visibility of overruns and deviations.'
+        },
+        { 
+          title: 'Import accounting data', 
+          desc: 'Less manual work and fewer reconciliation errors.',
+          pain: 'Accounting data must be re‑entered manually.',
+          solution: 'Import accounting data directly into Cost Control.',
+          impact: 'Less manual work and fewer reconciliation errors.'
+        },
+        { 
+          title: 'Recalculate forecasts', 
+          desc: 'Up‑to‑date cost outlooks at any time.',
+          pain: 'Forecasts are outdated as soon as costs change.',
+          solution: 'Recalculate forecasts per account instantly.',
+          impact: 'Up‑to‑date cost outlooks at any time.'
+        },
+        { 
+          title: 'Generate cost reports', 
+          desc: 'Fast reporting for producers and financiers.',
+          pain: 'Reporting requires extra spreadsheets and formatting.',
+          solution: 'Show and print cost reports from Cost Control.',
+          impact: 'Fast reporting for producers and financiers.'
+        }
       ]
     }
   ];
 
   const [activeId, setActiveId] = useState(modules[0].id);
-  const active = modules.find(m => m.id === activeId) ?? modules[0];
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+
+  const activeModule = modules.find(m => m.id === activeId) ?? modules[0];
+  const activeFeature = activeModule.features[activeFeatureIndex];
+
+  // Reset feature index when changing modules
+  useEffect(() => {
+    setActiveFeatureIndex(0);
+  }, [activeId]);
 
   return (
     <section id="features" className="relative z-10 py-24 md:py-32 px-6">
@@ -95,64 +199,87 @@ const FeaturesSection: React.FC = () => {
           ))}
         </div>
 
-        {/* MEDIA AREA */}
+        {/* IMAGE AREA */}
         <div className="relative rounded-3xl overflow-hidden border border-gray-200 bg-gray-100 aspect-[88/36] shadow-2xl shadow-gray-200/50">
           <img
-            key={active.id}
-            src={active.mediaSrc}
-            alt={`${active.title} preview`}
+            key={activeModule.id}
+            src={activeModule.mediaSrc}
+            alt={`${activeModule.title} preview`}
             className="absolute inset-0 w-full h-full object-cover animate-in fade-in duration-500"
           />
         </div>
 
-        {/* 3) Feature Cards (Benefit Focused) - UNIFIED PRICING STYLE */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {active.features.map((f, i) => (
-            <div 
-              key={i} 
-              className="bg-white rounded-[2rem] p-8 border border-gray-100 border-t-[8px] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col justify-start shadow-sm"
-              style={{ borderTopColor: active.color }}
-            >
-              <h3 
-                className="font-black text-lg mb-3 tracking-tight"
-                style={{ color: active.color }}
-              >
-                {f.title}
-              </h3>
-              <p className="text-sm text-gray-500 leading-relaxed font-medium">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* 4) "Why KOSMA" Bar */}
-        <div className="pt-12 pb-4">
-          <div className="bg-gray-50 rounded-3xl border border-gray-100 p-8 md:px-12">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-               {[
-                 "Version chaos ends",
-                 "Deviations found earlier",
-                 "Offline-first, always",
-                 "Shareable reports"
-               ].map((item, idx) => (
-                 <div key={idx} className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center shrink-0">
-                       <CheckCircle className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="text-sm font-bold text-gray-900 tracking-tight">{item}</span>
+        {/* 3) Pain / Solution / Impact Block (Active Feature Detail) */}
+        <div className="bg-gray-50 rounded-[2rem] border border-gray-200 p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                 <div className="space-y-2">
+                     <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-red-500">
+                        <AlertTriangle className="w-4 h-4" /> Pain
+                     </h4>
+                     <p className="text-gray-700 font-medium leading-relaxed">
+                        {activeFeature.pain}
+                     </p>
                  </div>
-               ))}
-            </div>
-          </div>
+                 <div className="space-y-2 relative">
+                     <div className="hidden md:block absolute left-0 top-0 bottom-0 w-px bg-gray-200 -ml-4"></div>
+                     <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-brand-500">
+                        <Lightbulb className="w-4 h-4" /> Solution
+                     </h4>
+                     <p className="text-gray-700 font-medium leading-relaxed">
+                        {activeFeature.solution}
+                     </p>
+                 </div>
+                 <div className="space-y-2 relative">
+                     <div className="hidden md:block absolute left-0 top-0 bottom-0 w-px bg-gray-200 -ml-4"></div>
+                     <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-green-600">
+                        <TrendingUp className="w-4 h-4" /> Impact
+                     </h4>
+                     <p className="text-gray-900 font-bold leading-relaxed">
+                        {activeFeature.impact}
+                     </p>
+                 </div>
+             </div>
         </div>
 
-        {/* 5) Final CTA */}
+        {/* 4) Feature Cards (Benefit Focused Selector) - UNIFIED PRICING STYLE */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {activeModule.features.map((f, i) => {
+            const isActive = i === activeFeatureIndex;
+            return (
+                <button 
+                key={i} 
+                onClick={() => setActiveFeatureIndex(i)}
+                className={`bg-white rounded-[2rem] p-8 border border-t-[8px] text-left transition-all duration-300 h-full flex flex-col justify-start relative group ${
+                    isActive 
+                        ? 'border-gray-200 shadow-xl scale-[1.02] ring-1 ring-gray-100' 
+                        : 'border-gray-100 hover:border-gray-300 hover:shadow-lg hover:-translate-y-1'
+                }`}
+                style={{ borderTopColor: isActive ? activeModule.color : '#e5e7eb' }}
+                >
+                <h3 
+                    className={`font-black text-lg mb-3 tracking-tight transition-colors ${isActive ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'}`}
+                >
+                    {f.title}
+                </h3>
+                <p className="text-sm text-gray-500 leading-relaxed font-medium">{f.desc}</p>
+                
+                {/* Visual Indicator for Active Selection */}
+                {isActive && (
+                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand-500 animate-pulse"></div>
+                )}
+                </button>
+            );
+          })}
+        </div>
+
+        {/* 6) Final CTA */}
         <div className="text-center pt-8">
             <Link 
               to="/download"
               className="inline-flex items-center gap-3 bg-gray-900 text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10 hover:shadow-brand-500/20 hover:-translate-y-1"
             >
                <Download className="w-5 h-5" />
-               Get the desktop app
+               Get KOSMA
             </Link>
             <p className="mt-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
                14-day full feature trial
@@ -244,6 +371,7 @@ export const Landing: React.FC = () => {
                   </div>
                   
                   <Link to="/pricing" className="hover:text-white transition-colors hidden sm:block">Pricing</Link>
+                  <Link to="/learning" className="hover:text-white transition-colors hidden sm:block">Learning</Link>
                   <Link to="/login" className="hover:text-white transition-colors">Login</Link>
                 </div>
             </div>
