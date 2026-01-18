@@ -85,29 +85,31 @@ export function PulsingDotsBackground({
     <div className={cn("relative min-h-screen w-full overflow-hidden bg-white", containerClassName)}>
       <style>{`
         /* Animation Keyframes: Subtle Pulse + Blur shift */
+        /* REMOVED translateZ(0) to fix Safari SVG rendering issues */
         @keyframes pulse-layer-1 {
-          0% { transform: scale(0.98) translateZ(0); opacity: 1; }
-          100% { transform: scale(1.03) translateZ(0); opacity: 0.92; }
+          0% { transform: scale(0.98); opacity: 1; }
+          100% { transform: scale(1.03); opacity: 0.92; }
         }
         @keyframes pulse-layer-2 {
-          0% { transform: scale(0.98) translateZ(0); opacity: 0.8; }
-          100% { transform: scale(1.03) translateZ(0); opacity: 0.72; }
+          0% { transform: scale(0.98); opacity: 0.8; }
+          100% { transform: scale(1.03); opacity: 0.72; }
         }
         @keyframes pulse-layer-3 {
-          0% { transform: scale(0.98) translateZ(0); opacity: 0.6; }
-          100% { transform: scale(1.03) translateZ(0); opacity: 0.52; }
+          0% { transform: scale(0.98); opacity: 0.6; }
+          100% { transform: scale(1.03); opacity: 0.52; }
         }
         @keyframes pulse-layer-4 {
-          0% { transform: scale(0.98) translateZ(0); opacity: 0.2; }
-          100% { transform: scale(1.03) translateZ(0); opacity: 0.12; }
+          0% { transform: scale(0.98); opacity: 0.2; }
+          100% { transform: scale(1.03); opacity: 0.12; }
         }
         
         /* Base Layer Styles with GPU acceleration */
+        /* transform-origin changed to 50% 50% for consistent SVG anchor */
         .layer-1 {
           animation: pulse-layer-1 8s ease-in-out infinite alternate;
           filter: blur(4px);
           -webkit-filter: blur(4px);
-          transform-origin: center;
+          transform-origin: 50% 50%;
           transform-box: fill-box;
           will-change: transform, opacity;
         }
@@ -115,7 +117,7 @@ export function PulsingDotsBackground({
           animation: pulse-layer-2 9s ease-in-out infinite alternate-reverse;
           filter: blur(6px);
           -webkit-filter: blur(6px);
-          transform-origin: center;
+          transform-origin: 50% 50%;
           transform-box: fill-box;
           will-change: transform, opacity;
         }
@@ -123,7 +125,7 @@ export function PulsingDotsBackground({
           animation: pulse-layer-3 10s ease-in-out infinite alternate;
           filter: blur(8px);
           -webkit-filter: blur(8px);
-          transform-origin: center;
+          transform-origin: 50% 50%;
           transform-box: fill-box;
           will-change: transform, opacity;
         }
@@ -131,7 +133,7 @@ export function PulsingDotsBackground({
           animation: pulse-layer-4 11s ease-in-out infinite alternate-reverse;
           filter: blur(10px);
           -webkit-filter: blur(10px);
-          transform-origin: center;
+          transform-origin: 50% 50%;
           transform-box: fill-box;
           will-change: transform, opacity;
         }
