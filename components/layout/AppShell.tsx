@@ -2,6 +2,7 @@
 import React from 'react';
 import { Menu } from 'lucide-react';
 import { Footer } from './Footer';
+import { Logo } from '../ui/Logo';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -15,7 +16,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, onMobileMenuClick,
     <div className="min-h-screen bg-transparent flex flex-col md:flex-row font-sans text-gray-900">
       {/* MOBILE HEADER */}
       <header className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-30 h-[72px]">
-        <div className="text-xl font-black text-brand-500 tracking-tighter">KOSMA</div>
+        <div className="text-brand-500">
+          <Logo className="h-8 w-auto" />
+        </div>
         <button onClick={onMobileMenuClick} className="p-2 -mr-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
           <Menu className="w-6 h-6" />
         </button>

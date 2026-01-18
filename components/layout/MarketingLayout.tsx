@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Download, Globe, ChevronDown, Menu, X } from 'lucide-react';
 import { PulsingDotsBackground } from '../ui/pulsing-dots-background';
 import { Footer } from './Footer';
+import { Logo } from '../ui/Logo';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -34,7 +36,9 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
         {/* HEADER */}
         <nav className="bg-white/80 backdrop-blur-sm py-4 px-4 md:px-12 flex items-center justify-between sticky top-0 z-50 shadow-sm border-b border-gray-100 min-h-[72px]">
           <div className="flex items-center gap-4 md:gap-8">
-            <Link to="/" className="text-xl md:text-2xl font-black text-brand-500 tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
+            <Link to="/" className="hover:opacity-80 transition-opacity">
+              <Logo className="h-8 w-auto text-brand-500" />
+            </Link>
             
             {!hideNavLinks && (
               <div className="hidden lg:flex gap-6 text-sm font-bold text-gray-500">
@@ -87,7 +91,9 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
              <div className="fixed inset-0 z-[100] lg:hidden">
                  <div className="absolute inset-0 bg-white/95 backdrop-blur-xl animate-in fade-in slide-in-from-top-5 duration-200 flex flex-col p-6">
                      <div className="flex justify-between items-center mb-12">
-                         <span className="text-2xl font-black text-brand-500 tracking-tighter">KOSMA</span>
+                         <div className="text-brand-500">
+                            <Logo className="h-8 w-auto" />
+                         </div>
                          <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-gray-100 rounded-xl text-gray-500 hover:text-gray-900 transition-colors">
                              <X className="w-6 h-6" />
                          </button>

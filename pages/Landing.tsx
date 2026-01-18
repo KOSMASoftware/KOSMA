@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
+import { Logo } from '../components/ui/Logo';
 import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X } from 'lucide-react';
 import { Footer } from '../components/layout/Footer';
 import { Card } from '../components/ui/Card';
@@ -360,7 +361,9 @@ export const Landing: React.FC = () => {
             {/* HEADER OVERLAY */}
             <div className="absolute top-0 left-0 w-full z-20 flex justify-between items-center p-6 md:px-12 pointer-events-none">
                 <div className="pointer-events-auto">
-                  <Link to="/" className="text-2xl font-black text-white tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
+                  <Link to="/" className="hover:opacity-80 transition-opacity">
+                    <Logo className="h-8 w-auto text-white" />
+                  </Link>
                 </div>
                 
                 {/* Desktop Nav */}
@@ -392,7 +395,9 @@ export const Landing: React.FC = () => {
             {isMobileMenuOpen && (
               <div className="absolute inset-0 z-50 bg-gray-900/95 backdrop-blur-xl p-6 flex flex-col pointer-events-auto animate-in fade-in slide-in-from-top-5 duration-200">
                  <div className="flex justify-between items-center mb-12">
-                     <span className="text-2xl font-black text-white tracking-tighter">KOSMA</span>
+                     <div className="text-white">
+                        <Logo className="h-8 w-auto" />
+                     </div>
                      <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-white/10 rounded-xl text-white hover:bg-white/20 transition-colors">
                          <X className="w-6 h-6" />
                      </button>

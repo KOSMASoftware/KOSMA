@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCookieSettings } from '../../context/CookieContext';
+import { Logo } from '../ui/Logo';
 
 export const Footer: React.FC = () => {
   const { openModal } = useCookieSettings();
@@ -68,8 +69,8 @@ export const Footer: React.FC = () => {
            {/* Right: Copyright */}
            <div className="flex flex-col md:items-end gap-2 w-full md:w-auto">
                <div className="flex justify-between md:justify-end items-center gap-4 w-full">
-                   <div className="text-xl font-black text-brand-500 tracking-tighter md:hidden">KOSMA</div>
-                   <div className="hidden md:block text-xl font-black text-brand-500 tracking-tighter opacity-20 hover:opacity-100 transition-opacity">KOSMA</div>
+                   <div className="text-brand-500 md:hidden"><Logo className="h-6 w-auto" /></div>
+                   <div className="hidden md:block text-brand-500 opacity-20 hover:opacity-100 transition-opacity"><Logo className="h-6 w-auto" /></div>
                </div>
                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
                   &copy; {new Date().getFullYear()} Headstart Media GmbH
