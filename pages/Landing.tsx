@@ -202,29 +202,23 @@ const FeatureScrollytelling = () => {
     setActiveFeatureIndex(0);
   }, [activeModuleId]);
 
-  // Scroll Progress Logic - Based on provided Example
+  // Scroll Progress Logic
   useEffect(() => {
     const handleScroll = () => {
       if (!sectionRef.current) return;
       
-      const { top, height } = sectionRef.current.getBoundingClientRect();
+      const rect = sectionRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
+      const height = rect.height;
+      const stickyOffset = 180; // Matches top-[180px]
       
-      // Calculate how far we scrolled through the section (0 to 1)
-      const startOffset = viewportHeight * 0.2;
-      const endOffset = viewportHeight * 0.2;
-      const scrolled = -top + startOffset;
-      const scrollableHeight = height - viewportHeight + endOffset;
+      const scrolled = -rect.top + stickyOffset;
+      const scrollableHeight = height - viewportHeight + stickyOffset;
       
       let progress = scrolled / scrollableHeight;
-      
-      // Clamp 0-1
-      if (progress < 0) progress = 0;
-      if (progress > 1) progress = 1;
+      progress = Math.max(0, Math.min(1, progress));
 
       const count = activeModule.features.length;
-      
-      // Map progress to steps
       const idx = Math.min(count - 1, Math.floor(progress * count));
       setActiveFeatureIndex(idx);
     };
@@ -270,14 +264,12 @@ const FeatureScrollytelling = () => {
         </div>
 
         {/* DESKTOP STAGE VIEW */}
-        {/* Height Definition: Very tall so we have room to scroll while content stays fixed */}
         <div 
             ref={sectionRef}
             className="hidden lg:block relative h-[350vh]"
         >
-           {/* The Sticky Stage - Fixed in Viewport */}
-           {/* We use top-[180px] to ensure it clears the sticky tabs above */}
-           <div className="sticky top-[180px] flex items-start justify-center">
+           {/* The Sticky Stage */}
+           <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
               <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-start">
                  
                  {/* LEFT: Text Stage */}
@@ -381,7 +373,7 @@ const FeatureScrollytelling = () => {
            </div>
         </div>
 
-        {/* MOBILE STACKED VIEW (Fallback) */}
+        {/* MOBILE STACKED VIEW */}
         <div className="lg:hidden flex flex-col gap-24 pb-24">
            {activeModule.features.map((feature, idx) => (
              <div key={`${activeModuleId}-mob-${idx}`} className="flex flex-col gap-8">
@@ -392,7 +384,7 @@ const FeatureScrollytelling = () => {
                    <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
                    <p className="text-lg font-bold text-gray-400 mb-6">{feature.desc}</p>
 
-                   {/* Pain/Solution Mobile */}
+                   {/* Pain/Solution/Impact Mobile */}
                    <div className="space-y-4 mb-8">
                       <div className="bg-red-50 p-4 rounded-xl text-sm border border-red-100">
                          <span className="font-black text-red-400 uppercase text-[10px] block mb-1">Pain</span>
@@ -401,6 +393,10 @@ const FeatureScrollytelling = () => {
                       <div className="bg-brand-50 p-4 rounded-xl text-sm border border-brand-100">
                          <span className="font-black text-brand-400 uppercase text-[10px] block mb-1">Solution</span>
                          {feature.solution}
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-xl text-sm border border-green-100">
+                         <span className="font-black text-green-500 uppercase text-[10px] block mb-1">Impact</span>
+                         {feature.impact}
                       </div>
                    </div>
                 </div>
@@ -608,8 +604,8 @@ export const Landing: React.FC = () => {
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(80% 60% at 50% 10%, rgba(0,147,213,0.10), transparent)' }} />
           </div>
 
-          {/* CONTENT SECTION - WRAPPED IN DOTS */}
-          <PulsingDotsBackground>
+          {/* CONTENT SECTION - WRAPPED IN DOTS WITH OVERFLOW VISIBLE */}
+          <PulsingDotsBackground containerClassName="overflow-visible relative z-10">
               {/* FEATURES SCROLLYTELLING */}
               <FeatureScrollytelling />
 
