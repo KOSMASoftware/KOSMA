@@ -1,8 +1,7 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Download, Globe, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Download, Globe, ChevronDown, Menu, X } from 'lucide-react';
 import { PulsingDotsBackground } from '../ui/pulsing-dots-background';
 import { Footer } from './Footer';
 
@@ -11,9 +10,20 @@ interface MarketingLayoutProps {
   hideNavLinks?: boolean; // Option to hide middle navigation (e.g. on Auth pages)
 }
 
+const MobileLink = ({ to, children, active, onClick }: { to: string; children?: React.ReactNode; active: boolean; onClick: () => void }) => (
+  <Link 
+    to={to} 
+    onClick={onClick}
+    className={`text-2xl font-black ${active ? 'text-brand-500' : 'text-gray-900'} hover:text-brand-500 transition-colors`}
+  >
+    {children}
+  </Link>
+);
+
 export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hideNavLinks = false }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
   const linkClass = (path: string) => `transition-colors ${isActive(path) ? 'text-brand-500' : 'hover:text-brand-500'}`;
@@ -53,18 +63,54 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors">Login</Link>
+                <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors hidden sm:block">Login</Link>
                 <Link to="/signup" className="hidden sm:block text-gray-900 hover:text-brand-500 transition-colors">Get Started</Link>
                 <Link to="/download" className="bg-brand-500 text-white px-3 py-2 md:px-5 md:py-2 rounded-xl hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2">
                   <Download className="w-4 h-4" /> <span className="hidden sm:inline">Download</span>
                 </Link>
               </>
             )}
+
+            {!hideNavLinks && (
+               <button 
+                 onClick={() => setIsMobileMenuOpen(true)}
+                 className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+               >
+                 <Menu className="w-6 h-6" />
+               </button>
+            )}
           </div>
         </nav>
 
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+             <div className="fixed inset-0 z-[100] lg:hidden">
+                 <div className="absolute inset-0 bg-white/95 backdrop-blur-xl animate-in fade-in slide-in-from-top-5 duration-200 flex flex-col p-6">
+                     <div className="flex justify-between items-center mb-12">
+                         <span className="text-2xl font-black text-brand-500 tracking-tighter">KOSMA</span>
+                         <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-gray-100 rounded-xl text-gray-500 hover:text-gray-900 transition-colors">
+                             <X className="w-6 h-6" />
+                         </button>
+                     </div>
+                     <div className="flex flex-col gap-8 items-start px-2">
+                         <MobileLink to="/pricing" active={isActive('/pricing')} onClick={() => setIsMobileMenuOpen(false)}>Pricing</MobileLink>
+                         <MobileLink to="/learning" active={isActive('/learning')} onClick={() => setIsMobileMenuOpen(false)}>Learning Campus</MobileLink>
+                         <MobileLink to="/help" active={isActive('/help')} onClick={() => setIsMobileMenuOpen(false)}>Knowledge Base</MobileLink>
+                         <MobileLink to="/contact" active={isActive('/contact')} onClick={() => setIsMobileMenuOpen(false)}>Contact</MobileLink>
+                     </div>
+                     
+                     {!isAuthenticated && (
+                        <div className="mt-auto pb-8 flex flex-col gap-4 w-full">
+                            <Link to="/login" className="text-center py-4 font-bold text-gray-900 bg-gray-50 rounded-2xl">Login</Link>
+                            <Link to="/signup" className="text-center py-4 font-bold text-white bg-gray-900 rounded-2xl">Get Started</Link>
+                        </div>
+                     )}
+                 </div>
+             </div>
+        )}
+
         {/* CONTENT */}
-        <div className="flex-1 flex flex-col relative z-10">
+        <div className="flex-1 flex flex-col relative z-20">
           {children}
         </div>
 

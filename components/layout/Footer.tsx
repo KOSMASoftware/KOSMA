@@ -7,7 +7,7 @@ export const Footer: React.FC = () => {
   const { openModal } = useCookieSettings();
 
   return (
-    <footer className="relative z-10 bg-white/80 backdrop-blur-md border-t border-gray-200 mt-auto">
+    <footer className="relative z-0 bg-white/80 backdrop-blur-md border-t border-gray-200 mt-auto">
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
           
