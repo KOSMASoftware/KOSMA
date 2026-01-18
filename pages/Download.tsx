@@ -96,19 +96,18 @@ export const DownloadPage: React.FC = () => {
                      </div>
                 </div>
 
-                {/* SUPPORT BLOCK - Radius updated to 3xl (24px) for consistency */}
-                <div className="bg-gray-900 rounded-3xl p-12 md:p-16 text-center text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/20 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/20 blur-3xl rounded-full -ml-32 -mb-32 pointer-events-none"></div>
-                    
-                    <div className="relative z-10 max-w-3xl mx-auto">
-                        <MessageCircle className="w-16 h-16 mx-auto mb-8 text-brand-400" />
-                        <h2 className="text-3xl md:text-4xl font-black mb-6 tracking-tight">Can't find what you're looking for?</h2>
-                        <p className="text-xl text-gray-400 mb-10 leading-relaxed">
+                {/* SUPPORT BLOCK - Light & Neutral Redesign */}
+                <div className="bg-slate-50 rounded-3xl p-12 md:p-16 text-center border border-slate-200">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-8 border border-slate-100 shadow-sm text-slate-400">
+                            <MessageCircle className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-3xl font-bold text-slate-900 mb-6 tracking-tight">Can't find what you're looking for?</h2>
+                        <p className="text-lg text-slate-500 mb-10 leading-relaxed max-w-2xl mx-auto">
                             Do you have a question, want to report an error, or add a feature to the wishlist?<br/>
                             Write to us, and we will respond as soon as possible.
                         </p>
-                        <Link to="/contact" className="inline-block px-10 py-5 bg-white text-gray-900 rounded-2xl font-bold text-lg hover:bg-brand-500 hover:text-white transition-all shadow-xl">
+                        <Link to="/contact" className="inline-block px-10 py-4 bg-brand-500 text-white rounded-2xl font-bold text-lg hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 hover:-translate-y-1">
                             Contact Support
                         </Link>
                     </div>
