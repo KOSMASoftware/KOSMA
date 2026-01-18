@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -21,7 +22,7 @@ const SvgFrame = ({ children, className }: { children?: React.ReactNode; classNa
     viewBox="0 0 569 781" 
     fill="none" 
     xmlns="http://www.w3.org/2000/svg"
-    className={cn("w-full h-full", className)}
+    className={cn("w-full h-auto", className)}
     aria-hidden="true"
     preserveAspectRatio="xMidYMid meet"
   >
@@ -139,33 +140,34 @@ export function PulsingDotsBackground({
           transform: translate3d(0,0,0); /* Engages hardware acceleration */
         }
 
+        /* REDUCED BLUR: Fixes visibility issues while maintaining HTML/CSS architecture */
         .layer-1 {
           animation: pulse-layer-1 8s ease-in-out infinite alternate;
-          filter: blur(4px);
-          -webkit-filter: blur(4px);
+          filter: blur(1px);
+          -webkit-filter: blur(1px);
         }
         .layer-2 {
           animation: pulse-layer-2 9s ease-in-out infinite alternate-reverse;
-          filter: blur(6px);
-          -webkit-filter: blur(6px);
+          filter: blur(3px);
+          -webkit-filter: blur(3px);
         }
         .layer-3 {
           animation: pulse-layer-3 10s ease-in-out infinite alternate;
-          filter: blur(8px);
-          -webkit-filter: blur(8px);
+          filter: blur(5px);
+          -webkit-filter: blur(5px);
         }
         .layer-4 {
           animation: pulse-layer-4 11s ease-in-out infinite alternate-reverse;
-          filter: blur(10px);
-          -webkit-filter: blur(10px);
+          filter: blur(7px);
+          -webkit-filter: blur(7px);
         }
 
         /* Mobile Optimizations */
         @media (max-width: 768px) {
-          .layer-1 { filter: blur(2px); -webkit-filter: blur(2px); }
-          .layer-2 { filter: blur(3px); -webkit-filter: blur(3px); }
-          .layer-3 { filter: blur(4px); -webkit-filter: blur(4px); opacity: 0.5 !important; }
-          .layer-4 { filter: blur(5px); -webkit-filter: blur(5px); opacity: 0.35 !important; }
+          .layer-1 { filter: blur(1px); -webkit-filter: blur(1px); }
+          .layer-2 { filter: blur(2px); -webkit-filter: blur(2px); }
+          .layer-3 { filter: blur(3px); -webkit-filter: blur(3px); opacity: 0.5 !important; }
+          .layer-4 { filter: blur(4px); -webkit-filter: blur(4px); opacity: 0.35 !important; }
         }
       `}</style>
 
@@ -174,9 +176,9 @@ export function PulsingDotsBackground({
          - Fixed position to stay stable during scroll
          - z-0 or lower to stay behind content
          - pointer-events-none to click through
-         - Color: slate-200 (subtle gray)
+         - Color: text-slate-400 (darker than previous slate-200 to counteract blur washout)
       */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden text-slate-200 dark:text-slate-700/20">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden text-slate-400 dark:text-slate-600/20">
          
          {/* Cluster 1: Top Left (Rotated for variety) */}
          {/* Mobile: Smaller, pushed further to corner to keep center safe */}
@@ -184,7 +186,7 @@ export function PulsingDotsBackground({
          <div className="absolute 
             -top-[15%] -left-[25%] w-[90%] 
             md:-top-[10%] md:-left-[10%] md:w-[60%] 
-            max-w-[700px] transform rotate-180 opacity-90"
+            max-w-[700px] transform rotate-180 opacity-90 aspect-[569/781]"
          >
             <DotsPattern className="w-full h-full" />
          </div>
@@ -194,7 +196,7 @@ export function PulsingDotsBackground({
          <div className="absolute 
             -bottom-[10%] -right-[25%] w-[90%]
             md:-bottom-[10%] md:-right-[10%] md:w-[60%] 
-            max-w-[700px] opacity-100"
+            max-w-[700px] opacity-100 aspect-[569/781]"
          >
             <DotsPattern className="w-full h-full" />
          </div>
