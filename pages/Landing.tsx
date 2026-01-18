@@ -320,12 +320,12 @@ const FeatureScrollytelling = () => {
                        </div>
                     </div>
                     
-                    {/* Visual */}
-                    <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-gray-100">
+                    {/* Visual - Aspect Ratio 9:16 for Mobile */}
+                    <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-gray-100 aspect-[9/16]">
                        <img 
                             src={feature.image} 
                             alt={feature.title} 
-                            className="w-full h-auto"
+                            className="w-full h-full object-cover"
                             loading="lazy"
                             decoding="async" 
                        />
@@ -341,11 +341,11 @@ const FeatureScrollytelling = () => {
             >
                {/* The Sticky Stage */}
                <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
-                  {/* Grid: items-stretch matches height of Text and Image column */}
-                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-stretch">
+                  {/* Grid - items-start with fixed height containers */}
+                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-start">
                      
-                     {/* LEFT: Text Stage - Height derived from Image via stretch */}
-                     <div className="relative h-full">
+                     {/* LEFT: Text Stage - Fixed Height 520px */}
+                     <div className="relative h-[520px]">
                         {activeModule.features.map((feature, idx) => (
                            <div 
                               key={`${activeModuleId}-text-${idx}`}
@@ -408,8 +408,8 @@ const FeatureScrollytelling = () => {
                         ))}
                      </div>
 
-                     {/* RIGHT: Image Stage - 16:9 Aspect Ratio */}
-                     <div className="relative w-full aspect-video bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+                     {/* RIGHT: Image Stage - Fixed Height 520px */}
+                     <div className="relative w-full h-[520px] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
                         {/* Fake Browser Header */}
                         <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
                            <div className="w-2.5 h-2.5 rounded-full bg-red-400/20"></div>
