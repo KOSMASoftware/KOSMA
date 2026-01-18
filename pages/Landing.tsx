@@ -193,39 +193,58 @@ const MODULES: ModuleData[] = [
 const FeatureScrollytelling = () => {
   const [activeModuleId, setActiveModuleId] = useState('budgeting');
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const activeModule = MODULES.find(m => m.id === activeModuleId) || MODULES[0];
 
   // Reset scroll state when tab changes
   useEffect(() => {
     setActiveFeatureIndex(0);
+    // Optional: Reset scroll position if needed, but smooth behavior usually preferred
   }, [activeModuleId]);
 
-  // Observer for scroll steps (Invisible Triggers)
+  // Scroll Progress Logic
   useEffect(() => {
-    const options = {
-      root: null,
-      rootMargin: "-45% 0px -45% 0px", // Trigger in a narrow middle band for precision
-      threshold: 0
+    const handleScroll = () => {
+      if (!scrollContainerRef.current) return;
+      
+      const rect = scrollContainerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const height = rect.height;
+      
+      // Calculate progress based on how much of the container has passed the top of the viewport.
+      // We add a small offset (viewportHeight * 0.2) to start the animation slightly earlier/smoother.
+      // Ideally, progress goes from 0 to 1 as the sticky container traverses the parent.
+      
+      // Effective scrollable distance is (Total Height - Viewport Height)
+      // When rect.top is 0, we are at the start.
+      // When rect.top is -(height - viewportHeight), we are at the end.
+      
+      const scrollDist = height - viewportHeight;
+      const scrolled = -rect.top;
+      
+      // Normalize to 0-1
+      let progress = scrolled / scrollDist;
+      
+      // Clamp
+      if (progress < 0) progress = 0;
+      if (progress > 1) progress = 1;
+      
+      const count = activeModule.features.length;
+      // Map progress to index (0 to count-1)
+      // We multiply by count and floor it. 
+      const rawIndex = Math.floor(progress * count);
+      const index = Math.min(count - 1, Math.max(0, rawIndex));
+      
+      setActiveFeatureIndex(index);
     };
 
-    const callback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const index = Number(entry.target.getAttribute('data-index'));
-          setActiveFeatureIndex(index);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(callback, options);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Initial check
+    handleScroll();
     
-    // We observe the invisible spacer divs
-    const elements = document.querySelectorAll('.feature-trigger');
-    elements.forEach(el => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [activeModuleId]);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeModule]);
 
   return (
     // Removed bg-white to let dots show through
@@ -242,9 +261,9 @@ const FeatureScrollytelling = () => {
            </p>
         </div>
 
-        {/* TABS - Sticky */}
+        {/* TABS - Sticky outside the scroll container */}
         <div className="sticky top-[80px] z-30 flex justify-center mb-16 md:mb-24">
-           <div className="inline-flex flex-wrap justify-center p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm">
+           <div className="inline-flex flex-wrap justify-center p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm transition-all duration-300">
               {MODULES.map(module => (
                 <button
                   key={module.id}
@@ -261,33 +280,26 @@ const FeatureScrollytelling = () => {
            </div>
         </div>
 
-        {/* DESKTOP STAGE VIEW */}
-        <div className="hidden lg:block relative" style={{ height: `${activeModule.features.length * 80}vh` }}>
-           
-           {/* 1. Invisible Scroll Triggers (The Engine) */}
-           <div className="absolute inset-0 w-full z-0 pointer-events-none">
-              {activeModule.features.map((_, idx) => (
-                 <div 
-                    key={idx} 
-                    data-index={idx}
-                    className="feature-trigger h-[80vh]" // Height defines scroll distance per item
-                 />
-              ))}
-           </div>
-
-           {/* 2. Sticky Stage (The Display) */}
-           <div className="sticky top-[180px] w-full min-h-[600px] z-10">
-              <div className="grid grid-cols-2 gap-16 xl:gap-24 h-full items-start">
+        {/* DESKTOP STAGE VIEW - Sticky Stage Implementation */}
+        {/* The outer container provides the height to scroll through */}
+        <div 
+            ref={scrollContainerRef}
+            className="hidden lg:block relative h-[300vh]"
+        >
+           {/* The Sticky Stage: Stays fixed while scrolling the parent container */}
+           {/* Added pt-32 to account for sticky tabs and header so content is centered visually */}
+           <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden pt-20">
+              <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-center">
                  
                  {/* LEFT: Text Stage */}
-                 <div className="relative h-[600px]">
+                 <div className="relative h-[500px]">
                     {activeModule.features.map((feature, idx) => (
                        <div 
                           key={`${activeModuleId}-text-${idx}`}
-                          className={`absolute top-0 left-0 w-full transition-all duration-500 ease-out ${
+                          className={`absolute top-0 left-0 w-full transition-all duration-700 ease-out ${
                              activeFeatureIndex === idx 
-                               ? 'opacity-100 translate-y-0 pointer-events-auto delay-75' 
-                               : 'opacity-0 -translate-y-8 pointer-events-none'
+                               ? 'opacity-100 translate-y-0 pointer-events-auto delay-100' 
+                               : 'opacity-0 translate-y-8 pointer-events-none'
                           }`}
                        >
                            {/* Header */}
@@ -344,7 +356,7 @@ const FeatureScrollytelling = () => {
                  </div>
 
                  {/* RIGHT: Image Stage */}
-                 <div className="relative h-full pt-8">
+                 <div className="relative h-full flex items-center">
                     <div className="relative w-full aspect-[16/10] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
                         {/* Fake Browser Header */}
                         <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
