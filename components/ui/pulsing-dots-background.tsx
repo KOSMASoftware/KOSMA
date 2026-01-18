@@ -108,23 +108,23 @@ export function PulsingDotsBackground({
   return (
     <div className={cn("relative min-h-screen w-full overflow-hidden bg-white", containerClassName)}>
       <style>{`
-        /* Animation Keyframes: Subtle Pulse + Blur shift */
+        /* Animation Keyframes: Updated opacities for softer presence */
         /* Applied to HTML Divs now for GPU compositing performance */
         @keyframes pulse-layer-1 {
-          0% { transform: scale(0.98); opacity: 1; }
-          100% { transform: scale(1.03); opacity: 0.92; }
+          0% { transform: scale(0.98); opacity: 0.65; }
+          100% { transform: scale(1.03); opacity: 0.55; }
         }
         @keyframes pulse-layer-2 {
-          0% { transform: scale(0.98); opacity: 0.8; }
-          100% { transform: scale(1.03); opacity: 0.72; }
+          0% { transform: scale(0.98); opacity: 0.50; }
+          100% { transform: scale(1.03); opacity: 0.42; }
         }
         @keyframes pulse-layer-3 {
-          0% { transform: scale(0.98); opacity: 0.6; }
-          100% { transform: scale(1.03); opacity: 0.52; }
+          0% { transform: scale(0.98); opacity: 0.38; }
+          100% { transform: scale(1.03); opacity: 0.30; }
         }
         @keyframes pulse-layer-4 {
-          0% { transform: scale(0.98); opacity: 0.2; }
-          100% { transform: scale(1.03); opacity: 0.12; }
+          0% { transform: scale(0.98); opacity: 0.22; }
+          100% { transform: scale(1.03); opacity: 0.16; }
         }
         
         /* 
@@ -140,34 +140,34 @@ export function PulsingDotsBackground({
           transform: translate3d(0,0,0); /* Engages hardware acceleration */
         }
 
-        /* REDUCED BLUR: Fixes visibility issues while maintaining HTML/CSS architecture */
+        /* INCREASED BLUR: +1px per layer for softer look */
         .layer-1 {
           animation: pulse-layer-1 8s ease-in-out infinite alternate;
-          filter: blur(1px);
-          -webkit-filter: blur(1px);
+          filter: blur(2px);
+          -webkit-filter: blur(2px);
         }
         .layer-2 {
           animation: pulse-layer-2 9s ease-in-out infinite alternate-reverse;
-          filter: blur(3px);
-          -webkit-filter: blur(3px);
+          filter: blur(4px);
+          -webkit-filter: blur(4px);
         }
         .layer-3 {
           animation: pulse-layer-3 10s ease-in-out infinite alternate;
-          filter: blur(5px);
-          -webkit-filter: blur(5px);
+          filter: blur(6px);
+          -webkit-filter: blur(6px);
         }
         .layer-4 {
           animation: pulse-layer-4 11s ease-in-out infinite alternate-reverse;
-          filter: blur(7px);
-          -webkit-filter: blur(7px);
+          filter: blur(8px);
+          -webkit-filter: blur(8px);
         }
 
-        /* Mobile Optimizations */
+        /* Mobile Optimizations: Increased blur (+1px) and lowered opacity overrides */
         @media (max-width: 768px) {
-          .layer-1 { filter: blur(1px); -webkit-filter: blur(1px); }
-          .layer-2 { filter: blur(2px); -webkit-filter: blur(2px); }
-          .layer-3 { filter: blur(3px); -webkit-filter: blur(3px); opacity: 0.5 !important; }
-          .layer-4 { filter: blur(4px); -webkit-filter: blur(4px); opacity: 0.35 !important; }
+          .layer-1 { filter: blur(2px); -webkit-filter: blur(2px); }
+          .layer-2 { filter: blur(3px); -webkit-filter: blur(3px); }
+          .layer-3 { filter: blur(4px); -webkit-filter: blur(4px); opacity: 0.25 !important; }
+          .layer-4 { filter: blur(5px); -webkit-filter: blur(5px); opacity: 0.15 !important; }
         }
       `}</style>
 
@@ -176,9 +176,9 @@ export function PulsingDotsBackground({
          - Fixed position to stay stable during scroll
          - z-0 or lower to stay behind content
          - pointer-events-none to click through
-         - Color: text-slate-400 (darker than previous slate-200 to counteract blur washout)
+         - Color: text-slate-300 (lighter than previous slate-400 for subtler effect)
       */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden text-slate-400 dark:text-slate-600/20">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden text-slate-300 dark:text-slate-600/20">
          
          {/* Cluster 1: Top Left (Rotated for variety) */}
          {/* Mobile: Smaller, pushed further to corner to keep center safe */}

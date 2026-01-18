@@ -29,71 +29,75 @@ export const DownloadPage: React.FC = () => {
             </div>
         </div>
 
-        {/* INFO TILES */}
-        <div className="bg-gray-50/80 backdrop-blur-sm py-24 px-6 border-t border-gray-100">
+        {/* INFO TILES - UPDATED DESIGN: Flat, Neutral, Technical */}
+        <div className="bg-white py-24 px-6 border-t border-slate-100">
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
-                     <h2 className="text-2xl font-bold text-gray-900">Take the first KOSMA steps with our user-friendly tutorials</h2>
+                     <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Take the first KOSMA steps</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-                     <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 flex gap-6">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-20">
+                     {/* Local & Secure */}
+                     <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                        <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
                             <HardDrive className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900 text-lg mb-2">Local & Secure</h3>
-                            <p className="text-gray-500 leading-relaxed">
+                            <h3 className="font-semibold text-slate-900 text-lg mb-2">Local & Secure</h3>
+                            <p className="text-slate-500 leading-relaxed text-sm">
                                 KOSMA stores your data locally on your machine and on the KOSMA server for you to share with other project members.
                             </p>
                         </div>
                      </div>
 
-                     <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 flex gap-6">
-                        <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center shrink-0">
+                     {/* Offline Ready */}
+                     <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                        <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
                             <WifiOff className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900 text-lg mb-2">Offline Ready</h3>
-                            <p className="text-gray-500 leading-relaxed">
+                            <h3 className="font-semibold text-slate-900 text-lg mb-2">Offline Ready</h3>
+                            <p className="text-slate-500 leading-relaxed text-sm">
                                 No internet, no problem – KOSMA runs offline as desktop app, not in a browser.
                             </p>
                         </div>
                      </div>
 
-                     <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 flex gap-6">
-                        <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                     {/* Knowledge Base */}
+                     <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                        <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
                             <BookOpen className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900 text-lg mb-2">Need Help?</h3>
-                            <p className="text-gray-500 leading-relaxed mb-4">
+                            <h3 className="font-semibold text-slate-900 text-lg mb-2">Need Help?</h3>
+                            <p className="text-slate-500 leading-relaxed mb-4 text-sm">
                                 Do you need more help? If you are having issues with KOSMA, you might find the answer in our Knowledge base.
                             </p>
-                            <Link to="/help" className="font-black text-brand-500 flex items-center gap-2 hover:gap-3 transition-all text-sm uppercase tracking-widest">
+                            <Link to="/help" className="font-bold text-slate-900 flex items-center gap-2 hover:gap-3 transition-all text-xs uppercase tracking-widest hover:text-brand-500">
                                 Visit Knowledge Base <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
                      </div>
 
-                     <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 flex gap-6">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                     {/* Learning Campus */}
+                     <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                        <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
                             <GraduationCap className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900 text-lg mb-2">Become a Pro</h3>
-                            <p className="text-gray-500 leading-relaxed mb-4">
+                            <h3 className="font-semibold text-slate-900 text-lg mb-2">Become a Pro</h3>
+                            <p className="text-slate-500 leading-relaxed mb-4 text-sm">
                                 Want to become a KOSMA pro? Learn Kosma the easy way and check out our learning campus.
                             </p>
-                            <Link to="/learning" className="font-black text-brand-500 flex items-center gap-2 hover:gap-3 transition-all text-sm uppercase tracking-widest">
+                            <Link to="/learning" className="font-bold text-slate-900 flex items-center gap-2 hover:gap-3 transition-all text-xs uppercase tracking-widest hover:text-brand-500">
                                 Go to Learning Campus <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
                      </div>
                 </div>
 
-                {/* SUPPORT BLOCK */}
-                <div className="bg-gray-900 rounded-[3rem] p-12 md:p-16 text-center text-white relative overflow-hidden">
+                {/* SUPPORT BLOCK - Radius updated to 3xl (24px) for consistency */}
+                <div className="bg-gray-900 rounded-3xl p-12 md:p-16 text-center text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/20 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/20 blur-3xl rounded-full -ml-32 -mb-32 pointer-events-none"></div>
                     
@@ -104,7 +108,7 @@ export const DownloadPage: React.FC = () => {
                             Do you have a question, want to report an error, or add a feature to the wishlist?<br/>
                             Write to us, and we will respond as soon as possible.
                         </p>
-                        <Link to="/contact" className="inline-block px-10 py-5 bg-white text-gray-900 rounded-2xl font-black text-lg hover:bg-brand-500 hover:text-white transition-all shadow-xl">
+                        <Link to="/contact" className="inline-block px-10 py-5 bg-white text-gray-900 rounded-2xl font-bold text-lg hover:bg-brand-500 hover:text-white transition-all shadow-xl">
                             Contact Support
                         </Link>
                     </div>
