@@ -72,7 +72,7 @@ export const Footer: React.FC = () => {
                    <div className="hidden md:block text-xl font-black text-brand-500 tracking-tighter opacity-20 hover:opacity-100 transition-opacity">KOSMA</div>
                </div>
                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                  &copy; {new Date().getFullYear()} KOSMA
+                  &copy; {new Date().getFullYear()} Headstart Media GmbH
                </p>
            </div>
         </div>

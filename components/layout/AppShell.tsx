@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { Footer } from './Footer';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -29,10 +30,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children, onMobileMenuClick,
       {mobileMenu}
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 w-full relative overflow-y-auto h-[calc(100vh-72px)] md:h-screen">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-full">
+      <main className="flex-1 w-full relative overflow-y-auto h-[calc(100vh-72px)] md:h-screen flex flex-col">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
           {children}
         </div>
+        <Footer />
       </main>
     </div>
   );
