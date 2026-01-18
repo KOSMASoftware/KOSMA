@@ -5,6 +5,7 @@ import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
 import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
 import { Footer } from '../components/layout/Footer';
+import { Card } from '../components/ui/Card';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
@@ -246,28 +247,25 @@ const FeaturesSection: React.FC = () => {
           {activeModule.features.map((f, i) => {
             const isActive = i === activeFeatureIndex;
             return (
-                <button 
-                key={i} 
-                onClick={() => setActiveFeatureIndex(i)}
-                className={`bg-white rounded-[2rem] p-8 border border-t-[8px] text-left transition-all duration-300 h-full flex flex-col justify-start relative group ${
-                    isActive 
-                        ? 'border-gray-200 shadow-xl scale-[1.02] ring-1 ring-gray-100' 
-                        : 'border-gray-100 hover:border-gray-300 hover:shadow-lg hover:-translate-y-1'
-                }`}
-                style={{ borderTopColor: isActive ? activeModule.color : '#e5e7eb' }}
+                <Card 
+                  key={i} 
+                  onClick={() => setActiveFeatureIndex(i)}
+                  color={activeModule.color}
+                  interactive
+                  className={`group text-left justify-start ${isActive ? 'ring-1 ring-gray-100' : ''}`}
                 >
-                <h3 
-                    className={`font-black text-lg mb-3 tracking-tight transition-colors ${isActive ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'}`}
-                >
-                    {f.title}
-                </h3>
-                <p className="text-sm text-gray-500 leading-relaxed font-medium">{f.desc}</p>
-                
-                {/* Visual Indicator for Active Selection */}
-                {isActive && (
-                    <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand-500 animate-pulse"></div>
-                )}
-                </button>
+                  <h3 
+                      className={`font-black text-lg mb-3 tracking-tight transition-colors ${isActive ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'}`}
+                  >
+                      {f.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium">{f.desc}</p>
+                  
+                  {/* Visual Indicator for Active Selection */}
+                  {isActive && (
+                      <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-brand-500 animate-pulse"></div>
+                  )}
+                </Card>
             );
           })}
         </div>

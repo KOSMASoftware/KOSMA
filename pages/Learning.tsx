@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { Layout as DashboardLayout } from '../components/Layout';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { supabase } from '../lib/supabaseClient';
+import { Card } from '../components/ui/Card';
 
 // --- ICON MAPPING ---
 const ICON_MAP: Record<string, any> = {
@@ -324,11 +325,12 @@ const LearningPageContent: React.FC = () => {
              const IconComponent = ICON_MAP[cat.iconKey] || CircleHelp;
              const cardColor = CATEGORY_COLORS[cat.id] || '#0093D5';
              return (
-               <button 
+               <Card 
                   key={cat.id} 
                   onClick={() => setSelectedCategoryId(cat.id)}
-                  className="bg-white p-8 rounded-[2rem] border border-gray-100 border-t-[8px] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-left group h-full flex flex-col items-start"
-                  style={{ borderTopColor: cardColor }}
+                  color={cardColor}
+                  interactive
+                  className="group text-left items-start h-full"
                >
                   <div className="flex justify-center mb-6 w-full">
                     <IconComponent 
@@ -349,7 +351,7 @@ const LearningPageContent: React.FC = () => {
                         {cat.articles.length} Articles <ChevronRight className="w-3 h-3" />
                     </div>
                   </div>
-               </button>
+               </Card>
              );
            })}
         </div>

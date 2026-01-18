@@ -6,6 +6,7 @@ import { PlanTier } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { STRIPE_LINKS } from '../config/stripe';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
+import { Card } from '../components/ui/Card';
 
 export const Pricing: React.FC = () => {
   const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>('yearly');
@@ -43,7 +44,7 @@ export const Pricing: React.FC = () => {
       Icon: Users,
       subtitle: "For everyone who wants to try it out",
       price: 0,
-      colorClass: "border-gray-800",
+      color: "#1F2937", // Gray-800
       textClass: "text-gray-800",
       btnClass: "border-gray-800 text-gray-900 hover:bg-gray-50",
       btnText: isAuthenticated ? "Current Plan" : "Get Started",
@@ -61,7 +62,7 @@ export const Pricing: React.FC = () => {
       Icon: Calculator,
       subtitle: "For production managers focused on budget creation.",
       price: billingInterval === 'yearly' ? 390 : 39,
-      colorClass: "border-amber-500",
+      color: "#F59E0B", // Amber-500
       textClass: "text-amber-500",
       btnClass: "border-amber-500 text-amber-600 bg-amber-50 hover:bg-amber-100",
       btnText: isAuthenticated ? "Switch to Budget" : "Get Started",
@@ -80,7 +81,7 @@ export const Pricing: React.FC = () => {
       Icon: BarChart3,
       subtitle: "For production managers monitoring production costs.",
       price: billingInterval === 'yearly' ? 590 : 59,
-      colorClass: "border-purple-600",
+      color: "#9333EA", // Purple-600
       textClass: "text-purple-600",
       btnClass: "border-purple-600 text-purple-700 bg-purple-50 hover:bg-purple-100",
       btnText: isAuthenticated ? "Switch to Cost Control" : "Get Started",
@@ -100,7 +101,7 @@ export const Pricing: React.FC = () => {
       Icon: Clapperboard,
       subtitle: "For producers seeking full project control.",
       price: billingInterval === 'yearly' ? 690 : 69,
-      colorClass: "border-green-600",
+      color: "#16A34A", // Green-600
       textClass: "text-green-600",
       btnClass: "border-green-600 text-green-700 bg-green-50 hover:bg-green-100",
       btnText: isAuthenticated ? "Switch to Production" : "Get Started",
@@ -139,8 +140,12 @@ export const Pricing: React.FC = () => {
         {/* PRICING CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24 items-start">
           {plans.map((plan, idx) => (
-            <div key={idx} className={`bg-white rounded-[2rem] shadow-sm border border-gray-100 border-t-[8px] ${plan.colorClass} p-8 flex flex-col h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300`}>
-              
+            <Card 
+              key={idx} 
+              color={plan.color}
+              interactive
+              className="h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300"
+            >
               <h3 className={`text-2xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h3>
               
               <div className="flex justify-center mb-6">
@@ -179,7 +184,7 @@ export const Pricing: React.FC = () => {
                     ))}
                 </ul>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </div>

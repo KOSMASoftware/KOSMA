@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { Layout as DashboardLayout } from '../components/Layout';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { SmartLink } from '../components/SmartLink';
+import { Card } from '../components/ui/Card';
 
 // --- COLOR MAPPING ---
 const CATEGORY_COLORS: Record<string, string> = {
@@ -190,10 +191,11 @@ const KnowledgeBaseContent: React.FC = () => {
                    const cardColor = CATEGORY_COLORS[cat.id] || '#0093D5';
                    
                    return (
-                      <div 
+                      <Card 
                         key={cat.id} 
-                        className="bg-white p-8 rounded-[2rem] border border-gray-100 border-t-[8px] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col h-full items-center"
-                        style={{ borderTopColor: cardColor }}
+                        color={cardColor}
+                        interactive
+                        className="group flex flex-col h-full items-center"
                       >
                          <div className="flex justify-center mb-6">
                             <Icon 
@@ -217,7 +219,7 @@ const KnowledgeBaseContent: React.FC = () => {
                                </Link>
                             ))}
                          </div>
-                      </div>
+                      </Card>
                    );
                 })}
              </div>

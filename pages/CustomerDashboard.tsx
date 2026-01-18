@@ -6,6 +6,7 @@ import { License, SubscriptionStatus, Invoice, PlanTier, User, BillingAddress } 
 import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, LayoutDashboard, Building, Check, Calculator, BarChart3, Clapperboard, AlertCircle, RefreshCw, ChevronRight, Lock, ExternalLink, CalendarMinus, TrendingDown } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
+import { Card } from '../components/ui/Card';
 
 // --- SHARED COMPONENTS ---
 
@@ -198,7 +199,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           title: "Budget",
           Icon: Calculator,
           price: billingInterval === 'yearly' ? 390 : 39,
-          colorClass: "border-amber-500",
+          color: "#F59E0B", // Amber
           textClass: "text-amber-500",
           features: ["Budgeting Module", "Unlimited Projects", "Print to PDF"]
         },
@@ -207,7 +208,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           title: "Cost Control",
           Icon: BarChart3,
           price: billingInterval === 'yearly' ? 590 : 59,
-          colorClass: "border-purple-600",
+          color: "#9333EA", // Purple
           textClass: "text-purple-600",
           features: ["Budgeting + Cost Control", "Soll/Ist Comparison", "Share projects"]
         },
@@ -216,7 +217,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           title: "Production",
           Icon: Clapperboard,
           price: billingInterval === 'yearly' ? 690 : 69,
-          colorClass: "border-green-600",
+          color: "#16A34A", // Green
           textClass: "text-green-600",
           features: ["All Modules", "Financing & Cashflow", "Multi-Project Overview"]
         }
@@ -251,9 +252,14 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                     const isDowngrade = targetRank < currentRank || (isSameTier && currentCycle === 'yearly' && billingInterval === 'monthly');
 
                     return (
-                        <div key={plan.name} className={`relative bg-white rounded-3xl shadow-sm border border-gray-100 border-t-[10px] ${plan.colorClass} p-8 flex flex-col h-full hover:shadow-xl transition-all duration-300 group`}>
+                        <Card 
+                            key={plan.name} 
+                            color={plan.color}
+                            interactive
+                            className="group h-full"
+                        >
                             {isCurrent && (
-                                <div className="absolute top-0 right-0 bg-gray-900 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl tracking-widest uppercase">
+                                <div className="absolute top-0 right-0 bg-gray-900 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl tracking-widest uppercase z-10">
                                     Active
                                 </div>
                             )}
@@ -306,7 +312,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                                     ))}
                                 </ul>
                             </div>
-                        </div>
+                        </Card>
                     );
                 })}
             </div>
