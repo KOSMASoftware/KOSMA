@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Users, Calculator, BarChart3, Clapperboard } from 'lucide-react';
+import { Check, Users, Calculator, BarChart3, Clapperboard, Monitor, HardDrive, WifiOff, Laptop } from 'lucide-react';
 import { PlanTier } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { STRIPE_LINKS } from '../config/stripe';
@@ -188,6 +188,62 @@ export const Pricing: React.FC = () => {
             </Card>
           ))}
         </div>
+
+        {/* TECHNICAL FACTS - New Section matching Download Page Design */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+             {/* Box 1 */}
+             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <Monitor className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Cross-Platform</h3>
+                    <p className="text-slate-500 leading-relaxed text-sm">
+                        It runs on Mac and Windows equally.
+                    </p>
+                </div>
+             </div>
+
+             {/* Box 2 */}
+             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <HardDrive className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Local & Secure</h3>
+                    <p className="text-slate-500 leading-relaxed text-sm">
+                        KOSMA stores your data locally on your machine and on the KOSMA server for you to share with other project members.
+                    </p>
+                </div>
+             </div>
+
+             {/* Box 3 */}
+             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <WifiOff className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Offline Ready</h3>
+                    <p className="text-slate-500 leading-relaxed text-sm">
+                        No internet, no problem – KOSMA runs offline as desktop app, not in a browser.
+                    </p>
+                </div>
+             </div>
+
+             {/* Box 4 */}
+             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <Laptop className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Flexible Licensing</h3>
+                    <p className="text-slate-500 leading-relaxed text-sm">
+                        One KOSMA license runs on a maximum of two computers.
+                    </p>
+                </div>
+             </div>
+        </div>
+
       </div>
     </MarketingLayout>
   );
