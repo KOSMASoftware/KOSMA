@@ -341,15 +341,15 @@ const FeatureScrollytelling = () => {
             >
                {/* The Sticky Stage */}
                <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
-                  {/* Grid - items-start with fixed height containers */}
-                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-start">
+                  {/* Grid - items-stretch to align height of Text and Image column */}
+                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-stretch">
                      
-                     {/* LEFT: Text Stage - Fixed Height 520px */}
-                     <div className="relative h-[520px]">
+                     {/* LEFT: Text Stage - Fixed Height 520px, overflow hidden, pt-8 */}
+                     <div className="relative h-[520px] overflow-hidden pt-8">
                         {activeModule.features.map((feature, idx) => (
                            <div 
                               key={`${activeModuleId}-text-${idx}`}
-                              className={`absolute top-0 left-0 w-full transition-all duration-500 ease-out ${
+                              className={`absolute top-8 left-0 w-full transition-all duration-500 ease-out ${
                                  activeFeatureIndex === idx 
                                    ? 'opacity-100 translate-y-0 pointer-events-auto delay-100' 
                                    : 'opacity-0 translate-y-4 pointer-events-none'
