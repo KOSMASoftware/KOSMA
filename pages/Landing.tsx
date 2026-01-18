@@ -4,110 +4,210 @@ import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
 import { Logo } from '../components/ui/Logo';
-import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X, Check, ArrowRight } from 'lucide-react';
+import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X, Check, ArrowRight, AlertCircle, Zap } from 'lucide-react';
 import { Footer } from '../components/layout/Footer';
 import { Card } from '../components/ui/Card';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
 
-// Define Feature Data
-const FEATURES = [
+// --- DATA STRUCTURE ---
+
+type FeatureItem = {
+  title: string;
+  desc: string;
+  pain: string;
+  solution: string;
+  impact: string;
+  image: string; // Placeholder for specific UI screens per feature
+};
+
+type ModuleData = {
+  id: string;
+  label: string;
+  color: string;
+  features: FeatureItem[];
+};
+
+const MODULES: ModuleData[] = [
   {
     id: 'budgeting',
-    title: 'Budgeting',
-    subtitle: 'Cost splitting made simple.',
-    description: 'Split costs between producers directly in settings. Define standard fringes and wage supplements once, and assign them to specific accounts automatically. No more manual spreadsheet chaos.',
+    label: 'Budgeting',
     color: 'bg-brand-500',
-    textColor: 'text-brand-500',
-    image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png', 
-    details: ['Split costs between producers', 'Define fringes & supplements', 'Assign fringes to accounts', 'Define extra costs']
+    features: [
+      {
+        title: 'Split costs between producers',
+        desc: 'Clear cost ownership and faster co‑production reporting.',
+        pain: 'Costs are split manually across partners, making co‑production budgets messy.',
+        solution: 'KOSMA lets you assign costs to multiple producers directly in settings.',
+        impact: 'Clear cost ownership and faster co‑production reporting.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Define fringes & supplements',
+        desc: 'Consistent, compliant cost calculations across all accounts.',
+        pain: 'Fringes and wage supplements are calculated differently across projects.',
+        solution: 'Define standard fringes and wage supplements once in settings.',
+        impact: 'Consistent, compliant cost calculations across all accounts.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Assign fringes to accounts',
+        desc: 'Accurate labor costs with fewer manual corrections.',
+        pain: 'Applying fringes per account is slow and error‑prone.',
+        solution: 'Assign fringes and supplements directly to specific accounts.',
+        impact: 'Accurate labor costs with fewer manual corrections.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Define extra costs',
+        desc: 'Full visibility of true personnel costs in one place.',
+        pain: 'Extra personnel costs are tracked outside the budget.',
+        solution: 'Define extra cost types (travel, catering, hotels) in KOSMA.',
+        impact: 'Full visibility of true personnel costs in one place.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      }
+    ]
   },
   {
     id: 'financing',
-    title: 'Financing',
-    subtitle: 'Structure your funding.',
-    description: 'Load financing plan templates and adapt them quickly. Edit financing sources and assign them to producers. Use funding effects as variables to keep calculations accurate and live.',
+    label: 'Financing',
     color: 'bg-blue-700',
-    textColor: 'text-blue-700',
-    image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
-    details: ['Financing plan templates', 'Manage financing sources', 'Funding effects as variables', 'Link expenses to sources']
+    features: [
+      {
+        title: 'Financing plan templates',
+        desc: 'Faster setup with consistent financing structure.',
+        pain: 'Each financing plan starts from scratch.',
+        solution: 'Load a financing plan template and adapt it quickly.',
+        impact: 'Faster setup with consistent financing structure.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Manage financing sources',
+        desc: 'Clear funding ownership and easier partner reporting.',
+        pain: 'Financing sources and producer shares are scattered across files.',
+        solution: 'Edit financing sources and assign them to producers directly.',
+        impact: 'Clear funding ownership and easier partner reporting.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Funding effects as variables',
+        desc: 'Accurate funding calculations tied to real budget data.',
+        pain: 'Funding logic is hard to integrate with budget effects.',
+        solution: 'Use funding effects as variables in the financing plan.',
+        impact: 'Accurate funding calculations tied to real budget data.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Link expenses to sources',
+        desc: 'Transparent funding allocation and stronger auditability.',
+        pain: 'It’s unclear which funding source covers which expense effect.',
+        solution: 'Connect expense effects to specific financing sources.',
+        impact: 'Transparent funding allocation and stronger auditability.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      }
+    ]
   },
   {
     id: 'cashflow',
-    title: 'Cash Flow',
-    subtitle: 'Liquidity at a glance.',
-    description: 'Define milestones and phases to automate cash-flow logic. Generate a cash-flow plan directly from your budget and financing data without external tools or complex excel formulas.',
+    label: 'Cash Flow',
     color: 'bg-orange-500',
-    textColor: 'text-orange-500',
-    image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
-    details: ['Define milestones & phases', 'Create cash-flow rules', 'Build a cash-flow plan', 'Add loans/transfers']
+    features: [
+      {
+        title: 'Define milestones & phases',
+        desc: 'Cash‑flow stays aligned with production timelines.',
+        pain: 'Cash‑flow rules have to be updated manually whenever schedules change.',
+        solution: 'Define milestones and phases to automate cash‑flow logic.',
+        impact: 'Cash‑flow stays aligned with production timelines.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Create cash‑flow rules',
+        desc: 'Consistent payment schedules with less manual work.',
+        pain: 'Payment timing is handled in separate spreadsheets.',
+        solution: 'Create cash‑flow rules directly inside KOSMA.',
+        impact: 'Consistent payment schedules with less manual work.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Build a cash‑flow plan',
+        desc: 'Immediate financial visibility for production planning.',
+        pain: 'Budget and financing data don’t automatically translate into cash‑flow.',
+        solution: 'Generate a cash‑flow plan from budget + financing.',
+        impact: 'Immediate financial visibility for production planning.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Add loans/transfers',
+        desc: 'Complete cash‑flow picture without external tools.',
+        pain: 'Inter‑producer transfers and loans are tracked separately.',
+        solution: 'Add loans or transfers directly into the cash‑flow plan.',
+        impact: 'Complete cash‑flow picture without external tools.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      }
+    ]
   },
   {
     id: 'costcontrol',
-    title: 'Cost Control',
-    subtitle: 'Stay on budget.',
-    description: 'Match actual costs against the budget immediately. Import accounting data, recalculate forecasts per account, and generate professional cost reports for financiers in seconds.',
+    label: 'Cost Control',
     color: 'bg-purple-600',
-    textColor: 'text-purple-600',
-    image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png',
-    details: ['Compare plan vs actuals', 'Import accounting data', 'Recalculate forecasts', 'Generate cost reports']
+    features: [
+      {
+        title: 'Compare plan vs actuals',
+        desc: 'Immediate visibility of overruns and deviations.',
+        pain: 'Actual costs live outside the budget and are hard to reconcile.',
+        solution: 'Match actual costs against the budget in Cost Control.',
+        impact: 'Immediate visibility of overruns and deviations.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Import accounting data',
+        desc: 'Less manual work and fewer reconciliation errors.',
+        pain: 'Accounting data must be re‑entered manually.',
+        solution: 'Import accounting data directly into Cost Control.',
+        impact: 'Less manual work and fewer reconciliation errors.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Recalculate forecasts',
+        desc: 'Up‑to‑date cost outlooks at any time.',
+        pain: 'Forecasts are outdated as soon as costs change.',
+        solution: 'Recalculate forecasts per account instantly.',
+        impact: 'Up‑to‑date cost outlooks at any time.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Generate cost reports',
+        desc: 'Fast reporting for producers and financiers.',
+        pain: 'Reporting requires extra spreadsheets and formatting.',
+        solution: 'Show and print cost reports from Cost Control.',
+        impact: 'Fast reporting for producers and financiers.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      }
+    ]
   }
 ];
 
-const LaptopFrame = ({ activeIndex }: { activeIndex: number }) => {
-  return (
-    <div className="relative mx-auto w-full max-w-[800px]">
-      {/* Lid / Screen Frame */}
-      <div className="relative bg-gray-800 rounded-t-[1.5rem] p-[2%] shadow-2xl border-t border-l border-r border-gray-700">
-        {/* Camera Dot */}
-        <div className="absolute top-[3%] left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-gray-900 rounded-full ring-1 ring-gray-700/50"></div>
-        
-        {/* Screen Content Container */}
-        <div className="relative aspect-[16/10] bg-gray-900 rounded-lg overflow-hidden shadow-inner ring-1 ring-black">
-           {FEATURES.map((feature, idx) => (
-             <div 
-                key={feature.id}
-                className={`absolute inset-0 w-full h-full transition-all duration-700 ease-in-out bg-white`}
-                style={{
-                  opacity: activeIndex === idx ? 1 : 0,
-                  transform: activeIndex === idx ? 'scale(1)' : 'scale(0.98)',
-                  zIndex: activeIndex === idx ? 10 : 0,
-                }}
-             >
-                {/* Image */}
-                <img 
-                  src={feature.image} 
-                  alt={feature.title} 
-                  className="w-full h-full object-cover object-top"
-                />
-                
-                {/* Overlay Tag to distinguish sections in this prototype since images are same */}
-                <div className="absolute top-6 left-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-sm border border-gray-100">
-                   <span className={`text-xs font-black uppercase tracking-widest ${feature.textColor}`}>{feature.title} View</span>
-                </div>
-             </div>
-           ))}
-        </div>
-      </div>
-      
-      {/* Base / Keyboard Area */}
-      <div className="relative bg-gray-800 h-[12px] sm:h-[16px] w-[102%] -left-[1%] rounded-b-xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] flex items-center justify-center border-t border-gray-900">
-         <div className="w-[15%] h-[2px] bg-gray-600/50 rounded-full"></div>
-      </div>
-    </div>
-  );
-};
+// --- COMPONENTS ---
 
-const FeaturesSection: React.FC = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
+const FeatureScrollytelling = () => {
+  const [activeModuleId, setActiveModuleId] = useState('budgeting');
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  const activeModule = MODULES.find(m => m.id === activeModuleId) || MODULES[0];
+
+  // Reset scroll when tab changes
   useEffect(() => {
-    // Config for "reading zone" trigger
+    setActiveFeatureIndex(0);
+    // Optional: Scroll to top of content container if needed
+  }, [activeModuleId]);
+
+  // Observer for scroll steps
+  useEffect(() => {
     const options = {
       root: null,
-      rootMargin: "-20% 0px -40% 0px", // Trigger when element is in the center-ish band
+      rootMargin: "-40% 0px -40% 0px", // Trigger in middle 20% of screen
       threshold: 0
     };
 
@@ -115,117 +215,160 @@ const FeaturesSection: React.FC = () => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const index = Number(entry.target.getAttribute('data-index'));
-          setActiveIndex(index);
+          setActiveFeatureIndex(index);
         }
       });
     };
 
     const observer = new IntersectionObserver(callback, options);
-
-    sectionRefs.current.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
+    // We only observe elements that currently exist in the DOM (current module's features)
+    // We need to re-attach whenever activeModule changes
+    const elements = document.querySelectorAll('.feature-step');
+    elements.forEach(el => observer.observe(el));
 
     return () => observer.disconnect();
-  }, []);
+  }, [activeModuleId]);
 
   return (
-    <section id="features" className="relative w-full bg-white">
+    <section id="features" className="relative w-full bg-white py-24 md:py-32">
       <div className="max-w-7xl mx-auto px-6">
         
         {/* Intro */}
-        <div className="text-center py-24 md:py-32 max-w-3xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto mb-20">
            <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight mb-6">
              One System.<br/>Complete Control.
            </h2>
            <p className="text-xl text-gray-500 font-medium leading-relaxed">
-             Stop switching between spreadsheets. KOSMA unifies your production finance workflow into a single, reliable source of truth.
+             Stop switching between spreadsheets. KOSMA unifies your production finance workflow.
            </p>
         </div>
 
-        {/* Desktop Scrollytelling Layout */}
-        <div className="hidden lg:grid grid-cols-2 gap-20 pb-40">
+        {/* TABS - Sticky-ish */}
+        <div className="sticky top-[80px] z-30 flex justify-center mb-16 md:mb-24">
+           <div className="inline-flex flex-wrap justify-center p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm">
+              {MODULES.map(module => (
+                <button
+                  key={module.id}
+                  onClick={() => setActiveModuleId(module.id)}
+                  className={`px-6 py-3 rounded-xl text-sm font-black transition-all ${
+                    activeModuleId === module.id
+                      ? 'bg-white text-gray-900 shadow-md transform scale-105'
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+                  }`}
+                >
+                  {module.label}
+                </button>
+              ))}
+           </div>
+        </div>
+
+        {/* CONTENT GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
            
-           {/* Left: Scrollable Text Blocks */}
-           <div className="relative">
-              {/* Vertical Progress Line */}
-              <div className="absolute left-6 top-0 bottom-0 w-px bg-gray-100"></div>
+           {/* LEFT: Text Content (Scrollable) */}
+           <div className="flex flex-col gap-0 pb-20">
+              {activeModule.features.map((feature, idx) => (
+                <div 
+                  key={`${activeModuleId}-${idx}`} 
+                  data-index={idx}
+                  className="feature-step min-h-[80vh] flex flex-col justify-center py-12"
+                >
+                   {/* Header */}
+                   <div className={`text-sm font-black uppercase tracking-widest mb-4 ${
+                      activeFeatureIndex === idx ? 'text-brand-500' : 'text-gray-300'
+                   }`}>
+                      0{idx + 1} — {activeModule.label}
+                   </div>
+                   
+                   <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 leading-tight">
+                     {feature.title}
+                   </h3>
+                   <p className="text-lg font-bold text-gray-400 mb-10">
+                     {feature.desc}
+                   </p>
 
-              <div className="space-y-[10vh]">
-                {FEATURES.map((feature, idx) => (
-                  <div 
-                    key={feature.id}
-                    ref={el => { sectionRefs.current[idx] = el }}
-                    data-index={idx}
-                    className={`min-h-[60vh] flex flex-col justify-center pl-20 transition-all duration-500 ${activeIndex === idx ? 'opacity-100 translate-x-0' : 'opacity-30 -translate-x-4'}`}
-                  >
-                     <div className={`absolute left-0 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg transition-all duration-500 ${activeIndex === idx ? `${feature.color} text-white scale-110` : 'bg-gray-50 text-gray-300 scale-100'}`}>
-                        {idx + 1}
-                     </div>
-                     <h3 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">{feature.title}</h3>
-                     <p className={`text-lg font-bold mb-6 ${feature.textColor}`}>{feature.subtitle}</p>
-                     <p className="text-lg text-gray-600 leading-relaxed mb-8">{feature.description}</p>
-                     
-                     <ul className="space-y-3">
-                       {feature.details.map((detail, dIdx) => (
-                         <li key={dIdx} className="flex items-center gap-3 text-sm font-bold text-gray-700">
-                            <div className={`w-1.5 h-1.5 rounded-full ${feature.color}`}></div>
-                            {detail}
-                         </li>
-                       ))}
-                     </ul>
-                  </div>
-                ))}
+                   {/* Pain / Solution / Impact Cards */}
+                   <div className="space-y-4">
+                      {/* PAIN */}
+                      <div className="bg-red-50/50 border border-red-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-red-200 hover:shadow-sm">
+                         <div className="mt-1 bg-red-100 text-red-600 p-1.5 rounded-lg shrink-0">
+                            <AlertCircle className="w-4 h-4" />
+                         </div>
+                         <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-red-400 block mb-1">The Pain</span>
+                            <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.pain}</p>
+                         </div>
+                      </div>
+
+                      {/* SOLUTION */}
+                      <div className="bg-brand-50/50 border border-brand-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-brand-200 hover:shadow-sm">
+                         <div className="mt-1 bg-brand-100 text-brand-600 p-1.5 rounded-lg shrink-0">
+                            <Zap className="w-4 h-4" />
+                         </div>
+                         <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-brand-400 block mb-1">The Solution</span>
+                            <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.solution}</p>
+                         </div>
+                      </div>
+
+                      {/* IMPACT */}
+                      <div className="bg-green-50/50 border border-green-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-green-200 hover:shadow-sm">
+                         <div className="mt-1 bg-green-100 text-green-600 p-1.5 rounded-lg shrink-0">
+                            <TrendingUp className="w-4 h-4" />
+                         </div>
+                         <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-green-500 block mb-1">The Impact</span>
+                            <p className="text-gray-900 font-bold text-sm leading-relaxed">{feature.impact}</p>
+                         </div>
+                      </div>
+                   </div>
+                   
+                   {/* Mobile Image (Visible only on small screens) */}
+                   <div className="lg:hidden mt-8 rounded-2xl overflow-hidden shadow-xl border border-gray-100">
+                      <img src={feature.image} alt={feature.title} className="w-full h-auto" />
+                   </div>
+                </div>
+              ))}
+           </div>
+
+           {/* RIGHT: Sticky Image (Desktop Only) */}
+           <div className="hidden lg:block relative h-full">
+              <div className="sticky top-40 w-full aspect-[16/10]">
+                 <div className="relative w-full h-full bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+                    {/* Fake Browser Header for Polish */}
+                    <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
+                       <div className="w-2.5 h-2.5 rounded-full bg-red-400/20"></div>
+                       <div className="w-2.5 h-2.5 rounded-full bg-amber-400/20"></div>
+                       <div className="w-2.5 h-2.5 rounded-full bg-green-400/20"></div>
+                    </div>
+
+                    {activeModule.features.map((feature, idx) => (
+                       <div
+                          key={idx}
+                          className="absolute inset-0 top-8 bg-white transition-all duration-700 ease-out"
+                          style={{
+                             opacity: activeFeatureIndex === idx ? 1 : 0,
+                             transform: activeFeatureIndex === idx ? 'scale(1)' : 'scale(0.98)',
+                             zIndex: 10
+                          }}
+                       >
+                          <img 
+                            src={feature.image} 
+                            alt={feature.title} 
+                            className="w-full h-full object-cover object-top"
+                          />
+                          
+                          {/* Label Overlay to distinguish images in prototype since they are identical */}
+                          <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-lg border border-gray-100 pointer-events-none">
+                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">View</div>
+                             <div className="text-sm font-bold text-gray-900">{feature.title}</div>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
               </div>
            </div>
 
-           {/* Right: Sticky Visual */}
-           <div className="relative">
-              <div className="sticky top-[120px] transition-all duration-700">
-                 <LaptopFrame activeIndex={activeIndex} />
-              </div>
-           </div>
-        </div>
-
-        {/* Mobile Stacked Layout */}
-        <div className="lg:hidden flex flex-col gap-24 pb-24">
-           {FEATURES.map((feature, idx) => (
-             <div key={feature.id} className="flex flex-col gap-8">
-                {/* Visual */}
-                <div className="bg-gray-100 rounded-3xl p-4 sm:p-8">
-                   <img src={feature.image} alt={feature.title} className="w-full h-auto rounded-xl shadow-lg border border-gray-200" />
-                </div>
-                
-                {/* Text */}
-                <div className="px-2">
-                   <span className={`inline-block px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest mb-4 bg-gray-100 ${feature.textColor}`}>
-                      0{idx + 1} — {feature.title}
-                   </span>
-                   <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
-                   <p className="text-lg font-bold text-gray-400 mb-4">{feature.subtitle}</p>
-                   <p className="text-gray-600 leading-relaxed mb-6">{feature.description}</p>
-                   <ul className="space-y-3 border-t border-gray-100 pt-6">
-                       {feature.details.map((detail, dIdx) => (
-                         <li key={dIdx} className="flex items-center gap-3 text-sm font-bold text-gray-700">
-                            <Check className={`w-4 h-4 ${feature.textColor}`} />
-                            {detail}
-                         </li>
-                       ))}
-                   </ul>
-                </div>
-             </div>
-           ))}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="text-center pb-32">
-            <Link 
-              to="/download"
-              className="inline-flex items-center gap-3 bg-gray-900 text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10 hover:shadow-brand-500/20 hover:-translate-y-1"
-            >
-               <Download className="w-5 h-5" />
-               Start Free Trial
-            </Link>
         </div>
 
       </div>
@@ -425,8 +568,8 @@ export const Landing: React.FC = () => {
 
           {/* CONTENT SECTION - WRAPPED IN DOTS */}
           <PulsingDotsBackground>
-              {/* FEATURES SECTION */}
-              <FeaturesSection />
+              {/* FEATURES SCROLLYTELLING */}
+              <FeatureScrollytelling />
 
               {/* FOOTER */}
               <Footer />
