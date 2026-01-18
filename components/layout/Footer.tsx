@@ -1,8 +1,11 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useCookieSettings } from '../../context/CookieContext';
 
 export const Footer: React.FC = () => {
+  const { openModal } = useCookieSettings();
+
   return (
     <footer className="relative z-10 bg-white/80 backdrop-blur-md border-t border-gray-200 mt-auto">
       <div className="max-w-7xl mx-auto px-6 py-16">
@@ -36,7 +39,15 @@ export const Footer: React.FC = () => {
               <li><Link to="/imprint" className="hover:text-brand-500 transition-colors">Imprint</Link></li>
               <li><Link to="/privacy" className="hover:text-brand-500 transition-colors">Privacy Policy</Link></li>
               <li><Link to="/terms" className="hover:text-brand-500 transition-colors">Terms / GTC</Link></li>
-              <li><button className="hover:text-brand-500 transition-colors text-left">Cookie Settings</button></li>
+              <li><Link to="/eula" className="hover:text-brand-500 transition-colors">EULA</Link></li>
+              <li>
+                  <button 
+                    onClick={openModal} 
+                    className="hover:text-brand-500 transition-colors text-left"
+                  >
+                    Cookie Settings
+                  </button>
+              </li>
             </ul>
           </div>
         </div>

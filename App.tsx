@@ -2,6 +2,7 @@
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CookieProvider } from './context/CookieContext';
 import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
 import { Pricing } from './pages/Pricing';
@@ -13,6 +14,10 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { LearningPage } from './pages/Learning';
 import { KnowledgeBasePage } from './pages/KnowledgeBase';
 import { BillingReturn } from './pages/BillingReturn';
+import { EulaPage } from './pages/Eula';
+import { TermsPage } from './pages/Terms';
+import { PrivacyPage } from './pages/Privacy';
+import { ImprintPage } from './pages/Imprint';
 import { UserRole } from './types';
 import { Loader2 } from 'lucide-react';
 
@@ -47,53 +52,59 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <HashRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/download" element={<DownloadPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          
-          <Route path="/login" element={<AuthPage mode="login" />} />
-          <Route path="/signup" element={<AuthPage mode="signup" />} />
-          <Route path="/update-password" element={<AuthPage mode="update-password" />} />
-          <Route path="/billing-return" element={<BillingReturn />} />
+      <CookieProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/download" element={<DownloadPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/eula" element={<EulaPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/imprint" element={<ImprintPage />} />
+            
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/signup" element={<AuthPage mode="signup" />} />
+            <Route path="/update-password" element={<AuthPage mode="update-password" />} />
+            <Route path="/billing-return" element={<BillingReturn />} />
 
-          {/* Kunden-Bereich: Admins werden hier rausgeworfen nach /admin */}
-          <Route 
-            path="/dashboard/*" 
-            element={
-              <ProtectedRoute requiredRole={UserRole.CUSTOMER}>
-                <CustomerDashboard />
-              </ProtectedRoute>
-            } 
-          />
+            {/* Kunden-Bereich: Admins werden hier rausgeworfen nach /admin */}
+            <Route 
+              path="/dashboard/*" 
+              element={
+                <ProtectedRoute requiredRole={UserRole.CUSTOMER}>
+                  <CustomerDashboard />
+                </ProtectedRoute>
+              } 
+            />
 
-          {/* Admin-Bereich: Kunden werden hier rausgeworfen nach /dashboard */}
-          <Route 
-            path="/admin/*" 
-            element={
-              <ProtectedRoute requiredRole={UserRole.ADMIN}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } 
-          />
+            {/* Admin-Bereich: Kunden werden hier rausgeworfen nach /dashboard */}
+            <Route 
+              path="/admin/*" 
+              element={
+                <ProtectedRoute requiredRole={UserRole.ADMIN}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
 
-          {/* DOCUMENTATION */}
-          {/* 1. Learning Campus (Old Help Page Logic, route /learning) */}
-          <Route path="/learning" element={<LearningPage />} />
-          <Route path="/learning/*" element={<LearningPage />} />
-          
-          {/* 2. Knowledge Base (New Explorative Page, route /help) */}
-          <Route path="/help" element={<KnowledgeBasePage />} />
-          <Route path="/help/:id" element={<KnowledgeBasePage />} />
-          
-          {/* Redirects */}
-          <Route path="/knowledge/*" element={<Navigate to="/help" replace />} />
+            {/* DOCUMENTATION */}
+            {/* 1. Learning Campus (Old Help Page Logic, route /learning) */}
+            <Route path="/learning" element={<LearningPage />} />
+            <Route path="/learning/*" element={<LearningPage />} />
+            
+            {/* 2. Knowledge Base (New Explorative Page, route /help) */}
+            <Route path="/help" element={<KnowledgeBasePage />} />
+            <Route path="/help/:id" element={<KnowledgeBasePage />} />
+            
+            {/* Redirects */}
+            <Route path="/knowledge/*" element={<Navigate to="/help" replace />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </HashRouter>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </HashRouter>
+      </CookieProvider>
     </AuthProvider>
   );
 };
