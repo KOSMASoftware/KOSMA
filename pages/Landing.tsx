@@ -193,41 +193,68 @@ const MODULES: ModuleData[] = [
 const FeatureScrollytelling = () => {
   const [activeModuleId, setActiveModuleId] = useState('budgeting');
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const sectionRef = useRef<HTMLDivElement>(null);
   
   const activeModule = MODULES.find(m => m.id === activeModuleId) || MODULES[0];
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Reset scroll state when tab changes
   useEffect(() => {
     setActiveFeatureIndex(0);
   }, [activeModuleId]);
 
-  // Scroll Progress Logic
+  // Scroll Progress Logic - Throttled with rAF and Index Guard
   useEffect(() => {
+    if (isMobile) return;
+
+    let ticking = false;
+    let lastIndex = -1;
+
     const handleScroll = () => {
       if (!sectionRef.current) return;
-      
-      const rect = sectionRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const height = rect.height;
-      const stickyOffset = 180; // Matches top-[180px]
-      
-      const scrolled = -rect.top + stickyOffset;
-      const scrollableHeight = height - viewportHeight + stickyOffset;
-      
-      let progress = scrolled / scrollableHeight;
-      progress = Math.max(0, Math.min(1, progress));
+      if (ticking) return; // Throttle
 
-      const count = activeModule.features.length;
-      const idx = Math.min(count - 1, Math.floor(progress * count));
-      setActiveFeatureIndex(idx);
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        if (!sectionRef.current) {
+            ticking = false;
+            return;
+        }
+        
+        const rect = sectionRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const height = rect.height;
+        const stickyOffset = 180; // Matches top-[180px]
+        
+        const scrolled = -rect.top + stickyOffset;
+        const scrollableHeight = height - viewportHeight + stickyOffset;
+        
+        let progress = scrolled / scrollableHeight;
+        progress = Math.max(0, Math.min(1, progress));
+
+        const count = activeModule.features.length;
+        const idx = Math.min(count - 1, Math.floor(progress * count));
+        
+        if (idx !== lastIndex) {
+          lastIndex = idx;
+          setActiveFeatureIndex(idx);
+        }
+        
+        ticking = false;
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll(); // Init
     
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeModule]);
+  }, [activeModule, isMobile]);
 
   return (
     // Outer Container
@@ -263,152 +290,155 @@ const FeatureScrollytelling = () => {
            </div>
         </div>
 
-        {/* DESKTOP STAGE VIEW */}
-        <div 
-            ref={sectionRef}
-            className="hidden lg:block relative h-[350vh]"
-        >
-           {/* The Sticky Stage */}
-           <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
-              {/* Changed items-start to items-stretch for equal height columns */}
-              <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-stretch">
-                 
-                 {/* LEFT: Text Stage - Fixed Height 520px */}
-                 <div className="relative h-[520px]">
-                    {activeModule.features.map((feature, idx) => (
-                       <div 
-                          key={`${activeModuleId}-text-${idx}`}
-                          className={`absolute top-0 left-0 w-full transition-all duration-700 ease-out ${
-                             activeFeatureIndex === idx 
-                               ? 'opacity-100 translate-y-0 pointer-events-auto delay-100' 
-                               : 'opacity-0 translate-y-8 pointer-events-none'
-                          }`}
-                       >
-                           {/* Header */}
-                           <div className={`text-sm font-black uppercase tracking-widest mb-4 transition-colors duration-500 ${
-                              activeFeatureIndex === idx ? 'text-brand-500' : 'text-gray-300'
-                           }`}>
-                              0{idx + 1} — {activeModule.label}
-                           </div>
-                           
-                           <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 leading-tight">
-                             {feature.title}
-                           </h3>
-                           <p className="text-lg font-bold text-gray-400 mb-10">
-                             {feature.desc}
-                           </p>
-
-                           {/* Pain / Solution / Impact Cards */}
-                           <div className="space-y-4">
-                              {/* PAIN */}
-                              <div className="bg-red-50/80 backdrop-blur-sm border border-red-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-red-200 hover:shadow-sm">
-                                 <div className="mt-1 bg-red-100 text-red-600 p-1.5 rounded-lg shrink-0">
-                                    <AlertCircle className="w-4 h-4" />
-                                 </div>
-                                 <div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-red-400 block mb-1">The Pain</span>
-                                    <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.pain}</p>
-                                 </div>
-                              </div>
-
-                              {/* SOLUTION */}
-                              <div className="bg-brand-50/80 backdrop-blur-sm border border-brand-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-brand-200 hover:shadow-sm">
-                                 <div className="mt-1 bg-brand-100 text-brand-600 p-1.5 rounded-lg shrink-0">
-                                    <Zap className="w-4 h-4" />
-                                 </div>
-                                 <div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-400 block mb-1">The Solution</span>
-                                    <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.solution}</p>
-                                 </div>
-                              </div>
-
-                              {/* IMPACT */}
-                              <div className="bg-green-50/80 backdrop-blur-sm border border-green-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-green-200 hover:shadow-sm">
-                                 <div className="mt-1 bg-green-100 text-green-600 p-1.5 rounded-lg shrink-0">
-                                    <TrendingUp className="w-4 h-4" />
-                                 </div>
-                                 <div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-green-500 block mb-1">The Impact</span>
-                                    <p className="text-gray-900 font-bold text-sm leading-relaxed">{feature.impact}</p>
-                                 </div>
-                              </div>
-                           </div>
+        {/* CONDITIONAL RENDERING */}
+        {isMobile ? (
+            /* MOBILE STACKED VIEW */
+            <div className="flex flex-col gap-24 pb-24 animate-in fade-in">
+               {activeModule.features.map((feature, idx) => (
+                 <div key={`${activeModuleId}-mob-${idx}`} className="flex flex-col gap-8">
+                    <div className="px-2">
+                       <div className="text-sm font-black uppercase tracking-widest mb-4 text-brand-500">
+                          0{idx + 1} — {activeModule.label}
                        </div>
-                    ))}
-                 </div>
+                       <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
+                       <p className="text-lg font-bold text-gray-400 mb-6">{feature.desc}</p>
 
-                 {/* RIGHT: Image Stage - Fixed Height 520px to match text */}
-                 <div className="relative w-full h-[520px] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
-                    {/* Fake Browser Header */}
-                    <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
-                       <div className="w-2.5 h-2.5 rounded-full bg-red-400/20"></div>
-                       <div className="w-2.5 h-2.5 rounded-full bg-amber-400/20"></div>
-                       <div className="w-2.5 h-2.5 rounded-full bg-green-400/20"></div>
-                    </div>
-
-                    {activeModule.features.map((feature, idx) => (
-                       <div
-                          key={`${activeModuleId}-img-${idx}`}
-                          className="absolute inset-0 top-8 bg-white transition-all duration-700 ease-out"
-                          style={{
-                             opacity: activeFeatureIndex === idx ? 1 : 0,
-                             transform: activeFeatureIndex === idx ? 'scale(1)' : 'scale(0.98)',
-                             zIndex: 10
-                          }}
-                       >
-                          <img 
-                            src={feature.image} 
-                            alt={feature.title} 
-                            className="w-full h-full object-cover object-top"
-                          />
-                          
-                          <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-lg border border-gray-100 pointer-events-none">
-                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">View</div>
-                             <div className="text-sm font-bold text-gray-900">{feature.title}</div>
+                       {/* Pain/Solution/Impact Mobile */}
+                       <div className="space-y-4 mb-8">
+                          <div className="bg-red-50 p-4 rounded-xl text-sm border border-red-100">
+                             <span className="font-black text-red-400 uppercase text-[10px] block mb-1">Pain</span>
+                             {feature.pain}
+                          </div>
+                          <div className="bg-brand-50 p-4 rounded-xl text-sm border border-brand-100">
+                             <span className="font-black text-brand-400 uppercase text-[10px] block mb-1">Solution</span>
+                             {feature.solution}
+                          </div>
+                          <div className="bg-green-50 p-4 rounded-xl text-sm border border-green-100">
+                             <span className="font-black text-green-500 uppercase text-[10px] block mb-1">Impact</span>
+                             {feature.impact}
                           </div>
                        </div>
-                    ))}
+                    </div>
+                    
+                    {/* Visual */}
+                    <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-gray-100">
+                       <img 
+                            src={feature.image} 
+                            alt={feature.title} 
+                            className="w-full h-auto"
+                            loading="lazy"
+                            decoding="async" 
+                       />
+                    </div>
                  </div>
+               ))}
+            </div>
+        ) : (
+            /* DESKTOP STAGE VIEW */
+            <div 
+                ref={sectionRef}
+                className="relative h-[350vh]"
+            >
+               {/* The Sticky Stage */}
+               <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
+                  {/* Changed items-stretch to items-start as per new request to let image define structure if needed, but text is fixed height now */}
+                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-start">
+                     
+                     {/* LEFT: Text Stage - Fixed Height 450px */}
+                     <div className="relative h-[450px]">
+                        {activeModule.features.map((feature, idx) => (
+                           <div 
+                              key={`${activeModuleId}-text-${idx}`}
+                              className={`absolute top-0 left-0 w-full transition-all duration-500 ease-out ${
+                                 activeFeatureIndex === idx 
+                                   ? 'opacity-100 translate-y-0 pointer-events-auto delay-100' 
+                                   : 'opacity-0 translate-y-4 pointer-events-none'
+                              }`}
+                           >
+                               {/* Header */}
+                               <div className={`text-sm font-black uppercase tracking-widest mb-4 transition-colors duration-500 ${
+                                  activeFeatureIndex === idx ? 'text-brand-500' : 'text-gray-300'
+                               }`}>
+                                  0{idx + 1} — {activeModule.label}
+                               </div>
+                               
+                               <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 leading-tight">
+                                 {feature.title}
+                               </h3>
+                               <p className="text-lg font-bold text-gray-400 mb-10">
+                                 {feature.desc}
+                               </p>
 
-              </div>
-           </div>
-        </div>
+                               {/* Pain / Solution / Impact Cards */}
+                               <div className="space-y-4">
+                                  {/* PAIN */}
+                                  <div className="bg-red-50/80 backdrop-blur-sm border border-red-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-red-200 hover:shadow-sm">
+                                     <div className="mt-1 bg-red-100 text-red-600 p-1.5 rounded-lg shrink-0">
+                                        <AlertCircle className="w-4 h-4" />
+                                     </div>
+                                     <div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-red-400 block mb-1">The Pain</span>
+                                        <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.pain}</p>
+                                     </div>
+                                  </div>
 
-        {/* MOBILE STACKED VIEW */}
-        <div className="lg:hidden flex flex-col gap-24 pb-24">
-           {activeModule.features.map((feature, idx) => (
-             <div key={`${activeModuleId}-mob-${idx}`} className="flex flex-col gap-8">
-                <div className="px-2">
-                   <div className="text-sm font-black uppercase tracking-widest mb-4 text-brand-500">
-                      0{idx + 1} — {activeModule.label}
-                   </div>
-                   <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
-                   <p className="text-lg font-bold text-gray-400 mb-6">{feature.desc}</p>
+                                  {/* SOLUTION */}
+                                  <div className="bg-brand-50/80 backdrop-blur-sm border border-brand-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-brand-200 hover:shadow-sm">
+                                     <div className="mt-1 bg-brand-100 text-brand-600 p-1.5 rounded-lg shrink-0">
+                                        <Zap className="w-4 h-4" />
+                                     </div>
+                                     <div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-400 block mb-1">The Solution</span>
+                                        <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.solution}</p>
+                                     </div>
+                                  </div>
 
-                   {/* Pain/Solution/Impact Mobile */}
-                   <div className="space-y-4 mb-8">
-                      <div className="bg-red-50 p-4 rounded-xl text-sm border border-red-100">
-                         <span className="font-black text-red-400 uppercase text-[10px] block mb-1">Pain</span>
-                         {feature.pain}
-                      </div>
-                      <div className="bg-brand-50 p-4 rounded-xl text-sm border border-brand-100">
-                         <span className="font-black text-brand-400 uppercase text-[10px] block mb-1">Solution</span>
-                         {feature.solution}
-                      </div>
-                      <div className="bg-green-50 p-4 rounded-xl text-sm border border-green-100">
-                         <span className="font-black text-green-500 uppercase text-[10px] block mb-1">Impact</span>
-                         {feature.impact}
-                      </div>
-                   </div>
-                </div>
-                
-                {/* Visual */}
-                <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-gray-100">
-                   <img src={feature.image} alt={feature.title} className="w-full h-auto" />
-                </div>
-             </div>
-           ))}
-        </div>
+                                  {/* IMPACT */}
+                                  <div className="bg-green-50/80 backdrop-blur-sm border border-green-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-green-200 hover:shadow-sm">
+                                     <div className="mt-1 bg-green-100 text-green-600 p-1.5 rounded-lg shrink-0">
+                                        <TrendingUp className="w-4 h-4" />
+                                     </div>
+                                     <div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-green-500 block mb-1">The Impact</span>
+                                        <p className="text-gray-900 font-bold text-sm leading-relaxed">{feature.impact}</p>
+                                     </div>
+                                  </div>
+                               </div>
+                           </div>
+                        ))}
+                     </div>
+
+                     {/* RIGHT: Image Stage - 16:9 Aspect Ratio */}
+                     <div className="relative w-full aspect-video bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+                        {/* Fake Browser Header */}
+                        <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
+                           <div className="w-2.5 h-2.5 rounded-full bg-red-400/20"></div>
+                           <div className="w-2.5 h-2.5 rounded-full bg-amber-400/20"></div>
+                           <div className="w-2.5 h-2.5 rounded-full bg-green-400/20"></div>
+                        </div>
+
+                        {/* Single Active Image - No Multi-Layer */}
+                        <div className="absolute inset-0 top-8 bg-white">
+                            <img 
+                                key={activeModule.features[activeFeatureIndex].image}
+                                src={activeModule.features[activeFeatureIndex].image} 
+                                alt={activeModule.features[activeFeatureIndex].title} 
+                                className="w-full h-full object-cover object-top"
+                                loading="lazy"
+                                decoding="async"
+                            />
+                        </div>
+                        
+                        <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-lg border border-gray-100 pointer-events-none z-30">
+                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">View</div>
+                             <div className="text-sm font-bold text-gray-900">{activeModule.features[activeFeatureIndex].title}</div>
+                        </div>
+                     </div>
+
+                  </div>
+               </div>
+            </div>
+        )}
 
       </div>
     </section>
