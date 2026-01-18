@@ -193,66 +193,55 @@ const MODULES: ModuleData[] = [
 const FeatureScrollytelling = () => {
   const [activeModuleId, setActiveModuleId] = useState('budgeting');
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
   
   const activeModule = MODULES.find(m => m.id === activeModuleId) || MODULES[0];
 
   // Reset scroll state when tab changes
   useEffect(() => {
     setActiveFeatureIndex(0);
-    // Optional: Reset scroll position if needed, but smooth behavior usually preferred
   }, [activeModuleId]);
 
-  // Scroll Progress Logic
+  // Scroll Progress Logic - Based on provided Example
   useEffect(() => {
     const handleScroll = () => {
-      if (!scrollContainerRef.current) return;
+      if (!sectionRef.current) return;
       
-      const rect = scrollContainerRef.current.getBoundingClientRect();
+      const { top, height } = sectionRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      const height = rect.height;
       
-      // Calculate progress based on how much of the container has passed the top of the viewport.
-      // We add a small offset (viewportHeight * 0.2) to start the animation slightly earlier/smoother.
-      // Ideally, progress goes from 0 to 1 as the sticky container traverses the parent.
+      // Calculate how far we scrolled through the section (0 to 1)
+      const startOffset = viewportHeight * 0.2;
+      const endOffset = viewportHeight * 0.2;
+      const scrolled = -top + startOffset;
+      const scrollableHeight = height - viewportHeight + endOffset;
       
-      // Effective scrollable distance is (Total Height - Viewport Height)
-      // When rect.top is 0, we are at the start.
-      // When rect.top is -(height - viewportHeight), we are at the end.
+      let progress = scrolled / scrollableHeight;
       
-      const scrollDist = height - viewportHeight;
-      const scrolled = -rect.top;
-      
-      // Normalize to 0-1
-      let progress = scrolled / scrollDist;
-      
-      // Clamp
+      // Clamp 0-1
       if (progress < 0) progress = 0;
       if (progress > 1) progress = 1;
-      
+
       const count = activeModule.features.length;
-      // Map progress to index (0 to count-1)
-      // We multiply by count and floor it. 
-      const rawIndex = Math.floor(progress * count);
-      const index = Math.min(count - 1, Math.max(0, rawIndex));
       
-      setActiveFeatureIndex(index);
+      // Map progress to steps
+      const idx = Math.min(count - 1, Math.floor(progress * count));
+      setActiveFeatureIndex(idx);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    // Initial check
-    handleScroll();
+    handleScroll(); // Init
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeModule]);
 
   return (
-    // Removed bg-white to let dots show through
-    <section id="features" className="relative w-full py-24 md:py-32">
+    // Outer Container
+    <section id="features" className="relative w-full py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Intro */}
-        <div className="text-center max-w-3xl mx-auto mb-20">
+        <div className="text-center max-w-3xl mx-auto mb-16">
            <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight mb-6">
              One System.<br/>Complete Control.
            </h2>
@@ -261,8 +250,8 @@ const FeatureScrollytelling = () => {
            </p>
         </div>
 
-        {/* TABS - Sticky outside the scroll container */}
-        <div className="sticky top-[80px] z-30 flex justify-center mb-16 md:mb-24">
+        {/* TABS - Sticky outside the scroll container with reduced margin */}
+        <div className="sticky top-[80px] z-30 flex justify-center mb-8 md:mb-12">
            <div className="inline-flex flex-wrap justify-center p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm transition-all duration-300">
               {MODULES.map(module => (
                 <button
@@ -280,16 +269,16 @@ const FeatureScrollytelling = () => {
            </div>
         </div>
 
-        {/* DESKTOP STAGE VIEW - Sticky Stage Implementation */}
-        {/* The outer container provides the height to scroll through */}
+        {/* DESKTOP STAGE VIEW */}
+        {/* Height Definition: Very tall so we have room to scroll while content stays fixed */}
         <div 
-            ref={scrollContainerRef}
-            className="hidden lg:block relative h-[300vh]"
+            ref={sectionRef}
+            className="hidden lg:block relative h-[350vh]"
         >
-           {/* The Sticky Stage: Stays fixed while scrolling the parent container */}
-           {/* Added pt-32 to account for sticky tabs and header so content is centered visually */}
-           <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden pt-20">
-              <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-center">
+           {/* The Sticky Stage - Fixed in Viewport */}
+           {/* We use top-[180px] to ensure it clears the sticky tabs above */}
+           <div className="sticky top-[180px] flex items-start justify-center">
+              <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-start">
                  
                  {/* LEFT: Text Stage */}
                  <div className="relative h-[500px]">
@@ -356,38 +345,36 @@ const FeatureScrollytelling = () => {
                  </div>
 
                  {/* RIGHT: Image Stage */}
-                 <div className="relative h-full flex items-center">
-                    <div className="relative w-full aspect-[16/10] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
-                        {/* Fake Browser Header */}
-                        <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
-                           <div className="w-2.5 h-2.5 rounded-full bg-red-400/20"></div>
-                           <div className="w-2.5 h-2.5 rounded-full bg-amber-400/20"></div>
-                           <div className="w-2.5 h-2.5 rounded-full bg-green-400/20"></div>
-                        </div>
-
-                        {activeModule.features.map((feature, idx) => (
-                           <div
-                              key={`${activeModuleId}-img-${idx}`}
-                              className="absolute inset-0 top-8 bg-white transition-all duration-700 ease-out"
-                              style={{
-                                 opacity: activeFeatureIndex === idx ? 1 : 0,
-                                 transform: activeFeatureIndex === idx ? 'scale(1)' : 'scale(0.98)',
-                                 zIndex: 10
-                              }}
-                           >
-                              <img 
-                                src={feature.image} 
-                                alt={feature.title} 
-                                className="w-full h-full object-cover object-top"
-                              />
-                              
-                              <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-lg border border-gray-100 pointer-events-none">
-                                 <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">View</div>
-                                 <div className="text-sm font-bold text-gray-900">{feature.title}</div>
-                              </div>
-                           </div>
-                        ))}
+                 <div className="relative w-full aspect-[16/10] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+                    {/* Fake Browser Header */}
+                    <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
+                       <div className="w-2.5 h-2.5 rounded-full bg-red-400/20"></div>
+                       <div className="w-2.5 h-2.5 rounded-full bg-amber-400/20"></div>
+                       <div className="w-2.5 h-2.5 rounded-full bg-green-400/20"></div>
                     </div>
+
+                    {activeModule.features.map((feature, idx) => (
+                       <div
+                          key={`${activeModuleId}-img-${idx}`}
+                          className="absolute inset-0 top-8 bg-white transition-all duration-700 ease-out"
+                          style={{
+                             opacity: activeFeatureIndex === idx ? 1 : 0,
+                             transform: activeFeatureIndex === idx ? 'scale(1)' : 'scale(0.98)',
+                             zIndex: 10
+                          }}
+                       >
+                          <img 
+                            src={feature.image} 
+                            alt={feature.title} 
+                            className="w-full h-full object-cover object-top"
+                          />
+                          
+                          <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-lg border border-gray-100 pointer-events-none">
+                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">View</div>
+                             <div className="text-sm font-bold text-gray-900">{feature.title}</div>
+                          </div>
+                       </div>
+                    ))}
                  </div>
 
               </div>
