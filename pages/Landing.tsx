@@ -252,6 +252,7 @@ const FeaturesSection: React.FC = () => {
                   onClick={() => setActiveFeatureIndex(i)}
                   color={activeModule.color}
                   interactive
+                  enableLedEffect={true}
                   className={`group text-left justify-start ${isActive ? 'ring-1 ring-gray-100' : ''}`}
                 >
                   <h3 
