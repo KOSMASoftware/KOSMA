@@ -337,15 +337,15 @@ const FeatureScrollytelling = () => {
             /* DESKTOP STAGE VIEW */
             <div 
                 ref={sectionRef}
-                className="relative h-[350vh]"
+                className="hidden lg:block relative h-[350vh]"
             >
                {/* The Sticky Stage */}
                <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
-                  {/* Changed items-stretch to items-start as per new request to let image define structure if needed, but text is fixed height now */}
-                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-start">
+                  {/* Grid: items-stretch matches height of Text and Image column */}
+                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-stretch">
                      
-                     {/* LEFT: Text Stage - Fixed Height 450px */}
-                     <div className="relative h-[450px]">
+                     {/* LEFT: Text Stage - Height derived from Image via stretch */}
+                     <div className="relative h-full">
                         {activeModule.features.map((feature, idx) => (
                            <div 
                               key={`${activeModuleId}-text-${idx}`}
