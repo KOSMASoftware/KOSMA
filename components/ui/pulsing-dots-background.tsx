@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -7,47 +6,42 @@ import { cn } from "../../lib/utils";
 /**
  * PulsingDotsBackground
  * 
- * Uses the KOSMA SVG dot pattern arranged in corner clusters.
+ * ARCHITECTURE CHANGE FOR PERFORMANCE & COMPATIBILITY:
+ * Instead of one SVG with native filters (slow) or CSS filters on paths (buggy in Safari),
+ * we split the layers into 4 separate HTML <div> containers stacked on top of each other.
  * 
- * FIX FOR SAFARI/MACOS:
- * We use NATIVE SVG filters (<filter>) inside <defs> instead of CSS filter: blur().
- * Safari struggles with CSS filters on SVG child elements combined with 3D transforms.
- * Native filters are robust across all browsers.
+ * Each div contains an SVG with the paths for that specific layer.
+ * We apply CSS filter: blur() and transforms to the HTML <div>.
+ * This allows the browser (including Safari) to rasterize the layer as a texture on the GPU
+ * and animate it smoothly without re-calculating vector filters every frame.
  */
 
-const DotsPattern = ({ className }: { className?: string }) => (
+const SvgFrame = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
   <svg 
     viewBox="0 0 569 781" 
     fill="none" 
     xmlns="http://www.w3.org/2000/svg"
-    className={className}
+    className={cn("w-full h-full", className)}
     aria-hidden="true"
+    preserveAspectRatio="xMidYMid meet"
   >
-    <defs>
-      {/* 
-         Native SVG Blur Filters 
-         We extend the filter region (x, y, width, height) to prevent the blur from being clipped at the bounding box.
-         stdDeviation values roughly approximate the previous CSS blur pixel values (dividing by ~2).
-      */}
-      <filter id="blur-layer-1" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
-      </filter>
-      <filter id="blur-layer-2" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
-      </filter>
-      <filter id="blur-layer-3" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
-      </filter>
-      <filter id="blur-layer-4" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
-      </filter>
-    </defs>
+    {children}
+  </svg>
+);
 
-    {/* Layer 1: Base Opacity 1.0 */}
-    <path filter="url(#blur-layer-1)" className="layer-1" d="M517.841 515.915C531.248 502.509 531.248 480.774 517.841 467.367C504.435 453.961 482.7 453.961 469.294 467.367C455.888 480.774 455.888 502.509 469.294 515.915C482.7 529.321 504.435 529.321 517.841 515.915Z" fill="currentColor"/>
+const DotsPattern = ({ className }: { className?: string }) => (
+  <div className={cn("relative w-full h-full", className)}>
     
-    {/* Layer 2: Base Opacity 0.8 */}
-    <g filter="url(#blur-layer-2)" className="layer-2">
+    {/* Layer 1: Base Opacity 1.0 - Div Wrapper */}
+    <div className="absolute inset-0 layer-wrapper layer-1">
+      <SvgFrame>
+        <path d="M517.841 515.915C531.248 502.509 531.248 480.774 517.841 467.367C504.435 453.961 482.7 453.961 469.294 467.367C455.888 480.774 455.888 502.509 469.294 515.915C482.7 529.321 504.435 529.321 517.841 515.915Z" fill="currentColor"/>
+      </SvgFrame>
+    </div>
+    
+    {/* Layer 2: Base Opacity 0.8 - Div Wrapper */}
+    <div className="absolute inset-0 layer-wrapper layer-2">
+      <SvgFrame>
         <path d="M443.479 590.278C456.885 576.872 456.885 555.136 443.479 541.73C430.073 528.324 408.337 528.324 394.931 541.73C381.525 555.136 381.525 576.872 394.931 590.278C408.337 603.684 430.073 603.684 443.479 590.278Z" fill="currentColor"/>
         <path d="M591.819 441.938C605.225 428.532 605.225 406.796 591.819 393.39C578.413 379.984 556.677 379.984 543.271 393.39C529.865 406.796 529.865 428.532 543.271 441.938C556.677 455.344 578.413 455.344 591.819 441.938Z" fill="currentColor"/>
         <path d="M443.864 441.938C457.27 428.532 457.27 406.796 443.864 393.39C430.458 379.984 408.722 379.984 395.316 393.39C381.91 406.796 381.91 428.532 395.316 441.938C408.722 455.344 430.458 455.344 443.864 441.938Z" fill="currentColor"/>
@@ -55,10 +49,12 @@ const DotsPattern = ({ className }: { className?: string }) => (
         <path d="M517.841 367.96C531.248 354.554 531.248 332.819 517.841 319.413C504.435 306.007 482.7 306.007 469.294 319.413C455.888 332.819 455.888 354.554 469.294 367.96C482.7 381.366 504.435 381.366 517.841 367.96Z" fill="currentColor"/>
         <path d="M592.204 590.278C605.61 576.872 605.61 555.136 592.204 541.73C578.798 528.324 557.062 528.324 543.656 541.73C530.25 555.136 530.25 576.872 543.656 590.278C557.062 603.684 578.798 603.684 592.204 590.278Z" fill="currentColor"/>
         <path d="M517.841 664.64C531.248 651.234 531.248 629.499 517.841 616.093C504.435 602.687 482.7 602.687 469.294 616.093C455.888 629.499 455.888 651.234 469.294 664.64C482.7 678.046 504.435 678.046 517.841 664.64Z" fill="currentColor"/>
-    </g>
+      </SvgFrame>
+    </div>
 
-    {/* Layer 3: Base Opacity 0.6 */}
-    <g filter="url(#blur-layer-3)" className="layer-3">
+    {/* Layer 3: Base Opacity 0.6 - Div Wrapper */}
+    <div className="absolute inset-0 layer-wrapper layer-3">
+      <SvgFrame>
         <path d="M369.571 664.64C382.977 651.234 382.977 629.499 369.571 616.093C356.165 602.687 334.429 602.687 321.023 616.093C307.617 629.499 307.617 651.234 321.023 664.64C334.429 678.047 356.165 678.046 369.571 664.64Z" fill="currentColor"/>
         <path d="M295.208 590.278C308.614 576.872 308.614 555.136 295.208 541.73C281.802 528.324 260.066 528.324 246.66 541.73C233.254 555.136 233.254 576.872 246.66 590.278C260.066 603.684 281.802 603.684 295.208 590.278Z" fill="currentColor"/>
         <path d="M589.961 295.524C603.368 282.118 603.368 260.383 589.961 246.977C576.555 233.571 554.82 233.571 541.414 246.977C528.008 260.383 528.008 282.118 541.414 295.524C554.82 308.93 576.555 308.93 589.961 295.524Z" fill="currentColor"/>
@@ -70,10 +66,12 @@ const DotsPattern = ({ className }: { className?: string }) => (
         <path d="M443.548 738.618C456.954 725.212 456.954 703.476 443.548 690.07C430.142 676.664 408.406 676.664 395 690.07C381.594 703.476 381.594 725.212 395 738.618C408.406 752.024 430.142 752.024 443.548 738.618Z" fill="currentColor"/>
         <path d="M517.911 812.98C531.317 799.574 531.317 777.839 517.911 764.433C504.505 751.027 482.769 751.027 469.363 764.433C455.957 777.839 455.957 799.574 469.363 812.98C482.769 826.387 504.505 826.387 517.911 812.98Z" fill="currentColor"/>
         <path d="M591.888 739.003C605.294 725.597 605.294 703.862 591.888 690.455C578.482 677.049 556.747 677.049 543.341 690.455C529.934 703.861 529.934 725.597 543.341 739.003C556.747 752.409 578.482 752.409 591.888 739.003Z" fill="currentColor"/>
-    </g>
+      </SvgFrame>
+    </div>
 
-    {/* Layer 4: Base Opacity 0.2 */}
-    <g filter="url(#blur-layer-4)" className="layer-4">
+    {/* Layer 4: Base Opacity 0.2 - Div Wrapper */}
+    <div className="absolute inset-0 layer-wrapper layer-4">
+      <SvgFrame>
         <path d="M295.139 738.618C308.545 725.212 308.545 703.476 295.139 690.07C281.733 676.664 259.997 676.664 246.591 690.07C233.185 703.476 233.185 725.212 246.591 738.618C259.997 752.024 281.733 752.024 295.139 738.618Z" fill="currentColor"/>
         <path d="M221.161 664.64C234.567 651.234 234.567 629.499 221.161 616.093C207.755 602.687 186.02 602.687 172.614 616.093C159.208 629.499 159.208 651.234 172.614 664.64C186.02 678.046 207.755 678.046 221.161 664.64Z" fill="currentColor"/>
         <path d="M146.799 590.278C160.205 576.872 160.205 555.136 146.799 541.73C133.393 528.324 111.657 528.324 98.2512 541.73C84.8451 555.136 84.8451 576.872 98.2512 590.278C111.657 603.684 133.393 603.684 146.799 590.278Z" fill="currentColor"/>
@@ -86,8 +84,9 @@ const DotsPattern = ({ className }: { className?: string }) => (
         <path d="M467.753 72.8216C454.652 59.7214 454.652 37.3741 467.753 24.2739C480.853 11.1737 503.2 11.1738 516.3 24.2739C529.4 37.3741 529.4 59.7214 516.3 72.8215C504.741 87.4629 482.394 87.4629 467.753 72.8216Z" fill="currentColor"/>
         <path d="M369.501 219.62C382.907 206.214 382.907 184.479 369.501 171.073C356.095 157.667 334.36 157.667 320.954 171.073C307.548 184.479 307.548 206.214 320.954 219.62C334.36 233.026 356.095 233.026 369.501 219.62Z" fill="currentColor"/>
         <path d="M369.501 812.98C382.907 799.574 382.908 777.839 369.501 764.433C356.095 751.027 334.36 751.027 320.954 764.433C307.548 777.839 307.548 799.574 320.954 812.98C334.36 826.386 356.095 826.386 369.501 812.98Z" fill="currentColor"/>
-    </g>
-  </svg>
+      </SvgFrame>
+    </div>
+  </div>
 );
 
 export function PulsingDotsBackground({
@@ -109,7 +108,7 @@ export function PulsingDotsBackground({
     <div className={cn("relative min-h-screen w-full overflow-hidden bg-white", containerClassName)}>
       <style>{`
         /* Animation Keyframes: Subtle Pulse + Blur shift */
-        /* REMOVED translateZ(0) to fix Safari SVG rendering issues */
+        /* Applied to HTML Divs now for GPU compositing performance */
         @keyframes pulse-layer-1 {
           0% { transform: scale(0.98); opacity: 1; }
           100% { transform: scale(1.03); opacity: 0.92; }
@@ -127,38 +126,46 @@ export function PulsingDotsBackground({
           100% { transform: scale(1.03); opacity: 0.12; }
         }
         
-        /* Base Layer Styles with GPU acceleration */
-        /* Replaced CSS filter blur with native SVG filter attribute above */
+        /* 
+           Layer Wrapper Styles 
+           - We use CSS filter: blur() on the div.
+           - We use transform: translate3d(0,0,0) to force a new stacking context on the GPU (Safari fix).
+           - will-change hints the browser to optimize for transform/filter changes.
+        */
+        .layer-wrapper {
+          transform-origin: 50% 50%;
+          will-change: transform, opacity, filter;
+          backface-visibility: hidden; /* Reduces flickering */
+          transform: translate3d(0,0,0); /* Engages hardware acceleration */
+        }
+
         .layer-1 {
           animation: pulse-layer-1 8s ease-in-out infinite alternate;
-          transform-origin: 50% 50%;
-          transform-box: fill-box;
-          will-change: transform, opacity;
+          filter: blur(4px);
+          -webkit-filter: blur(4px);
         }
         .layer-2 {
           animation: pulse-layer-2 9s ease-in-out infinite alternate-reverse;
-          transform-origin: 50% 50%;
-          transform-box: fill-box;
-          will-change: transform, opacity;
+          filter: blur(6px);
+          -webkit-filter: blur(6px);
         }
         .layer-3 {
           animation: pulse-layer-3 10s ease-in-out infinite alternate;
-          transform-origin: 50% 50%;
-          transform-box: fill-box;
-          will-change: transform, opacity;
+          filter: blur(8px);
+          -webkit-filter: blur(8px);
         }
         .layer-4 {
           animation: pulse-layer-4 11s ease-in-out infinite alternate-reverse;
-          transform-origin: 50% 50%;
-          transform-box: fill-box;
-          will-change: transform, opacity;
+          filter: blur(10px);
+          -webkit-filter: blur(10px);
         }
 
         /* Mobile Optimizations */
         @media (max-width: 768px) {
-          /* Opacity tweaks still work via CSS */
-          .layer-3 { opacity: 0.5 !important; }
-          .layer-4 { opacity: 0.35 !important; }
+          .layer-1 { filter: blur(2px); -webkit-filter: blur(2px); }
+          .layer-2 { filter: blur(3px); -webkit-filter: blur(3px); }
+          .layer-3 { filter: blur(4px); -webkit-filter: blur(4px); opacity: 0.5 !important; }
+          .layer-4 { filter: blur(5px); -webkit-filter: blur(5px); opacity: 0.35 !important; }
         }
       `}</style>
 
