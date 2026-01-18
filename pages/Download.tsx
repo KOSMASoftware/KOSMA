@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 export const DownloadPage: React.FC = () => {
   return (
     <MarketingLayout>
-      <div className="bg-white min-h-[calc(100vh-72px)]">
+      <div className="min-h-[calc(100vh-72px)]">
         {/* HERO */}
         <div className="max-w-7xl mx-auto px-6 py-20 md:py-32 text-center">
             <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-8">
@@ -30,7 +30,7 @@ export const DownloadPage: React.FC = () => {
         </div>
 
         {/* INFO TILES */}
-        <div className="bg-gray-50 py-24 px-6 border-t border-gray-100">
+        <div className="bg-gray-50/80 backdrop-blur-sm py-24 px-6 border-t border-gray-100">
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-16">
                      <h2 className="text-2xl font-bold text-gray-900">Take the first KOSMA steps with our user-friendly tutorials</h2>

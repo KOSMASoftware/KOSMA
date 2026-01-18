@@ -11,7 +11,7 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children, onMobileMenuClick, sidebar, mobileMenu }) => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans text-gray-900">
+    <div className="min-h-screen bg-transparent flex flex-col md:flex-row font-sans text-gray-900">
       {/* MOBILE HEADER */}
       <header className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-30 h-[72px]">
         <div className="text-xl font-black text-brand-500 tracking-tighter">KOSMA</div>

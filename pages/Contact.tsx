@@ -24,7 +24,7 @@ export const ContactPage: React.FC = () => {
 
   return (
     <MarketingLayout>
-      <div className="bg-white min-h-[calc(100vh-72px)] py-20 px-6">
+      <div className="min-h-[calc(100vh-72px)] py-20 px-6">
          <div className="max-w-2xl mx-auto">
              <div className="text-center mb-16">
                  <div className="w-16 h-16 bg-brand-50 text-brand-500 rounded-3xl flex items-center justify-center mx-auto mb-8">
