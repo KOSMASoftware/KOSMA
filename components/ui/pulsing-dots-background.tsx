@@ -9,6 +9,7 @@ import { cn } from "../../lib/utils";
  * 
  * Replaced procedural canvas dots with a fixed SVG layout as requested.
  * Animations (Pulse + Blur) are applied via CSS.
+ * Optimized for Mobile: Uses translateZ(0) for GPU acceleration and transform-box for correct origin.
  */
 
 export function PulsingDotsBackground({
@@ -30,44 +31,63 @@ export function PulsingDotsBackground({
     <div className={cn("relative min-h-screen w-full overflow-hidden bg-white", containerClassName)}>
       <style>{`
         @keyframes pulse-layer-1 {
-          0% { transform: scale(0.98); opacity: 1; }
-          100% { transform: scale(1.03); opacity: 0.92; }
+          0% { transform: scale(0.98) translateZ(0); opacity: 1; }
+          100% { transform: scale(1.03) translateZ(0); opacity: 0.92; }
         }
         @keyframes pulse-layer-2 {
-          0% { transform: scale(0.98); opacity: 0.8; }
-          100% { transform: scale(1.03); opacity: 0.72; }
+          0% { transform: scale(0.98) translateZ(0); opacity: 0.8; }
+          100% { transform: scale(1.03) translateZ(0); opacity: 0.72; }
         }
         @keyframes pulse-layer-3 {
-          0% { transform: scale(0.98); opacity: 0.6; }
-          100% { transform: scale(1.03); opacity: 0.52; }
+          0% { transform: scale(0.98) translateZ(0); opacity: 0.6; }
+          100% { transform: scale(1.03) translateZ(0); opacity: 0.52; }
         }
         @keyframes pulse-layer-4 {
-          0% { transform: scale(0.98); opacity: 0.2; }
-          100% { transform: scale(1.03); opacity: 0.12; }
+          0% { transform: scale(0.98) translateZ(0); opacity: 0.2; }
+          100% { transform: scale(1.03) translateZ(0); opacity: 0.12; }
         }
         
+        /* 
+           Mobile Optimization:
+           1. will-change: Hint to browser to create separate layers.
+           2. transform: translateZ(0): Force GPU acceleration (especially iOS).
+           3. transform-box: fill-box: Ensure 'center' refers to the path's bounding box, not the SVG viewbox.
+           4. -webkit-filter: Fallback for older WebKit engines.
+        */
         .layer-1 {
           animation: pulse-layer-1 8s ease-in-out infinite alternate;
           filter: blur(4px);
+          -webkit-filter: blur(4px);
           transform-origin: center;
+          transform-box: fill-box;
+          will-change: transform, opacity;
           fill: #cbd5e1; /* slate-300 */
         }
         .layer-2 {
           animation: pulse-layer-2 9s ease-in-out infinite alternate-reverse;
           filter: blur(6px);
+          -webkit-filter: blur(6px);
           transform-origin: center;
+          transform-box: fill-box;
+          will-change: transform, opacity;
           fill: #cbd5e1;
         }
         .layer-3 {
           animation: pulse-layer-3 10s ease-in-out infinite alternate;
           filter: blur(8px);
+          -webkit-filter: blur(8px);
           transform-origin: center;
+          transform-box: fill-box;
+          will-change: transform, opacity;
           fill: #cbd5e1;
         }
         .layer-4 {
           animation: pulse-layer-4 11s ease-in-out infinite alternate-reverse;
           filter: blur(10px);
+          -webkit-filter: blur(10px);
           transform-origin: center;
+          transform-box: fill-box;
+          will-change: transform, opacity;
           fill: #cbd5e1;
         }
       `}</style>
@@ -81,6 +101,7 @@ export function PulsingDotsBackground({
           preserveAspectRatio="xMidYMid slice" 
           fill="none" 
           xmlns="http://www.w3.org/2000/svg"
+          style={{ width: '100%', height: '100%' }} /* Ensure explicit sizing for some mobile browsers */
         >
           {/* Layer 1: Opacity 1.0 -> CSS handles base opacity */}
           <path className="layer-1" d="M517.841 515.915C531.248 502.509 531.248 480.774 517.841 467.367C504.435 453.961 482.7 453.961 469.294 467.367C455.888 480.774 455.888 502.509 469.294 515.915C482.7 529.321 504.435 529.321 517.841 515.915Z" />

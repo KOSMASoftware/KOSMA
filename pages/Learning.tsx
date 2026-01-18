@@ -330,6 +330,7 @@ const LearningPageContent: React.FC = () => {
                   onClick={() => setSelectedCategoryId(cat.id)}
                   color={cardColor}
                   interactive
+                  enableLedEffect={true}
                   className="group text-left items-start h-full"
                >
                   <div className="flex justify-center mb-6 w-full">

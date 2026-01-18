@@ -144,6 +144,7 @@ export const Pricing: React.FC = () => {
               key={idx} 
               color={plan.color}
               interactive
+              enableLedEffect={true}
               className="h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300"
             >
               <h3 className={`text-2xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h3>

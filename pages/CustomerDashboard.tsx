@@ -256,6 +256,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                             key={plan.name} 
                             color={plan.color}
                             interactive
+                            enableLedEffect={true}
                             className="group h-full"
                         >
                             {isCurrent && (

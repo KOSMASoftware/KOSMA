@@ -195,6 +195,7 @@ const KnowledgeBaseContent: React.FC = () => {
                         key={cat.id} 
                         color={cardColor}
                         interactive
+                        enableLedEffect={true}
                         className="group flex flex-col h-full items-center"
                       >
                          <div className="flex justify-center mb-6">
