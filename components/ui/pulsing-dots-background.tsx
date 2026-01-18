@@ -90,10 +90,36 @@ export function PulsingDotsBackground({
           will-change: transform, opacity;
           fill: #cbd5e1;
         }
+
+        /* 
+           MOBILE OVERRIDES (max-width: 768px)
+           Reduces blur radius and increases opacity to prevent "wash out" and flickering 
+           on high-DPI small screens.
+        */
+        @media (max-width: 768px) {
+          .layer-1 { 
+            filter: blur(2px); 
+            -webkit-filter: blur(2px); 
+          }
+          .layer-2 { 
+            filter: blur(3px); 
+            -webkit-filter: blur(3px); 
+          }
+          .layer-3 { 
+            filter: blur(4px); 
+            -webkit-filter: blur(4px); 
+            opacity: 0.5 !important; /* Force visibility */
+          }
+          .layer-4 { 
+            filter: blur(5px); 
+            -webkit-filter: blur(5px); 
+            opacity: 0.35 !important; /* Force visibility */
+          }
+        }
       `}</style>
 
-      {/* SVG Background Layer */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
+      {/* SVG Background Layer - Mobile: higher base opacity (80%), Desktop: standard (60%) */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-80 md:opacity-60">
         <svg 
           width="100%" 
           height="100%" 

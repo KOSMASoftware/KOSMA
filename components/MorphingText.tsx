@@ -53,7 +53,10 @@ export const MorphingText = ({
 
   return (
     <span className={className ? `relative inline-block ${className}` : 'relative inline-block'}>
-      <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#0093D5] to-[#306583]">
+      <span 
+        className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#0093D5] to-[#306583]"
+        style={{ WebkitTextStroke: '1px rgba(255, 255, 255, 0.4)' }}
+      >
         {displayText}
         <span className="inline-block w-0.5 h-6 bg-gradient-to-b from-[#0093D5] to-[#306583] animate-pulse ml-1 align-middle" />
       </span>

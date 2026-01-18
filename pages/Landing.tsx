@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
-import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
+import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X } from 'lucide-react';
 import { Footer } from '../components/layout/Footer';
 import { Card } from '../components/ui/Card';
 
@@ -293,6 +293,7 @@ const FeaturesSection: React.FC = () => {
 export const Landing: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<any>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -361,19 +362,54 @@ export const Landing: React.FC = () => {
                 <div className="pointer-events-auto">
                   <Link to="/" className="text-2xl font-black text-white tracking-tighter hover:opacity-80 transition-opacity">KOSMA</Link>
                 </div>
-                <div className="pointer-events-auto flex items-center gap-6 text-sm font-bold text-white/90">
+                
+                {/* Desktop Nav */}
+                <div className="pointer-events-auto hidden md:flex items-center gap-6 text-sm font-bold text-white/90">
                   {/* Language Picker (Visual only) */}
-                  <div className="hidden md:flex items-center gap-1.5 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 border-r border-white/20 pr-4">
+                  <div className="flex items-center gap-1.5 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 border-r border-white/20 pr-4">
                     <Globe className="w-4 h-4" />
                     <span className="text-xs uppercase">EN</span>
                     <ChevronDown className="w-3 h-3 opacity-70" />
                   </div>
                   
-                  <Link to="/pricing" className="hover:text-white transition-colors hidden sm:block">Pricing</Link>
-                  <Link to="/learning" className="hover:text-white transition-colors hidden sm:block">Learning</Link>
+                  <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+                  <Link to="/learning" className="hover:text-white transition-colors">Learning</Link>
                   <Link to="/login" className="hover:text-white transition-colors">Login</Link>
                 </div>
+
+                {/* Mobile Nav Toggle */}
+                <div className="pointer-events-auto md:hidden">
+                   <button 
+                     onClick={() => setIsMobileMenuOpen(true)}
+                     className="p-2 text-white hover:bg-white/10 rounded-xl transition-colors"
+                   >
+                     <Menu className="w-6 h-6" />
+                   </button>
+                </div>
             </div>
+
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+              <div className="absolute inset-0 z-50 bg-gray-900/95 backdrop-blur-xl p-6 flex flex-col pointer-events-auto animate-in fade-in slide-in-from-top-5 duration-200">
+                 <div className="flex justify-between items-center mb-12">
+                     <span className="text-2xl font-black text-white tracking-tighter">KOSMA</span>
+                     <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-white/10 rounded-xl text-white hover:bg-white/20 transition-colors">
+                         <X className="w-6 h-6" />
+                     </button>
+                 </div>
+                 <div className="flex flex-col gap-8 items-start px-2">
+                     <Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-black text-white hover:text-brand-500 transition-colors">Pricing</Link>
+                     <Link to="/learning" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-black text-white hover:text-brand-500 transition-colors">Learning Campus</Link>
+                     <Link to="/help" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-black text-white hover:text-brand-500 transition-colors">Knowledge Base</Link>
+                     <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-black text-white hover:text-brand-500 transition-colors">Contact</Link>
+                 </div>
+                 
+                 <div className="mt-auto pb-8 flex flex-col gap-4 w-full">
+                    <Link to="/login" className="text-center py-4 font-bold text-gray-900 bg-white rounded-2xl">Login</Link>
+                    <Link to="/download" className="text-center py-4 font-bold text-white bg-brand-500 rounded-2xl">Get Started</Link>
+                 </div>
+              </div>
+            )}
 
             {/* Subtle circles motif */}
             <div
@@ -432,7 +468,7 @@ export const Landing: React.FC = () => {
                 </div>
             </div>
 
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-8 z-10 text-[10px] tracking-[0.2em] uppercase text-white/40 flex gap-6 pointer-events-none">
+            <div className="absolute bottom-8 left-0 w-full z-10 text-[10px] tracking-[0.2em] uppercase text-white/40 flex justify-center gap-6 pointer-events-none px-4">
                 <span>Move cursor</span>
                 <span>Click to randomize</span>
             </div>

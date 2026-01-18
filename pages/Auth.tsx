@@ -150,7 +150,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   return (
     <AuthLayout 
       title={isResetRequest ? 'Reset Password' : mode === 'signup' ? 'Sign Up' : mode === 'update-password' ? 'Update' : 'Login'}
-      subtitle={isResetRequest ? 'Wir schicken dir einen Reset-Link' : mode === 'login' ? 'Welcome to KOSMA' : ''}
+      subtitle={isResetRequest ? 'We will send you a reset link' : mode === 'login' ? 'Welcome to KOSMA' : ''}
     >
       <div className="space-y-10">
         {error && (
@@ -166,7 +166,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block">EMAIL</label>
               <input 
                 type="email" 
-                placeholder="user@demo.de" 
+                placeholder="user@example.com" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAction()}
@@ -208,13 +208,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           disabled={loading}
           className="w-full py-5 bg-[#0093D0] text-white rounded-xl font-bold text-base flex items-center justify-center transition-all hover:bg-[#007fb5] disabled:opacity-50 active:scale-[0.98] shadow-sm"
         >
-          {loading ? 'Processing...' : isResetRequest ? 'Reset-Link senden' : (mode === 'login' ? 'Log In' : mode === 'signup' ? (step === 'initial' ? 'Continue' : 'Create Account') : 'Update')}
+          {loading ? 'Processing...' : isResetRequest ? 'Send Reset Link' : (mode === 'login' ? 'Log In' : mode === 'signup' ? (step === 'initial' ? 'Continue' : 'Create Account') : 'Update')}
         </button>
 
         <div className="text-center space-y-4 pt-2">
           {mode === 'login' && (
             <p className="text-xs font-medium text-gray-500">
-              Not having a KOSMA account? <Link to="/signup" className="text-[#0093D0] hover:underline font-bold">Register now</Link>
+              Don't have a KOSMA account? <Link to="/signup" className="text-[#0093D0] hover:underline font-bold">Sign up now</Link>
             </p>
           )}
           <Link to="/login?reset=true" className="text-xs font-medium text-gray-400 hover:text-gray-600 block">Forgot password?</Link>
