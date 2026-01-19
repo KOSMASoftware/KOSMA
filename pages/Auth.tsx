@@ -32,7 +32,7 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
 );
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {
-  const { login, signup, resetPassword, updatePassword, refreshProfile } = useAuth();
+  const { login, signup, resetPassword, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -44,11 +44,14 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  
+  // Local state for recovery flow to bypass global AuthContext interference
+  const [recoveryToken, setRecoveryToken] = useState<string | null>(null);
 
   const isResetRequest = searchParams.get('reset') === 'true';
   const isConfigError = error.toLowerCase().includes('configuration') || error.toLowerCase().includes('keys');
 
-  // Reset state when mode or reset param changes (FIX 1)
+  // Reset state when mode or reset param changes
   useEffect(() => {
     setStep('initial');
     setError('');
@@ -66,14 +69,10 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         };
 
         const accessToken = extract('access_token');
-        const refreshToken = extract('refresh_token');
-
-        if (accessToken && refreshToken) {
-            localStorage.setItem('kosma-auth-token', JSON.stringify({ 
-                access_token: accessToken, 
-                refresh_token: refreshToken,
-                user: { id: 'pending' }
-            }));
+        // We deliberately do NOT write to localStorage here to prevent AuthContext 
+        // from trying to validate this recovery token as a login session and failing.
+        if (accessToken) {
+            setRecoveryToken(accessToken);
         }
     }
   }, [mode]);
@@ -91,7 +90,20 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
 
     try {
       if (mode === 'update-password') {
-        await updatePassword(password);
+        if (!recoveryToken) throw new Error("Missing or invalid recovery token. Please try clicking the link in your email again.");
+        
+        // Direct API call to avoid AuthContext dependency
+        const res = await fetch('/api/supabase-update-password', {
+            method: 'POST',
+            body: JSON.stringify({ access_token: recoveryToken, password }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.msg || data.error?.message || data.error || 'Update failed');
+        }
+        
         setStep('success');
       } else if (isResetRequest) {
         await resetPassword(email);
