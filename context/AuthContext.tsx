@@ -183,7 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const resetPassword = async (email: string) => {
     const res = await fetch('/api/supabase-reset-password', {
       method: 'POST',
-      body: JSON.stringify({ email, redirect_to: `${window.location.origin}/#/update-password` }),
+      body: JSON.stringify({ email, redirect_to: `${window.location.origin}/update-password` }),
       headers: { 'Content-Type': 'application/json' }
     });
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CookieProvider } from './context/CookieContext';
 import { Layout } from './components/Layout';
@@ -50,8 +50,25 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
 };
 
 const App: React.FC = () => {
+  const isRecovery = window.location.pathname === '/update-password';
+
+  if (isRecovery) {
+    return (
+      <AuthProvider key="auth-recovery">
+        <CookieProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/update-password" element={<AuthPage mode="update-password" />} />
+              <Route path="*" element={<Navigate to="/update-password" />} />
+            </Routes>
+          </BrowserRouter>
+        </CookieProvider>
+      </AuthProvider>
+    );
+  }
+
   return (
-    <AuthProvider>
+    <AuthProvider key="auth-normal">
       <CookieProvider>
         <HashRouter>
           <Routes>
