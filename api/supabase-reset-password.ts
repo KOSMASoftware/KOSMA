@@ -3,8 +3,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const { email, redirect_to } = req.body || {};
+  const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: 'missing_email' });
+
+  // Dynamically determine the redirect URL based on the Origin header
+  // Fallback to production URL if header is missing
+  const origin = req.headers.origin || 'https://kosma-lake.vercel.app';
+  const redirect_to = `${origin}/update-password`;
 
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
