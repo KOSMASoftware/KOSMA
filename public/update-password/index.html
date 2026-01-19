@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+  </head>
+  <body>
+    <script>
+      // Capture the hash from Supabase (e.g., #access_token=...)
+      const hash = window.location.hash || '';
+      // Convert it to a query string format or keep it to append to the HashRouter path
+      // Since AuthPage looks for parameters in the full string, appending as query params works well.
+      const query = hash ? '?' + hash.slice(1) : '';
+      
+      // Redirect to the HashRouter entry point
+      window.location.replace('/#/update-password' + query);
+    </script>
+  </body>
+</html>
