@@ -1,3 +1,4 @@
+
 {
   "name": "kosma-saas-prototype",
   "private": true,
@@ -29,6 +30,7 @@
     "tailwindcss": "^3.4.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/lodash": "^4.14.202"
+    "@types/lodash": "^4.14.202",
+    "@vercel/node": "^3.2.0"
   }
 }
