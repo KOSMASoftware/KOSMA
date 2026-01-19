@@ -10,6 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Fallback to production URL if header is missing
   const origin = req.headers.origin || 'https://kosma-lake.vercel.app';
   const redirect_to = `${origin}/update-password`;
+  console.log('[reset-password] origin=%s redirect_to=%s', origin, redirect_to);
 
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
