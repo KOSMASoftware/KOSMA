@@ -6,9 +6,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: 'missing_email' });
 
-  // Dynamically determine the redirect URL based on the Origin header
-  // Fallback to production URL if header is missing
-  const origin = req.headers.origin || 'https://kosma-lake.vercel.app';
+  // Dynamically determine the redirect URL based on the Origin header (FIX 2)
+  // Fallback to VERCEL_URL or production URL if header is missing
+  const rawOrigin = req.headers.origin;
+  const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
+  const origin = rawOrigin && rawOrigin.startsWith('http')
+    ? rawOrigin
+    : (vercelUrl || 'https://kosma-lake.vercel.app');
+
   const redirect_to = `${origin}/update-password`;
   console.log('[reset-password] origin=%s redirect_to=%s', origin, redirect_to);
 

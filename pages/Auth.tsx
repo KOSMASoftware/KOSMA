@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -48,6 +47,12 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
 
   const isResetRequest = searchParams.get('reset') === 'true';
   const isConfigError = error.toLowerCase().includes('configuration') || error.toLowerCase().includes('keys');
+
+  // Reset state when mode or reset param changes (FIX 1)
+  useEffect(() => {
+    setStep('initial');
+    setError('');
+  }, [mode, isResetRequest]);
 
   // Handle URL hash parsing for password reset flow
   useEffect(() => {
