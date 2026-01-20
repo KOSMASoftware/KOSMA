@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { HashRouter, BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CookieProvider } from './context/CookieContext';
 import { Layout } from './components/Layout';
@@ -50,50 +50,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: UserR
 };
 
 const App: React.FC = () => {
-  
-  // --- SELF-HEALING ROUTING LOGIC ---
-  // This ensures that Supabase recovery links work even if Vercel rewrites 
-  // the request to index.html instead of the public/update-password/index.html helper.
-  useEffect(() => {
-    const { hash, pathname, search } = window.location;
-    
-    // Case 1: Browser is at /update-password (Real Path) with a Hash (Token)
-    // Vercel served the App directly. We must redirect to HashRouter format.
-    if (pathname === '/update-password' && (hash.includes('access_token') || hash.includes('type=recovery'))) {
-        const params = hash.startsWith('#') ? hash.substring(1) : hash;
-        window.location.replace(`/#/update-password?${params}`);
-        return;
-    }
-
-    // Case 2: Browser is at / (Root) but has a raw Supabase Hash (e.g. #access_token=...&type=recovery)
-    // HashRouter will ignore this because it doesn't start with #/
-    if (hash.includes('type=recovery') && !hash.includes('#/')) {
-         const params = hash.startsWith('#') ? hash.substring(1) : hash;
-         window.location.replace(`/#/update-password?${params}`);
-    }
-  }, []);
-
-  // Robust detection of recovery mode for AuthProvider key
-  const isRecovery = window.location.hash.includes('/update-password') || window.location.pathname === '/update-password';
-
-  if (isRecovery) {
-    return (
-      <AuthProvider key="auth-recovery">
-        <CookieProvider>
-          {/* We assume the self-healing effect above has put us in HashRouter mode or we are handling the route manually */}
-          <HashRouter>
-            <Routes>
-              <Route path="/update-password" element={<AuthPage mode="update-password" />} />
-              <Route path="*" element={<Navigate to="/update-password" />} />
-            </Routes>
-          </HashRouter>
-        </CookieProvider>
-      </AuthProvider>
-    );
-  }
-
   return (
-    <AuthProvider key="auth-normal">
+    <AuthProvider>
       <CookieProvider>
         <HashRouter>
           <Routes>
