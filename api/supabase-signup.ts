@@ -1,10 +1,21 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkRateLimit } from '../lib/rateLimit';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   const { email, password, full_name } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'missing_credentials' });
+
+  // 1. Security: Rate Limiting
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.socket.remoteAddress || 'unknown';
+  // Signup limits are stricter generally, but we use the shared logic here
+  const limit = await checkRateLimit(ip, 'signup_generic', 'signup'); // Limit by IP mostly for signups
+
+  if (!limit.allowed) {
+    return res.status(429).json({ error: limit.error || 'Too many signup attempts. Please wait.' });
+  }
 
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
