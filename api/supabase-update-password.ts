@@ -1,3 +1,4 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -11,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!url || !anonKey) return res.status(500).json({ error: 'missing_server_env' });
 
   const resp = await fetch(`${url}/auth/v1/user`, {
-    method: 'PATCH',
+    method: 'PUT',
     headers: { apikey: anonKey, Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ password })
   });
