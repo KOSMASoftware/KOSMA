@@ -1,15 +1,15 @@
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 // Configuration
-const MAX_ATTEMPTS = 5;
-const WINDOW_MINUTES = 15;
-const LOCKOUT_MINUTES = 15;
+const LOGIN_LIMIT = 5; // Attempts
+const LOGIN_WINDOW = 60 * 15; // 15 Minutes in seconds
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Use a dedicated admin client for rate limiting to bypass RLS
+// Dedicated admin client
 const adminClient = (supabaseUrl && serviceKey) 
   ? createClient(supabaseUrl, serviceKey) 
   : null;
@@ -17,87 +17,46 @@ const adminClient = (supabaseUrl && serviceKey)
 interface RateLimitResult {
   allowed: boolean;
   error?: string;
-  remaining?: number;
 }
 
-export async function checkRateLimit(ip: string, identifier: string = 'anonymous', endpoint: string): Promise<RateLimitResult> {
+/**
+ * Checks rate limit atomically via Supabase RPC.
+ * @param ip Client IP
+ * @param identifier Target identifier (e.g. Email)
+ * @param context Context string (e.g. 'login', 'reset')
+ */
+export async function checkRateLimit(ip: string, identifier: string = 'unknown', context: string): Promise<RateLimitResult> {
   if (!adminClient) {
     console.warn("Rate Limiting disabled: Missing Service Key");
     return { allowed: true };
   }
 
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - WINDOW_MINUTES * 60000).toISOString();
-
   try {
-    // 1. Fetch existing record
-    const { data: record, error } = await adminClient
-      .from('rate_limits')
-      .select('*')
-      .eq('ip', ip)
-      .eq('identifier', identifier)
-      .eq('endpoint', endpoint)
-      .maybeSingle();
+    // 1. Create a composite key hash to avoid storing raw emails/IPs in the rate limit table
+    const rawKey = `${ip}|${identifier.toLowerCase().trim()}|${context}`;
+    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+
+    // 2. Call Atomic RPC Function
+    const { data, error } = await adminClient.rpc('attempt_rate_limit', {
+      p_key: keyHash,
+      p_window_seconds: LOGIN_WINDOW,
+      p_limit: LOGIN_LIMIT
+    });
 
     if (error) {
-      console.error("Rate Limit DB Error:", error);
-      return { allowed: true }; // Fail open to not block users on DB error
+      console.error("Rate Limit RPC Error:", error);
+      // Fail open to avoid blocking legitimate users on system error
+      return { allowed: true };
     }
 
-    // 2. Check Lockout
-    if (record && record.locked_until) {
-      if (new Date(record.locked_until) > now) {
-        return { 
-          allowed: false, 
-          error: `Too many attempts. Please try again in ${Math.ceil((new Date(record.locked_until).getTime() - now.getTime()) / 60000)} minutes.` 
-        };
-      } else {
-        // Lockout expired, reset
-        await adminClient
-          .from('rate_limits')
-          .update({ attempts: 1, last_attempt: now.toISOString(), locked_until: null })
-          .eq('id', record.id);
-        return { allowed: true, remaining: MAX_ATTEMPTS - 1 };
-      }
+    if (data && data.blocked) {
+      return { 
+        allowed: false, 
+        error: `Too many attempts. Please try again in 15 minutes.` 
+      };
     }
 
-    // 3. Update or Insert
-    if (record) {
-      // Check if window expired
-      if (new Date(record.last_attempt) < new Date(windowStart)) {
-        // Reset window
-        await adminClient
-          .from('rate_limits')
-          .update({ attempts: 1, last_attempt: now.toISOString() })
-          .eq('id', record.id);
-        return { allowed: true, remaining: MAX_ATTEMPTS - 1 };
-      } else {
-        // Increment
-        const newCount = record.attempts + 1;
-        const updates: any = { attempts: newCount, last_attempt: now.toISOString() };
-        
-        if (newCount > MAX_ATTEMPTS) {
-          updates.locked_until = new Date(now.getTime() + LOCKOUT_MINUTES * 60000).toISOString();
-        }
-
-        await adminClient.from('rate_limits').update(updates).eq('id', record.id);
-
-        if (newCount > MAX_ATTEMPTS) {
-          return { allowed: false, error: 'Too many attempts. Account locked temporarily.' };
-        }
-        return { allowed: true, remaining: MAX_ATTEMPTS - newCount };
-      }
-    } else {
-      // New Record
-      await adminClient.from('rate_limits').insert({
-        ip,
-        identifier,
-        endpoint,
-        attempts: 1,
-        last_attempt: now.toISOString()
-      });
-      return { allowed: true, remaining: MAX_ATTEMPTS - 1 };
-    }
+    return { allowed: true };
 
   } catch (err) {
     console.error("Rate Limit Exception:", err);

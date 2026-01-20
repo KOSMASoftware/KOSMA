@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 1. Security: Rate Limiting
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.socket.remoteAddress || 'unknown';
-  const limit = await checkRateLimit(ip, email.toLowerCase().trim(), 'reset_password');
+  const limit = await checkRateLimit(ip, email, 'reset_password');
 
   if (!limit.allowed) {
     return res.status(429).json({ error: limit.error || 'Too many reset attempts. Please wait.' });
@@ -18,21 +18,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Environment variables
   const supabaseUrl = process.env.SUPABASE_URL;
-  // Use Service Role Key for Admin API
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
   const elasticKey = process.env.ELASTIC_EMAIL_API_KEY;
 
   if (!supabaseUrl || !serviceKey || !elasticKey) {
-    console.error('Missing configuration: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or ELASTIC_EMAIL_API_KEY');
+    console.error('Missing configuration');
     return res.status(500).json({ error: 'server_configuration_error' });
   }
 
   try {
-    // 1. Generate Recovery Link via Supabase Admin API
     const redirect_to = 'https://kosma-lake.vercel.app/update-password';
 
-    console.log(`[Reset Password] Generating link for ${email} with redirect ${redirect_to}`);
+    console.log(`[Reset Password] Generating link for ${email}`);
 
+    // Generate Recovery Link via Supabase Admin API
     const generateResp = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
       method: 'POST',
       headers: { 
@@ -49,13 +48,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const generateData = await generateResp.json();
 
+    // 2. Security: Anti-Enumeration
+    // If Supabase returns error (e.g. User not found), we LOG it but return SUCCESS to the frontend.
     if (!generateResp.ok) {
-      // Security: Do NOT reveal if email exists or not to prevent enumeration
-      // We log the error but return success to the user
       console.warn('[Reset Password] Supabase generate_link failed (likely invalid email):', generateData);
       
-      // Fake delay to simulate work (timing attack mitigation)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Artificial delay to mimic email sending time (Timing Attack mitigation)
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       return res.status(200).json({ success: true });
     }
@@ -67,9 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'upstream_error_no_link' });
     }
 
-    // 2. Send Email via Elastic Email manually
-    console.log('[Reset Password] Sending email via Elastic Email...');
-    
+    // Send Email via Elastic Email manually
     const formData = new FormData();
     formData.append('apikey', elasticKey);
     formData.append('subject', 'Reset your Password');
@@ -88,14 +85,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (emailResult.success === false) {
       console.error('[Reset Password] Elastic Email failed:', emailResult.error);
-      return res.status(500).json({ error: 'email_send_failed', details: emailResult.error });
+      return res.status(500).json({ error: 'email_send_failed' });
     }
 
-    console.log('[Reset Password] Email sent successfully.');
     return res.status(200).json({ success: true });
 
   } catch (error: any) {
     console.error('[Reset Password] Unexpected error:', error);
-    return res.status(500).json({ error: error.message || 'internal_server_error' });
+    // Generic error for unexpected crashes
+    return res.status(500).json({ error: 'internal_server_error' });
   }
 }

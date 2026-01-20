@@ -10,8 +10,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 1. Security: Rate Limiting
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.socket.remoteAddress || 'unknown';
-  // Signup limits are stricter generally, but we use the shared logic here
-  const limit = await checkRateLimit(ip, 'signup_generic', 'signup'); // Limit by IP mostly for signups
+  // Signup limits: usually per IP, ignoring email to prevent spam from one IP
+  const limit = await checkRateLimit(ip, 'signup_generic', 'signup'); 
 
   if (!limit.allowed) {
     return res.status(429).json({ error: limit.error || 'Too many signup attempts. Please wait.' });

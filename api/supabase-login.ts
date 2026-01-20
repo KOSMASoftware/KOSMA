@@ -8,9 +8,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'missing_credentials' });
 
-  // 1. Security: Rate Limiting
+  // 1. Security: Rate Limiting (Atomic & Hashed)
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.socket.remoteAddress || 'unknown';
-  const limit = await checkRateLimit(ip, email.toLowerCase().trim(), 'login');
+  const limit = await checkRateLimit(ip, email, 'login');
 
   if (!limit.allowed) {
     return res.status(429).json({ error: limit.error || 'Too many requests' });
@@ -20,6 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return res.status(500).json({ error: 'missing_server_env' });
 
+  // 2. Auth Request
   const resp = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: { apikey: anonKey, 'Content-Type': 'application/json' },
@@ -28,11 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const data = await resp.json();
   
-  // 2. Security: Anti-Enumeration
-  // We return a generic 401 for ANY login failure from Supabase
+  // 3. Security: Anti-Enumeration
+  // If request fails (User not found OR Wrong Password), return generic message
   if (!resp.ok) {
-    // Log the real error internally for debugging, but hide it from the user
+    // Log internal detail for debugging
     console.warn(`[Login Failed] ${email} - Upstream: ${data.error_description || data.error}`);
+    // Simulate timing consistency could be added here, but generic message is step 1
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
