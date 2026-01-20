@@ -1,20 +1,11 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { checkRateLimit } from './rateLimit';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: 'missing_email' });
-
-  // 1. Security: Rate Limiting
-  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.socket.remoteAddress || 'unknown';
-  const limit = await checkRateLimit(ip, email, 'reset_password');
-
-  if (!limit.allowed) {
-    return res.status(429).json({ error: limit.error || 'Too many reset attempts. Please wait.' });
-  }
 
   // Environment variables
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -48,14 +39,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const generateData = await generateResp.json();
 
-    // 2. Security: Anti-Enumeration
-    // If Supabase returns error (e.g. User not found), we LOG it but return SUCCESS to the frontend.
+    // Security: Anti-Enumeration (Keep this safety measure)
     if (!generateResp.ok) {
       console.warn('[Reset Password] Supabase generate_link failed (likely invalid email):', generateData);
-      
-      // Artificial delay to mimic email sending time (Timing Attack mitigation)
+      // Artificial delay to mimic email sending time
       await new Promise(resolve => setTimeout(resolve, 800));
-      
       return res.status(200).json({ success: true });
     }
 
