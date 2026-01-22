@@ -1,9 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ExternalLink,
   CornerDownRight, Hash, GraduationCap, ChevronRight,
-  LayoutGrid, Info, Eye, Sliders, PlusCircle, Layout, RefreshCw
+  LayoutGrid, Info, Eye, Sliders, PlusCircle, Layout, RefreshCw, Home, Layers, FileText
 } from 'lucide-react';
 import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory } from '../data/knowledge-data';
 import { LEARNING_DATA } from '../data/learning-data';
@@ -16,7 +16,6 @@ import { SmartLink } from '../components/SmartLink';
 import { Card } from '../components/ui/Card';
 
 // --- COLOR MAPPING ---
-// Consistently assign colors to categories based on ID
 const CATEGORY_COLORS: Record<string, string> = {
   'budgeting-general-ui-screen-gliederung': '#0093D5', // Brand Blue
   'project-manager-projects': '#305583',             // Dark Blue
@@ -31,9 +30,73 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // --- COMPONENTS ---
 
+// Sticky Header with Breadcrumbs & Compact Search
+const StickyHeader = ({ 
+  category, 
+  articleTitle, 
+  onSearch 
+}: { 
+  category: KnowledgeCategory, 
+  articleTitle: string, 
+  onSearch: (q: string) => void 
+}) => {
+  const navigate = useNavigate();
+  const [searchValue, setSearchValue] = useState('');
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+    onSearch(e.target.value);
+  };
+
+  return (
+    <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 mb-8 transition-all">
+      <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-4 items-center justify-between">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-sm overflow-hidden w-full md:w-auto">
+           <button onClick={() => navigate('/help')} className="text-gray-400 hover:text-gray-900 transition-colors shrink-0">
+              <Home className="w-4 h-4" />
+           </button>
+           <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
+           <Link to={`/help/${category.id}`} className="font-bold text-gray-500 hover:text-brand-500 transition-colors whitespace-nowrap">
+              {category.title}
+           </Link>
+           <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
+           <span className="font-bold text-gray-900 truncate max-w-[200px] md:max-w-xs" title={articleTitle}>
+              {articleTitle}
+           </span>
+        </div>
+
+        {/* Compact Search */}
+        <div className="relative w-full md:w-64">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+           <input 
+             type="text" 
+             placeholder="Search KB..." 
+             value={searchValue}
+             onChange={handleSearchChange}
+             className="w-full bg-gray-100 border border-transparent focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-full py-1.5 pl-9 pr-4 text-sm font-medium outline-none transition-all"
+           />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ArticleDetail = ({ article, category }: { article: KnowledgeArticle, category: KnowledgeCategory }) => {
   const navigate = useNavigate();
-  
+  const [localSearch, setLocalSearch] = useState('');
+
+  // Handle local search redirection logic if needed, or just highlight
+  // For now, let's allow the sticky header to redirect back to main search if typed
+  const handleHeaderSearch = (q: string) => {
+     if (q.length > 2) {
+        // Redirect to main overview with query
+        // We use state passing or URL params. 
+        // Simple approach: Navigate to root with hash or query
+        // navigate(`/help?q=${q}`); // Implementation detail for later
+     }
+  };
+
   const relatedLearning = useMemo(() => {
      const results: { id: string, title: string, category: string }[] = [];
      if (!article.relatedLearningIds) return results;
@@ -48,72 +111,119 @@ const ArticleDetail = ({ article, category }: { article: KnowledgeArticle, categ
      return results;
   }, [article]);
 
+  // Find siblings (articles in the same section)
+  const siblings = useMemo(() => {
+      const section = category.sections.find(s => s.articles.some(a => a.id === article.id));
+      if (!section) return [];
+      return section.articles.filter(a => a.id !== article.id);
+  }, [article, category]);
+
   return (
-    <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-       <button onClick={() => navigate(`/help/${category.id}`)} className="mb-8 flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-500 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to {category.title}
-       </button>
+    <div className="pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+       <StickyHeader 
+          category={category} 
+          articleTitle={article.title} 
+          onSearch={(q) => setLocalSearch(q)} // Wired to local state for now, could act as global filter
+       />
 
-       <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-brand-500 mb-4">
-          <BookOpen className="w-4 h-4" /> {category.title}
-       </div>
-       <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-8 tracking-tight">{article.title}</h1>
+       {/* Search Results Overlay (If typing in Sticky Header) */}
+       {localSearch && (
+          <div className="max-w-5xl mx-auto px-4 mb-8">
+             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Search Results</p>
+                {KB_DATA.flatMap(c => c.sections.flatMap(s => s.articles)).filter(a => a.title.toLowerCase().includes(localSearch.toLowerCase())).slice(0, 5).map(res => (
+                   <Link key={res.id} to={`/help/article/${res.id}`} onClick={() => setLocalSearch('')} className="block py-2 border-b border-gray-50 last:border-0 hover:text-brand-500 font-medium">
+                      {res.title}
+                   </Link>
+                ))}
+                {localSearch.length > 0 && <div className="pt-2 text-center"><button onClick={() => navigate('/help')} className="text-xs text-brand-500 font-bold">Go to full search</button></div>}
+             </div>
+          </div>
+       )}
 
-       {/* Definition Box */}
-       <div className="text-xl md:text-2xl leading-relaxed text-gray-600 mb-12 font-medium border-l-4 border-brand-500 pl-6 py-2 bg-gray-50/50 rounded-r-xl">
-          {article.content.definition}
-       </div>
+       <div className="max-w-5xl mx-auto px-4">
+          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-brand-500 mb-4">
+              <BookOpen className="w-4 h-4" /> {category.title}
+          </div>
+          <h1 className="text-3xl md:text-5xl font-black text-gray-900 mb-8 tracking-tight leading-tight">{article.title}</h1>
 
-       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-12">
-             {article.content.sections.map((section, idx) => (
-               <div key={idx}>
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                     <Hash className="w-5 h-5 text-gray-300" /> {section.heading}
-                  </h2>
-                  <div className={`prose prose-lg text-gray-600 ${section.type === 'technical' ? 'bg-gray-50 p-6 rounded-2xl border border-gray-100 text-sm font-mono' : ''}`}>
-                     <SmartLink text={section.body} />
-                  </div>
-               </div>
-             ))}
+          {/* Definition Box */}
+          <div className="text-lg md:text-xl leading-relaxed text-gray-600 mb-12 font-medium border-l-4 border-brand-500 pl-6 py-2 bg-gray-50/50 rounded-r-xl">
+              {article.content.definition}
           </div>
 
-          {/* Sidebar: Applied Knowledge */}
-          <div className="space-y-8">
-             {relatedLearning.length > 0 && (
-                <div className="bg-brand-50/50 rounded-2xl p-6 border border-brand-100">
-                   <h3 className="font-black text-brand-900 uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4" /> Apply this knowledge
-                   </h3>
-                   <ul className="space-y-3">
-                      {relatedLearning.map(learn => (
-                         <li key={learn.id}>
-                            <Link to={`/learning`} className="block bg-white p-4 rounded-xl shadow-sm border border-brand-100 hover:shadow-md hover:border-brand-300 transition-all group">
-                               <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">{learn.category}</div>
-                               <div className="text-sm font-bold text-gray-900 group-hover:text-brand-600 flex items-center justify-between">
-                                  {learn.title}
-                                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                               </div>
-                            </Link>
-                         </li>
-                      ))}
-                   </ul>
-                </div>
-             )}
-             
-             {article.synonyms && (
-                <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                   <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-4">Synonyms</h3>
-                   <div className="flex flex-wrap gap-2">
-                      {article.synonyms.map(syn => (
-                        <span key={syn} className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
-                           {syn}
-                        </span>
-                      ))}
-                   </div>
-                </div>
-             )}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              {/* Main Content */}
+              <div className="lg:col-span-2 space-y-12">
+                {article.content.sections.map((section, idx) => (
+                  <div key={idx}>
+                      <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Hash className="w-5 h-5 text-gray-300" /> {section.heading}
+                      </h2>
+                      <div className={`prose prose-lg text-gray-600 ${section.type === 'technical' ? 'bg-gray-50 p-6 rounded-2xl border border-gray-100 text-sm font-mono' : ''}`}>
+                        <SmartLink text={section.body} />
+                      </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-8">
+                {/* 1. Context Navigation (Siblings) */}
+                {siblings.length > 0 && (
+                    <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                       <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <Layers className="w-4 h-4" /> In this section
+                       </h3>
+                       <ul className="space-y-3">
+                          {siblings.map(sib => (
+                             <li key={sib.id}>
+                                <Link to={`/help/article/${sib.id}`} className="flex items-start gap-2 text-sm font-bold text-gray-600 hover:text-brand-500 transition-colors group">
+                                   <CornerDownRight className="w-4 h-4 text-gray-300 group-hover:text-brand-300 mt-0.5 shrink-0" />
+                                   <span className="leading-tight">{sib.title}</span>
+                                </Link>
+                             </li>
+                          ))}
+                       </ul>
+                    </div>
+                )}
+
+                {/* 2. Related Learning */}
+                {relatedLearning.length > 0 && (
+                    <div className="bg-brand-50/50 rounded-2xl p-6 border border-brand-100">
+                      <h3 className="font-black text-brand-900 uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
+                          <GraduationCap className="w-4 h-4" /> Apply this knowledge
+                      </h3>
+                      <ul className="space-y-3">
+                          {relatedLearning.map(learn => (
+                            <li key={learn.id}>
+                                <Link to={`/learning`} className="block bg-white p-4 rounded-xl shadow-sm border border-brand-100 hover:shadow-md hover:border-brand-300 transition-all group">
+                                  <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">{learn.category}</div>
+                                  <div className="text-sm font-bold text-gray-900 group-hover:text-brand-600 flex items-center justify-between">
+                                      {learn.title}
+                                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                </Link>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                )}
+                
+                {/* 3. Synonyms */}
+                {article.synonyms && article.synonyms.length > 0 && (
+                    <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                      <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-4">Synonyms</h3>
+                      <div className="flex flex-wrap gap-2">
+                          {article.synonyms.map(syn => (
+                            <span key={syn} className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium">
+                              {syn}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                )}
+              </div>
           </div>
        </div>
     </div>
@@ -237,14 +347,15 @@ const GuideLegend = () => (
 // --- MAIN CONTENT SWITCHER ---
 
 const KnowledgeBaseContent: React.FC = () => {
-  const { id } = useParams(); // Can be category ID or 'article/:articleId' logic needs handling
-  const location = window.location.hash; // We are using HashRouter in App.tsx
+  // Routes: 
+  // /help -> overview
+  // /help/:id -> category detail
+  // /help/article/:articleId -> article detail
+  
+  const { id, articleId } = useParams(); 
+  const location = window.location.hash; 
   const [search, setSearch] = useState('');
 
-  // Handle Routing manually because standard Routes are tricky with strict props
-  const isArticle = location.includes('/help/article/');
-  const articleId = isArticle ? location.split('/help/article/')[1]?.split('?')[0] : null;
-  
   // Search Logic
   const searchResults = useMemo(() => {
     if (!search) return [];
@@ -267,20 +378,23 @@ const KnowledgeBaseContent: React.FC = () => {
     return results;
   }, [search]);
 
-  // RENDER: Article Detail
-  if (isArticle && articleId) {
-     const match = findArticleById(articleId);
+  // ROUTE: Article Detail (Matched via new route or legacy hash logic)
+  // We prefer useParams from the new route, but keep hash fallback just in case
+  const targetArticleId = articleId || (location.includes('/help/article/') ? location.split('/help/article/')[1]?.split('?')[0] : null);
+
+  if (targetArticleId) {
+     const match = findArticleById(targetArticleId);
      if (match) return <ArticleDetail article={match.article} category={match.category} />;
      return <div className="p-20 text-center text-gray-400">Article not found.</div>;
   }
 
-  // RENDER: Category Detail
-  if (id && !isArticle) {
+  // ROUTE: Category Detail
+  if (id) {
      const category = KB_DATA.find(c => c.id === id);
      if (category) return <CategoryDetail category={category} />;
   }
 
-  // RENDER: Overview (Dashboard)
+  // ROUTE: Overview (Dashboard)
   return (
     <div className="max-w-6xl mx-auto pb-20 pt-16 px-4">
        <div className="text-center mb-16">

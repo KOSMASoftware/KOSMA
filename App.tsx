@@ -97,6 +97,7 @@ const App: React.FC = () => {
             {/* 2. Knowledge Base (New Explorative Page, route /help) */}
             <Route path="/help" element={<KnowledgeBasePage />} />
             <Route path="/help/:id" element={<KnowledgeBasePage />} />
+            <Route path="/help/article/:articleId" element={<KnowledgeBasePage />} />
             
             {/* Redirects */}
             <Route path="/knowledge/*" element={<Navigate to="/help" replace />} />
