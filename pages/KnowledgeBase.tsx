@@ -81,11 +81,12 @@ const VisualMapRenderer = ({
   );
 };
 
-const KnowledgeSectionView = ({ section }: { section: KnowledgeSection }) => {
+// Updated type definition to React.FC to allow 'key' prop in parent
+const KnowledgeSectionView: React.FC<{ section: KnowledgeSection }> = ({ section }) => {
   const SectionIcon = DOC_ICONS[section.iconKey] || LayoutGrid;
   const [hoveredArticleId, setHoveredArticleId] = useState<string | null>(null);
 
-  // If no visual map, fallback to simple list
+  // If no visual map or empty markers, fallback to simple list
   if (!section.visualMap || section.visualMap.markers.length === 0) {
      return (
        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden mb-12">
@@ -201,7 +202,7 @@ const StickyHeader = ({
   onSearch 
 }: { 
   category: KnowledgeCategory, 
-  articleTitle: string, 
+  articleTitle?: string, 
   onSearch: (q: string) => void 
 }) => {
   const navigate = useNavigate();
@@ -221,13 +222,17 @@ const StickyHeader = ({
               <Home className="w-4 h-4" />
            </button>
            <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
-           <Link to={`/help/${category.id}`} className="font-bold text-gray-500 hover:text-brand-500 transition-colors whitespace-nowrap">
+           <Link to={`/help/${category.id}`} className={`font-bold transition-colors whitespace-nowrap ${!articleTitle ? 'text-gray-900' : 'text-gray-500 hover:text-brand-500'}`}>
               {category.title}
            </Link>
-           <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
-           <span className="font-bold text-gray-900 truncate max-w-[200px] md:max-w-xs" title={articleTitle}>
-              {articleTitle}
-           </span>
+           {articleTitle && (
+             <>
+               <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
+               <span className="font-bold text-gray-900 truncate max-w-[200px] md:max-w-xs" title={articleTitle}>
+                  {articleTitle}
+               </span>
+             </>
+           )}
         </div>
 
         {/* Compact Search */}
@@ -281,7 +286,7 @@ const ArticleDetail = ({ article, category }: { article: KnowledgeArticle, categ
 
        {/* Search Results Overlay */}
        {localSearch && (
-          <div className="max-w-5xl mx-auto px-4 mb-8">
+          <div className="max-w-5xl mx-auto px-4 mb-8 sticky top-20 z-50">
              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
                 <p className="text-xs font-bold text-gray-400 uppercase mb-2">Search Results</p>
                 {KB_DATA.flatMap(c => c.sections.flatMap(s => s.articles)).filter(a => a.title.toLowerCase().includes(localSearch.toLowerCase())).slice(0, 5).map(res => (
@@ -387,31 +392,56 @@ const CategoryDetail = ({ category }: { category: KnowledgeCategory }) => {
   const navigate = useNavigate();
   const cardColor = CATEGORY_COLORS[category.id] || '#0093D5';
   const Icon = DOC_ICONS[category.iconKey] || BookOpen;
+  const [localSearch, setLocalSearch] = useState('');
 
   return (
-    <div className="max-w-7xl mx-auto pb-20 pt-8 px-4 animate-in fade-in slide-in-from-right-4 duration-500">
-       <button onClick={() => navigate('/help')} className="mb-8 flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Knowledge Base
-       </button>
+    <div className="pb-20 animate-in fade-in slide-in-from-right-4 duration-500">
+       
+       {/* Sticky Header with Search */}
+       <StickyHeader 
+          category={category}
+          onSearch={(q) => setLocalSearch(q)}
+       />
 
-       {/* Category Header */}
-       <div className="flex items-center gap-6 mb-12">
-          <div className="w-20 h-20 bg-white rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-center shrink-0">
-             <Icon className="w-10 h-10" style={{ color: cardColor }} />
+       {/* Search Results Overlay */}
+       {localSearch && (
+          <div className="max-w-5xl mx-auto px-4 mb-8 sticky top-20 z-50">
+             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Search Results</p>
+                {KB_DATA.flatMap(c => c.sections.flatMap(s => s.articles)).filter(a => a.title.toLowerCase().includes(localSearch.toLowerCase())).slice(0, 5).map(res => (
+                   <Link key={res.id} to={`/help/article/${res.id}`} onClick={() => setLocalSearch('')} className="block py-2 border-b border-gray-50 last:border-0 hover:text-brand-500 font-medium">
+                      {res.title}
+                   </Link>
+                ))}
+                {localSearch.length > 0 && <div className="pt-2 text-center"><button onClick={() => navigate('/help')} className="text-xs text-brand-500 font-bold">Go to full search</button></div>}
+             </div>
           </div>
-          <div>
-             <h1 className="text-4xl font-black text-gray-900 tracking-tight">{category.title}</h1>
-             <p className="text-gray-500 font-medium text-lg">{category.description}</p>
-          </div>
-       </div>
+       )}
 
-       {/* Sections with Visual Maps */}
-       <div className="space-y-12">
-          {category.sections.map(section => {
-             // Hide empty sections
-             if (section.articles.length === 0) return null;
-             return <KnowledgeSectionView key={section.id} section={section} />;
-          })}
+       <div className="max-w-7xl mx-auto px-4">
+          <button onClick={() => navigate('/help')} className="mb-8 flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back to Knowledge Base
+          </button>
+
+          {/* Category Header */}
+          <div className="flex items-center gap-6 mb-12">
+              <div className="w-20 h-20 bg-white rounded-[2rem] shadow-sm border border-gray-100 flex items-center justify-center shrink-0">
+                <Icon className="w-10 h-10" style={{ color: cardColor }} />
+              </div>
+              <div>
+                <h1 className="text-4xl font-black text-gray-900 tracking-tight">{category.title}</h1>
+                <p className="text-gray-500 font-medium text-lg">{category.description}</p>
+              </div>
+          </div>
+
+          {/* Sections with Visual Maps */}
+          <div className="space-y-12">
+              {category.sections.map(section => {
+                // Hide empty sections
+                if (section.articles.length === 0) return null;
+                return <KnowledgeSectionView key={section.id} section={section} />;
+              })}
+          </div>
        </div>
     </div>
   );
