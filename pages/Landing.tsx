@@ -13,6 +13,15 @@ const BG = '#0b0f14';
 
 // --- DATA STRUCTURE ---
 
+type ModuleTheme = {
+  activeTab: string;
+  dotActive: string;
+  ring: string;
+  label: string;
+  pill: string;
+  mobileNumber: string;
+};
+
 type FeatureItem = {
   title: string;
   desc: string;
@@ -25,7 +34,7 @@ type FeatureItem = {
 type ModuleData = {
   id: string;
   label: string;
-  color: string;
+  theme: ModuleTheme;
   features: FeatureItem[];
 };
 
@@ -33,7 +42,14 @@ const MODULES: ModuleData[] = [
   {
     id: 'budgeting',
     label: 'Budgeting',
-    color: 'bg-brand-500',
+    theme: {
+      activeTab: 'text-amber-600 bg-amber-50 shadow-amber-500/10 ring-1 ring-amber-100',
+      dotActive: 'bg-amber-500 border-amber-100',
+      ring: 'ring-amber-500',
+      label: 'text-amber-600',
+      pill: 'bg-amber-50 border-amber-200 text-amber-700',
+      mobileNumber: 'bg-amber-50 text-amber-600 border-amber-100'
+    },
     features: [
       {
         title: 'Split costs between producers',
@@ -72,7 +88,14 @@ const MODULES: ModuleData[] = [
   {
     id: 'financing',
     label: 'Financing',
-    color: 'bg-blue-700',
+    theme: {
+      activeTab: 'text-purple-600 bg-purple-50 shadow-purple-500/10 ring-1 ring-purple-100',
+      dotActive: 'bg-purple-600 border-purple-100',
+      ring: 'ring-purple-600',
+      label: 'text-purple-600',
+      pill: 'bg-purple-50 border-purple-200 text-purple-700',
+      mobileNumber: 'bg-purple-50 text-purple-600 border-purple-100'
+    },
     features: [
       {
         title: 'Financing plan templates',
@@ -111,7 +134,14 @@ const MODULES: ModuleData[] = [
   {
     id: 'cashflow',
     label: 'Cash Flow',
-    color: 'bg-orange-500',
+    theme: {
+      activeTab: 'text-green-600 bg-green-50 shadow-green-500/10 ring-1 ring-green-100',
+      dotActive: 'bg-green-600 border-green-100',
+      ring: 'ring-green-600',
+      label: 'text-green-600',
+      pill: 'bg-green-50 border-green-200 text-green-700',
+      mobileNumber: 'bg-green-50 text-green-600 border-green-100'
+    },
     features: [
       {
         title: 'Define milestones & phases',
@@ -150,7 +180,14 @@ const MODULES: ModuleData[] = [
   {
     id: 'costcontrol',
     label: 'Cost Control',
-    color: 'bg-purple-600',
+    theme: {
+      activeTab: 'text-gray-900 bg-gray-100 shadow-gray-500/10 ring-1 ring-gray-200',
+      dotActive: 'bg-gray-800 border-gray-200',
+      ring: 'ring-gray-800',
+      label: 'text-gray-800',
+      pill: 'bg-gray-100 border-gray-300 text-gray-900',
+      mobileNumber: 'bg-gray-100 text-gray-900 border-gray-300'
+    },
     features: [
       {
         title: 'Compare plan vs actuals',
@@ -262,12 +299,22 @@ const FeatureScrollytelling = () => {
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Intro */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-10">
            <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight mb-6">
              One System.<br/>Complete Control.
            </h2>
            <p className="text-xl text-gray-500 font-medium leading-relaxed">
              Stop switching between spreadsheets. KOSMA unifies your production finance workflow.
+           </p>
+        </div>
+
+        {/* Navigation Hint */}
+        <div className="text-center mb-8">
+           <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">
+             Four Modules – One System. Navigate through the features.
+           </p>
+           <p className="text-xs font-bold text-gray-500">
+             Switch between modules to see how KOSMA works.
            </p>
         </div>
 
@@ -280,7 +327,7 @@ const FeatureScrollytelling = () => {
                   onClick={() => setActiveModuleId(module.id)}
                   className={`px-6 py-3 rounded-xl text-sm font-black transition-all ${
                     activeModuleId === module.id
-                      ? 'bg-white text-gray-900 shadow-md transform scale-105'
+                      ? `${module.theme.activeTab} transform scale-105 shadow-md`
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
                   }`}
                 >
@@ -297,8 +344,11 @@ const FeatureScrollytelling = () => {
                {activeModule.features.map((feature, idx) => (
                  <div key={`${activeModuleId}-mob-${idx}`} className="flex flex-col gap-8">
                     <div className="px-2">
-                       <div className="text-sm font-black uppercase tracking-widest mb-4 text-brand-500">
-                          0{idx + 1} — {activeModule.label}
+                       <div className={`text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 ${activeModule.theme.label}`}>
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${activeModule.theme.mobileNumber}`}>
+                            {idx + 1}
+                          </span>
+                          Step {idx + 1} / {activeModule.features.length}
                        </div>
                        <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
                        <p className="text-lg font-bold text-gray-400 mb-6">{feature.desc}</p>
@@ -309,8 +359,8 @@ const FeatureScrollytelling = () => {
                              <span className="font-black text-red-400 uppercase text-[10px] block mb-1">Pain</span>
                              {feature.pain}
                           </div>
-                          <div className="bg-brand-50 p-4 rounded-xl text-sm border border-brand-100">
-                             <span className="font-black text-brand-400 uppercase text-[10px] block mb-1">Solution</span>
+                          <div className={`p-4 rounded-xl text-sm border ${activeModule.theme.pill}`}>
+                             <span className="font-black uppercase text-[10px] block mb-1 opacity-80">Solution</span>
                              {feature.solution}
                           </div>
                           <div className="bg-green-50 p-4 rounded-xl text-sm border border-green-100">
@@ -345,67 +395,94 @@ const FeatureScrollytelling = () => {
                   <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-stretch">
                      
                      {/* LEFT: Text Stage - Fixed Height 520px, overflow hidden, pt-8 */}
-                     <div className="relative h-[520px] overflow-hidden pt-8">
-                        {activeModule.features.map((feature, idx) => (
-                           <div 
-                              key={`${activeModuleId}-text-${idx}`}
-                              className={`absolute top-8 left-0 w-full transition-all duration-500 ease-out ${
-                                 activeFeatureIndex === idx 
-                                   ? 'opacity-100 translate-y-0 pointer-events-auto delay-100' 
-                                   : 'opacity-0 translate-y-4 pointer-events-none'
-                              }`}
-                           >
-                               {/* Header */}
-                               <div className={`text-sm font-black uppercase tracking-widest mb-4 transition-colors duration-500 ${
-                                  activeFeatureIndex === idx ? 'text-brand-500' : 'text-gray-300'
-                               }`}>
-                                  0{idx + 1} — {activeModule.label}
-                               </div>
-                               
-                               <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 leading-tight">
-                                 {feature.title}
-                               </h3>
-                               <p className="text-lg font-bold text-gray-400 mb-10">
-                                 {feature.desc}
-                               </p>
+                     <div className="relative h-[520px] pt-8 flex gap-8">
+                        {/* UX: Vertical Progress Rail */}
+                        <div className="flex flex-col items-center h-[400px] py-4 w-8 shrink-0 relative">
+                            {/* The vertical line */}
+                            <div className="absolute top-4 bottom-4 left-1/2 w-0.5 bg-gray-100 -translate-x-1/2 rounded-full"></div>
+                            
+                            {/* The Dots */}
+                            <div className="flex flex-col justify-between h-full relative z-10">
+                                {activeModule.features.map((_, idx) => (
+                                    <div 
+                                        key={`rail-dot-${idx}`}
+                                        className={`transition-all duration-500 rounded-full border-2 ${
+                                            activeFeatureIndex === idx 
+                                                ? `w-4 h-4 ${activeModule.theme.dotActive} ring-4 ${activeModule.theme.ring}/10` 
+                                                : 'w-2.5 h-2.5 bg-gray-200 border-white'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
 
-                               {/* Pain / Solution / Impact Cards */}
-                               <div className="space-y-4">
-                                  {/* PAIN */}
-                                  <div className="bg-red-50/80 backdrop-blur-sm border border-red-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-red-200 hover:shadow-sm">
-                                     <div className="mt-1 bg-red-100 text-red-600 p-1.5 rounded-lg shrink-0">
-                                        <AlertCircle className="w-4 h-4" />
-                                     </div>
-                                     <div>
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-red-400 block mb-1">The Pain</span>
-                                        <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.pain}</p>
-                                     </div>
-                                  </div>
+                        {/* Content Container */}
+                        <div className="relative flex-1 overflow-hidden h-full">
+                            {activeModule.features.map((feature, idx) => (
+                            <div 
+                                key={`${activeModuleId}-text-${idx}`}
+                                className={`absolute top-0 left-0 w-full transition-all duration-500 ease-out ${
+                                    activeFeatureIndex === idx 
+                                    ? 'opacity-100 translate-y-0 pointer-events-auto delay-100' 
+                                    : 'opacity-0 translate-y-4 pointer-events-none'
+                                }`}
+                            >
+                                {/* UX: Chapter Label */}
+                                <div className={`text-xs font-black uppercase tracking-widest mb-4 transition-colors duration-500 flex items-center gap-2 ${
+                                    activeFeatureIndex === idx ? activeModule.theme.label : 'text-gray-300'
+                                }`}>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] border ${activeModule.theme.pill}`}>
+                                        STEP {idx + 1} / {activeModule.features.length}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{activeModule.label}</span>
+                                </div>
+                                
+                                <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 leading-tight">
+                                    {feature.title}
+                                </h3>
+                                <p className="text-lg font-bold text-gray-400 mb-10">
+                                    {feature.desc}
+                                </p>
 
-                                  {/* SOLUTION */}
-                                  <div className="bg-brand-50/80 backdrop-blur-sm border border-brand-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-brand-200 hover:shadow-sm">
-                                     <div className="mt-1 bg-brand-100 text-brand-600 p-1.5 rounded-lg shrink-0">
-                                        <Zap className="w-4 h-4" />
-                                     </div>
-                                     <div>
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-400 block mb-1">The Solution</span>
-                                        <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.solution}</p>
-                                     </div>
-                                  </div>
+                                {/* Pain / Solution / Impact Cards */}
+                                <div className="space-y-4">
+                                    {/* PAIN */}
+                                    <div className="bg-red-50/80 backdrop-blur-sm border border-red-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-red-200 hover:shadow-sm">
+                                        <div className="mt-1 bg-red-100 text-red-600 p-1.5 rounded-lg shrink-0">
+                                            <AlertCircle className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-red-400 block mb-1">The Pain</span>
+                                            <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.pain}</p>
+                                        </div>
+                                    </div>
 
-                                  {/* IMPACT */}
-                                  <div className="bg-green-50/80 backdrop-blur-sm border border-green-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-green-200 hover:shadow-sm">
-                                     <div className="mt-1 bg-green-100 text-green-600 p-1.5 rounded-lg shrink-0">
-                                        <TrendingUp className="w-4 h-4" />
-                                     </div>
-                                     <div>
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-green-500 block mb-1">The Impact</span>
-                                        <p className="text-gray-900 font-bold text-sm leading-relaxed">{feature.impact}</p>
-                                     </div>
-                                  </div>
-                               </div>
-                           </div>
-                        ))}
+                                    {/* SOLUTION */}
+                                    <div className={`backdrop-blur-sm p-6 rounded-2xl flex gap-4 items-start transition-all hover:shadow-sm border ${activeModule.theme.pill}`}>
+                                        <div className="mt-1 bg-white/80 p-1.5 rounded-lg shrink-0 shadow-sm">
+                                            <Zap className={`w-4 h-4 ${activeModule.theme.label.replace('text-', 'text-')}`} />
+                                        </div>
+                                        <div>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${activeModule.theme.label}`}>The Solution</span>
+                                            <p className="text-gray-900 font-medium text-sm leading-relaxed">{feature.solution}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* IMPACT */}
+                                    <div className="bg-green-50/80 backdrop-blur-sm border border-green-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-green-200 hover:shadow-sm">
+                                        <div className="mt-1 bg-green-100 text-green-600 p-1.5 rounded-lg shrink-0">
+                                            <TrendingUp className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-green-500 block mb-1">The Impact</span>
+                                            <p className="text-gray-900 font-bold text-sm leading-relaxed">{feature.impact}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ))}
+                        </div>
                      </div>
 
                      {/* RIGHT: Image Stage - Fixed Height 520px */}
