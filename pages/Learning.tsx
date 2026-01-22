@@ -31,17 +31,14 @@ const ICON_MAP: Record<string, any> = {
   'Coins': Coins
 };
 
-// --- COLOR MAPPING ---
+// --- COLOR MAPPING (Updated for new Learning Paths) ---
 const CATEGORY_COLORS: Record<string, string> = {
-  'first-steps': '#5CB912', // Green
-  'budgeting': '#0093D5',   // Brand Blue
-  'financing': '#305583',   // Blue Dark
-  'cash-flow': '#FD7A36',   // Cashflow Orange
-  'cost-control': '#7A62D2',// Cost Control Purple
-  'printing': '#ADB5BD',    // Tags Gray
-  'admin': '#495057',       // Notes Dark Gray
-  'license': '#F03D3E',     // Red
-  'faq': '#07929E',         // Taxes Teal
+  'project-basics': '#5CB912', // Green
+  'budgeting': '#0093D5',      // Brand Blue
+  'financing': '#305583',      // Blue Dark
+  'cash-flow': '#FD7A36',      // Cashflow Orange
+  'cost-control': '#7A62D2',   // Cost Control Purple
+  'reporting': '#ADB5BD',      // Gray
 };
 
 // --- COMPONENTS ---

@@ -30,7 +30,7 @@ export interface HelpEntry {
 export interface HelpArticle {
   id: string;
   title: string;
-  roles?: UserRoleFilter[]; // New Role Filter
+  roles?: UserRoleFilter[]; // Role Filter
   tags?: string[];
   entry: HelpEntry;
 }
@@ -45,15 +45,15 @@ export interface HelpCategory {
 
 export const HELP_DATA: HelpCategory[] = [
   {
-    id: 'first-steps',
-    title: 'First Steps',
+    id: 'project-basics',
+    title: 'Projekt starten & Grundlagen',
     iconKey: 'Rocket',
-    description: 'Get started quickly with KOSMA.',
+    description: 'Konto einrichten, Software installieren und erste Schritte.',
     articles: [
       {
         id: 'registration',
         title: 'Registrierung Website / Konto eröffnen',
-        roles: ['Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'], // Alle relevant
+        roles: ['Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'],
         entry: {
           id: 'entry-registration',
           summary: 'Lade zuerst die Software herunter, führe dann die Registrierung aus und bestätige diese per E-Mail.',
@@ -67,22 +67,16 @@ export const HELP_DATA: HelpCategory[] = [
             {
               id: 's2',
               title: 'Download der KOSMA-Software',
-              content: "Klicke auf 'Download'. Der Download startet selbständig. Wenn dies nicht der Fall ist, rechtsklicke und wähle 'Speichern unter'.",
+              content: "Klicke auf 'Download'. Der Download startet selbständig.",
               media: {
                 kind: 'image',
                 bucket: 'help-assets',
                 path: 'installation/download-btn.png',
                 alt: 'Download Button'
-              },
-              warning: 'Auf Mac-Geräten musst du möglicherweise die Installation in den Sicherheitseinstellungen explizit erlauben.'
+              }
             },
             {
               id: 's3',
-              title: 'Installation der KOSMA-Software',
-              content: 'Öffne die heruntergeladene Datei (Installer). Der Installationsvorgang führt dich durch die nötigen Schritte.',
-            },
-            {
-              id: 's4',
               title: 'Starten und Einloggen',
               content: 'Nach der Installation öffnet sich KOSMA automatisch. Gib deine E-Mail Adresse ein, um den "Magic Link" für den Login zu erhalten.',
             }
@@ -98,7 +92,7 @@ export const HELP_DATA: HelpCategory[] = [
           summary: 'Lerne die wichtigsten Bereiche kennen: Projektliste, Navigation und Detail-Ansichten.',
           steps: [
             { id: 's1', title: 'Dashboard', content: 'Hier siehst du alle deine aktiven Projekte.' },
-            { id: 's2', title: 'Sidebar', content: 'Über die linke Leiste navigierst du zwischen den Modulen (Budget, Kostenstand, etc.).' }
+            { id: 's2', title: 'Sidebar', content: 'Über die linke Leiste navigierst du zwischen den Modulen.' }
           ]
         }
       }
@@ -106,9 +100,9 @@ export const HELP_DATA: HelpCategory[] = [
   },
   {
     id: 'budgeting',
-    title: 'Budgeting',
+    title: 'Kalkulation erstellen',
     iconKey: 'Calculator',
-    description: 'Create budgets, edit items, and use templates.',
+    description: 'Budgets aufsetzen, Währungen wählen und Positionen erfassen.',
     articles: [
       {
         id: 'create-budget',
@@ -127,51 +121,30 @@ export const HELP_DATA: HelpCategory[] = [
   },
   {
     id: 'financing',
-    title: 'Financing',
+    title: 'Finanzierungsplan erstellen',
     iconKey: 'PieChart',
-    description: 'Financing plans and funding structures.',
-    articles: []
+    description: 'Finanzierungsquellen definieren und zuweisen.',
+    articles: [] // Platzhalter für Content-Matrix
   },
   {
     id: 'cash-flow',
-    title: 'Cash Flow',
+    title: 'Cash Flow planen',
     iconKey: 'Coins',
-    description: 'Cash flow planning and payment schedules.',
-    articles: []
+    description: 'Zahlungsflüsse steuern und Liquidität sichern.',
+    articles: [] // Platzhalter für Content-Matrix
   },
   {
     id: 'cost-control',
-    title: 'Cost Control',
+    title: 'Kosten kontrollieren',
     iconKey: 'TrendingUp',
-    description: 'Track actuals vs. budget and forecast updates.',
-    articles: []
+    description: 'Soll/Ist-Vergleiche und Kostenstand-Updates.',
+    articles: [] // Platzhalter für Content-Matrix
   },
   {
-    id: 'printing',
-    title: 'Printing & Sharing',
+    id: 'reporting',
+    title: 'Teilen & Ausgeben',
     iconKey: 'Printer',
-    description: 'Export, print, and share project data.',
-    articles: []
-  },
-  {
-    id: 'admin',
-    title: 'Project Management',
-    iconKey: 'Settings',
-    description: 'Manage projects, members, and permissions.',
-    articles: []
-  },
-  {
-    id: 'license',
-    title: 'Licensing',
-    iconKey: 'ShieldCheck',
-    description: 'Licenses, upgrades, and cancellations.',
-    articles: []
-  },
-  {
-    id: 'faq',
-    title: 'FAQ',
-    iconKey: 'CircleHelp',
-    description: 'Frequently asked questions.',
-    articles: []
+    description: 'Berichte exportieren, drucken und Projekte teilen.',
+    articles: [] // Platzhalter für Content-Matrix
   }
 ];
