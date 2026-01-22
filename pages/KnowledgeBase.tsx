@@ -305,8 +305,8 @@ const GuideLegend = () => (
               <Info className="w-5 h-5" />
            </div>
            <div>
-              <h4 className="font-bold text-blue-900 text-sm">Understanding the Screen</h4>
-              <p className="text-xs text-blue-700/80 font-medium">We break down every module into these actions:</p>
+              <h4 className="font-bold text-blue-900 text-sm">Understanding KOSMA</h4>
+              <p className="text-xs text-blue-700/80 font-medium">We break down every screen of each module into these actions:</p>
            </div>
         </div>
         
