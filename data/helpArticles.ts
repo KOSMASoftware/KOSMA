@@ -1,4 +1,3 @@
-
 import { UserRoleFilter } from './taxonomy';
 
 export interface HelpMedia {
@@ -22,7 +21,7 @@ export interface HelpStep {
 }
 
 export interface HelpEntry {
-  id?: string; // Optional made for smoother import
+  id?: string;
   summary?: string;
   steps: HelpStep[];
 }
@@ -30,7 +29,7 @@ export interface HelpEntry {
 export interface HelpArticle {
   id: string;
   title: string;
-  roles?: string[]; // Relaxed type to allow string match from JSON
+  roles?: string[]; 
   tags?: string[];
   entry: HelpEntry;
 }
@@ -54,7 +53,56 @@ export const HELP_DATA: HelpCategory[] = [
         id: "A1",
         title: "Register and install the software",
         roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
-        entry: { summary: "", steps: [] }
+        entry: {
+          summary: "Install KOSMA, sign in, and get your first project ready.",
+          steps: [
+            {
+              id: "s1",
+              title: "Open KOSMA and sign in",
+              content: "Launch the app and log in. If you need an account, visit kosma.io and register first.",
+              tip: "Use the same email you will use for project invitations.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s2",
+              title: "Review the Project Manager",
+              content: "You will land in the Project Manager. Here you can create, open, delete, or archive projects, and see your permission level.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s3",
+              title: "Open a project in Budgeting",
+              content: "Projects open in the Budgeting module by default. Use the top navigation to switch modules if your license allows it.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s4",
+              title: "Know the main areas",
+              content: "KOSMA is split into Navigation Area, Edit Area, and Macro Area. These are the core areas where you browse, edit, and add details.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            }
+          ]
+        }
       },
       {
         id: "A2",
@@ -104,7 +152,44 @@ export const HELP_DATA: HelpCategory[] = [
         id: "A3",
         title: "Edit a budget account",
         roles: ["Produktion", "Herstellungsleitung"],
-        entry: { summary: "", steps: [] }
+        entry: {
+          summary: "Create a new budget and start entering your first accounts.",
+          steps: [
+            {
+              id: "s1",
+              title: "Create a new project or load a template",
+              content: "Click “Create Project” and choose whether to start with an empty budget or load a template.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s2",
+              title: "Set project details",
+              content: "Enter the project information and confirm the base settings before you begin budgeting.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s3",
+              title: "Add your first category",
+              content: "Your first budget appears in the list. Start by adding a category, then add groups and accounts as needed.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            }
+          ]
+        }
       },
       {
         id: "A4",
@@ -190,7 +275,44 @@ export const HELP_DATA: HelpCategory[] = [
         id: "C1",
         title: "Load and adapt a financing plan template",
         roles: ["Produktion", "Herstellungsleitung"],
-        entry: { summary: "", steps: [] }
+        entry: {
+          summary: "Set up your financing plan and track incoming installments.",
+          steps: [
+            {
+              id: "s1",
+              title: "Create a financing plan",
+              content: "Open the Financing module and create a new financing plan for your project.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s2",
+              title: "Add financing sources",
+              content: "Add your funding sources and define the amounts and currency for each line.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s3",
+              title: "Track installment status",
+              content: "Record incoming installments and update the status so your totals stay accurate.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            }
+          ]
+        }
       },
       {
         id: "C2",
@@ -246,7 +368,44 @@ export const HELP_DATA: HelpCategory[] = [
         id: "A7",
         title: "Adjust and use the timeline",
         roles: ["Produktion", "Herstellungsleitung"],
-        entry: { summary: "", steps: [] }
+        entry: {
+          summary: "Plan cash flow based on your budget, financing, and schedule.",
+          steps: [
+            {
+              id: "s1",
+              title: "Open Cash Flow and set the timeline",
+              content: "Switch to the Cash Flow module and choose the time scale that matches your production schedule.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s2",
+              title: "Define rules and milestones",
+              content: "Add milestones or phases to structure your cash flow and automate allocations over time.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s3",
+              title: "Review totals and adjust",
+              content: "Check cash flow totals and adjust rules or timing if the plan does not match your needs.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            }
+          ]
+        }
       },
       {
         id: "B16",
@@ -296,7 +455,44 @@ export const HELP_DATA: HelpCategory[] = [
         id: "E1",
         title: "Reconcile my budget with actual costs / control costs",
         roles: ["Produktion", "Finanzbuchhaltung"],
-        entry: { summary: "", steps: [] }
+        entry: {
+          summary: "Compare actuals vs. plan and keep the cost report accurate.",
+          steps: [
+            {
+              id: "s1",
+              title: "Open Cost Control",
+              content: "Switch to the Cost Control module to compare budget, expected, and paid values.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s2",
+              title: "Add or import actuals",
+              content: "Enter actual costs or import data from accounting to keep the report up to date.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s3",
+              title: "Analyze deviations",
+              content: "Use the deviation and prediction columns to identify variances and update forecasts.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            }
+          ]
+        }
       },
       {
         id: "E2",
@@ -346,7 +542,44 @@ export const HELP_DATA: HelpCategory[] = [
         id: "A6",
         title: "Print budget",
         roles: ["Produktion"],
-        entry: { summary: "", steps: [] }
+        entry: {
+          summary: "Export, print, and share your project data with others.",
+          steps: [
+            {
+              id: "s1",
+              title: "Open Printing & Sharing",
+              content: "Go to the Printing & Sharing area to access export and print options.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s2",
+              title: "Choose format and export",
+              content: "Select PDF or Excel, then export the current dataset.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            },
+            {
+              id: "s3",
+              title: "Share with collaborators",
+              content: "Share the exported file or sync data so team members can access the latest version.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "KOSMA Vergleich"
+              }
+            }
+          ]
+        }
       },
       {
         id: "B19",
