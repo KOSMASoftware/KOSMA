@@ -107,7 +107,7 @@ export const DownloadPage: React.FC = () => {
                             Do you have a question, want to report an error, or add a feature to the wishlist?<br/>
                             Write to us, and we will respond as soon as possible.
                         </p>
-                        <Link to="/contact" className="inline-block px-10 py-4 bg-brand-500 text-white rounded-2xl font-bold text-lg hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 hover:-translate-y-1">
+                        <Link to="/support" className="inline-block px-10 py-4 bg-brand-500 text-white rounded-2xl font-bold text-lg hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 hover:-translate-y-1">
                             Contact Support
                         </Link>
                     </div>

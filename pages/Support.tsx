@@ -1,0 +1,173 @@
+
+import React, { useState } from 'react';
+import { MarketingLayout } from '../components/layout/MarketingLayout';
+import { Mail, MessageSquare, Send, CheckCircle, Loader2, ChevronDown, ChevronUp, Search, CircleHelp } from 'lucide-react';
+import { FAQ_DATA } from '../data/faq-data';
+
+export const SupportPage: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
+  const [faqSearch, setFaqSearch] = useState('');
+  
+  const [formData, setFormData] = useState({
+      name: '',
+      email: '',
+      message: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setLoading(false);
+      setSuccess(true);
+  };
+
+  const filteredFaq = FAQ_DATA.filter(item => 
+    item.question.toLowerCase().includes(faqSearch.toLowerCase()) || 
+    item.answer.toLowerCase().includes(faqSearch.toLowerCase())
+  );
+
+  return (
+    <MarketingLayout>
+      <div className="min-h-[calc(100vh-72px)] pb-20">
+         
+         {/* HERO SECTION */}
+         <div className="bg-gray-900 text-white py-20 px-6">
+            <div className="max-w-4xl mx-auto text-center">
+                <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-8 text-brand-400 backdrop-blur-sm border border-white/10">
+                     <CircleHelp className="w-8 h-8" />
+                </div>
+                <h1 className="text-4xl md:text-6xl font-black tracking-tighter mb-6">Support Center</h1>
+                <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
+                    How can we help you? Browse our FAQs or get in touch with our team directly.
+                </p>
+
+                {/* FAQ Search */}
+                <div className="max-w-xl mx-auto mt-12 relative group">
+                    <div className="absolute inset-0 bg-brand-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative bg-white rounded-2xl shadow-xl flex items-center overflow-hidden p-2">
+                        <Search className="w-5 h-5 text-gray-400 ml-4" />
+                        <input 
+                            type="text" 
+                            placeholder="Search questions..." 
+                            value={faqSearch}
+                            onChange={e => setFaqSearch(e.target.value)}
+                            className="w-full p-3 outline-none text-gray-900 font-medium placeholder:text-gray-400 text-lg bg-transparent"
+                        />
+                    </div>
+                </div>
+            </div>
+         </div>
+
+         {/* FAQ SECTION */}
+         <div className="max-w-3xl mx-auto px-6 -mt-8 relative z-10">
+             <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
+                {filteredFaq.length > 0 ? (
+                    <div className="divide-y divide-gray-100">
+                        {filteredFaq.map((item) => {
+                            const isOpen = openFaqId === item.id;
+                            return (
+                                <div key={item.id} className="bg-white hover:bg-gray-50/50 transition-colors">
+                                    <button 
+                                        onClick={() => setOpenFaqId(isOpen ? null : item.id)}
+                                        className="w-full text-left px-8 py-6 flex justify-between items-center gap-4"
+                                    >
+                                        <span className={`font-bold text-lg transition-colors ${isOpen ? 'text-brand-600' : 'text-gray-900'}`}>
+                                            {item.question}
+                                        </span>
+                                        {isOpen ? <ChevronUp className="w-5 h-5 text-gray-400 shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 shrink-0" />}
+                                    </button>
+                                    
+                                    {isOpen && (
+                                        <div className="px-8 pb-8 text-gray-600 leading-relaxed font-medium animate-in slide-in-from-top-2">
+                                            {item.answer}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="p-12 text-center text-gray-400 italic">No answers found for "{faqSearch}".</div>
+                )}
+             </div>
+         </div>
+
+         {/* CONTACT SECTION */}
+         <div className="max-w-4xl mx-auto px-6 mt-24">
+             <div className="text-center mb-12">
+                 <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-4">Still need help?</h2>
+                 <p className="text-gray-500">Send us a message and we'll get back to you as soon as possible.</p>
+             </div>
+
+             {success ? (
+                 <div className="bg-green-50 border border-green-100 rounded-[2rem] p-12 text-center animate-in fade-in zoom-in-95 max-w-2xl mx-auto">
+                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
+                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h3>
+                     <p className="text-gray-600 mb-8">Thank you for contacting us. We will get back to you shortly.</p>
+                     <button onClick={() => { setSuccess(false); setFormData({name:'', email:'', message:''}); }} className="font-bold text-brand-500 hover:text-brand-700">Send another message</button>
+                 </div>
+             ) : (
+                 <div className="max-w-2xl mx-auto bg-gray-50 p-8 md:p-12 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                     <form onSubmit={handleSubmit} className="space-y-6">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div>
+                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 pl-2">Name</label>
+                                 <input 
+                                    required
+                                    type="text" 
+                                    placeholder="Your Name"
+                                    value={formData.name}
+                                    onChange={e => setFormData({...formData, name: e.target.value})}
+                                    className="w-full p-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-brand-500 bg-white text-gray-900 font-medium placeholder:text-gray-300 outline-none"
+                                 />
+                             </div>
+                             <div>
+                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 pl-2">Email</label>
+                                 <input 
+                                    required
+                                    type="email" 
+                                    placeholder="hello@example.com"
+                                    value={formData.email}
+                                    onChange={e => setFormData({...formData, email: e.target.value})}
+                                    className="w-full p-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-brand-500 bg-white text-gray-900 font-medium placeholder:text-gray-300 outline-none"
+                                 />
+                             </div>
+                         </div>
+                         <div>
+                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 pl-2">Message</label>
+                             <textarea 
+                                required
+                                rows={6}
+                                placeholder="Describe your issue..."
+                                value={formData.message}
+                                onChange={e => setFormData({...formData, message: e.target.value})}
+                                className="w-full p-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-brand-500 bg-white text-gray-900 font-medium placeholder:text-gray-300 outline-none resize-none"
+                             />
+                         </div>
+                         
+                         <div className="pt-4">
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-brand-500 transition-all shadow-xl hover:shadow-brand-500/20 disabled:opacity-50"
+                            >
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                Send Message
+                            </button>
+                         </div>
+
+                         <p className="text-center text-xs text-gray-400 mt-6">
+                            Alternatively, email us at <a href="mailto:support@kosma.io" className="text-brand-500 font-bold hover:underline">support@kosma.io</a>
+                         </p>
+                     </form>
+                 </div>
+             )}
+         </div>
+      </div>
+    </MarketingLayout>
+  );
+};

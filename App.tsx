@@ -7,7 +7,7 @@ import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
 import { Pricing } from './pages/Pricing';
 import { DownloadPage } from './pages/Download';
-import { ContactPage } from './pages/Contact';
+import { SupportPage } from './pages/Support'; // Changed from ContactPage
 import { AuthPage } from './pages/Auth';
 import { CustomerDashboard } from './pages/CustomerDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -58,7 +58,9 @@ const App: React.FC = () => {
             <Route path="/" element={<Landing />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/download" element={<DownloadPage />} />
-            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/support" element={<SupportPage />} /> {/* Changed route */}
+            <Route path="/contact" element={<Navigate to="/support" replace />} /> {/* Redirect old route */}
+            
             <Route path="/eula" element={<EulaPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />

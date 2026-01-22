@@ -29,6 +29,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3 text-sm text-gray-500 font-medium">
               <li><Link to="/help" className="hover:text-brand-500 transition-colors">Knowledge Base</Link></li>
               <li><Link to="/learning" className="hover:text-brand-500 transition-colors">Learning Campus</Link></li>
+              <li><Link to="/support" className="hover:text-brand-500 transition-colors">Support & FAQ</Link></li>
               <li><Link to="/login?reset=true" className="hover:text-brand-500 transition-colors">Reset Password</Link></li>
             </ul>
           </div>

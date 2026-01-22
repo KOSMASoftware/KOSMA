@@ -45,7 +45,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
                 <Link to="/pricing" className={linkClass('/pricing')}>Pricing</Link>
                 <Link to="/learning" className={linkClass('/learning')}>Learning Campus</Link>
                 <Link to="/help" className={linkClass('/help')}>Knowledge Base</Link>
-                <Link to="/contact" className={linkClass('/contact')}>Contact</Link>
+                <Link to="/support" className={linkClass('/support')}>Support</Link>
               </div>
             )}
           </div>
@@ -102,7 +102,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
                          <MobileLink to="/pricing" active={isActive('/pricing')} onClick={() => setIsMobileMenuOpen(false)}>Pricing</MobileLink>
                          <MobileLink to="/learning" active={isActive('/learning')} onClick={() => setIsMobileMenuOpen(false)}>Learning Campus</MobileLink>
                          <MobileLink to="/help" active={isActive('/help')} onClick={() => setIsMobileMenuOpen(false)}>Knowledge Base</MobileLink>
-                         <MobileLink to="/contact" active={isActive('/contact')} onClick={() => setIsMobileMenuOpen(false)}>Contact</MobileLink>
+                         <MobileLink to="/support" active={isActive('/support')} onClick={() => setIsMobileMenuOpen(false)}>Support</MobileLink>
                      </div>
                      
                      {!isAuthenticated && (

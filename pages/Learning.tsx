@@ -714,7 +714,7 @@ const LearningPageContent: React.FC = () => {
                    <div>
                       <h4 className="font-bold text-gray-900 mb-2">Report a bug?</h4>
                       <p className="text-sm text-gray-600 mb-4">Found a bug or have a feature request? Contact us directly.</p>
-                      <Link to="/contact" className="text-sm font-black text-brand-500 hover:underline">Contact support {'->'}</Link>
+                      <Link to="/support" className="text-sm font-black text-brand-500 hover:underline">Contact support {'->'}</Link>
                    </div>
                 </div>
              </div>
