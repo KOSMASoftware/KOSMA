@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ExternalLink,
   CornerDownRight, Hash, GraduationCap, ChevronRight,
-  LayoutGrid, Info
+  LayoutGrid, Info, Eye, Sliders, PlusCircle, Layout, RefreshCw
 } from 'lucide-react';
 import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory } from '../data/knowledge-data';
 import { LEARNING_DATA } from '../data/learning-data';
@@ -186,6 +186,54 @@ const CategoryDetail = ({ category }: { category: KnowledgeCategory }) => {
   );
 };
 
+// --- LEGEND COMPONENT ---
+const GuideLegend = () => (
+  <div className="max-w-4xl mx-auto bg-blue-50/50 rounded-2xl p-6 border border-blue-100 mb-12 animate-in fade-in slide-in-from-top-2">
+     <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8">
+        <div className="shrink-0 flex items-center gap-3">
+           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+              <Info className="w-5 h-5" />
+           </div>
+           <div>
+              <h4 className="font-bold text-blue-900 text-sm">Understanding the Screen</h4>
+              <p className="text-xs text-blue-700/80 font-medium">We break down every module into these actions:</p>
+           </div>
+        </div>
+        
+        <div className="flex-1 w-full grid grid-cols-2 md:grid-cols-4 gap-4">
+           <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-gray-400" />
+              <div className="flex flex-col">
+                 <span className="text-xs font-black uppercase text-gray-900">Read</span>
+                 <span className="text-[10px] text-gray-500 font-medium leading-none">View values</span>
+              </div>
+           </div>
+           <div className="flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-gray-400" />
+              <div className="flex flex-col">
+                 <span className="text-xs font-black uppercase text-gray-900">Change</span>
+                 <span className="text-[10px] text-gray-500 font-medium leading-none">Adjust inputs</span>
+              </div>
+           </div>
+           <div className="flex items-center gap-2">
+              <PlusCircle className="w-4 h-4 text-gray-400" />
+              <div className="flex flex-col">
+                 <span className="text-xs font-black uppercase text-gray-900">Create</span>
+                 <span className="text-[10px] text-gray-500 font-medium leading-none">Add items</span>
+              </div>
+           </div>
+           <div className="flex items-center gap-2">
+              <Layout className="w-4 h-4 text-gray-400" />
+              <div className="flex flex-col">
+                 <span className="text-xs font-black uppercase text-gray-900">Navigate</span>
+                 <span className="text-[10px] text-gray-500 font-medium leading-none">Switch views</span>
+              </div>
+           </div>
+        </div>
+     </div>
+  </div>
+);
+
 // --- MAIN CONTENT SWITCHER ---
 
 const KnowledgeBaseContent: React.FC = () => {
@@ -241,12 +289,6 @@ const KnowledgeBaseContent: React.FC = () => {
              The central reference for terms, concepts, and logic in KOSMA.
           </p>
           
-          {/* Action Categories Hint */}
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-blue-50 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wide border border-blue-100 mb-8 mx-auto animate-in fade-in slide-in-from-top-2">
-             <Info className="w-4 h-4" />
-             <span>Browse by screen features: Read, Change, Create, Navigate, and Share.</span>
-          </div>
-          
           <div className="relative max-w-2xl mx-auto group z-20">
              <div className="absolute inset-0 bg-brand-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
              <div className="relative bg-white p-2 rounded-2xl border border-gray-200 shadow-sm flex items-center focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
@@ -280,6 +322,9 @@ const KnowledgeBaseContent: React.FC = () => {
              )}
           </div>
        </div>
+
+       {/* LEGEND BLOCK */}
+       {!search && <GuideLegend />}
 
        {/* Category Tiles */}
        {!search && (

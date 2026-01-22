@@ -4,7 +4,7 @@ import {
   Search, ChevronRight, Home, ArrowLeft, FileText, CheckCircle, 
   AlertTriangle, Lightbulb, Image as ImageIcon, ChevronDown,
   CircleHelp, MessageCircle, Rocket, Calculator, PieChart, TrendingUp, Settings, Printer, Share2, Download,
-  Maximize2, Minimize2, ChevronUp, Filter, ShieldCheck, Coins
+  Maximize2, Minimize2, ChevronUp, Filter, ShieldCheck, Coins, LayoutGrid, List, Map, Clock
 } from 'lucide-react';
 import { HELP_DATA, HelpCategory, HelpArticle, HelpStep, HelpMedia } from '../data/helpArticles';
 import { UserRoleFilter, ROLE_LABELS } from '../data/taxonomy';
@@ -93,7 +93,7 @@ const RoleFilterBar = ({ active, onChange }: { active: string, onChange: (r: any
   const roles: (UserRoleFilter | 'Alle')[] = ['Alle', 'Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'];
 
   return (
-    <div className="flex flex-col items-center mb-12">
+    <div className="flex flex-col items-center mb-8">
       {/* Action Line Hint */}
       <p className="text-center text-gray-500 mb-4 font-medium animate-in fade-in text-sm">
           {active === 'Alle'
@@ -120,6 +120,33 @@ const RoleFilterBar = ({ active, onChange }: { active: string, onChange: (r: any
   );
 };
 
+const ViewSwitcher = ({ mode, onChange }: { mode: 'grid' | 'path', onChange: (m: 'grid' | 'path') => void }) => (
+  <div className="flex justify-end mb-6">
+    <div className="inline-flex bg-gray-100 p-1 rounded-xl shadow-inner">
+      <button
+        onClick={() => onChange('grid')}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+          mode === 'grid' 
+            ? 'bg-white text-gray-900 shadow-sm' 
+            : 'text-gray-500 hover:text-gray-900'
+        }`}
+      >
+        <LayoutGrid className="w-4 h-4" /> Grid
+      </button>
+      <button
+        onClick={() => onChange('path')}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+          mode === 'path' 
+            ? 'bg-white text-gray-900 shadow-sm' 
+            : 'text-gray-500 hover:text-gray-900'
+        }`}
+      >
+        <Map className="w-4 h-4" /> Path
+      </button>
+    </div>
+  </div>
+);
+
 const MediaRenderer = ({ media }: { media: HelpMedia }) => {
   const publicUrl = supabase.storage.from(media.bucket).getPublicUrl(media.path).data.publicUrl;
 
@@ -140,6 +167,88 @@ const MediaRenderer = ({ media }: { media: HelpMedia }) => {
             className="w-full h-auto object-cover"
         />
       )}
+    </div>
+  );
+};
+
+// --- LEARNING PATH VIEW (NEW) ---
+const LearningPathView = ({ 
+  categories, 
+  onSelectArticle 
+}: { 
+  categories: { id: string, title: string, iconKey: string, articles: HelpArticle[] }[],
+  onSelectArticle: (catId: string, artId: string) => void
+}) => {
+  return (
+    <div className="max-w-3xl mx-auto py-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="relative border-l-2 border-gray-100 ml-4 md:ml-10 space-y-16 pb-12">
+        {categories.map((cat, catIdx) => {
+          const catColor = CATEGORY_COLORS[cat.id] || '#0093D5';
+          const Icon = ICON_MAP[cat.iconKey] || CircleHelp;
+
+          return (
+            <div key={cat.id} className="relative pl-8 md:pl-12">
+               {/* Timeline Dot */}
+               <div 
+                 className="absolute -left-[21px] top-0 w-10 h-10 rounded-full border-4 border-white shadow-sm flex items-center justify-center z-10"
+                 style={{ backgroundColor: catColor, color: 'white' }}
+               >
+                 <span className="text-xs font-black">{catIdx + 1}</span>
+               </div>
+               
+               {/* Category Header */}
+               <div className="flex items-center gap-3 mb-6">
+                  <h3 className="text-2xl font-black tracking-tight text-gray-900">{cat.title}</h3>
+                  <div className="h-px bg-gray-100 flex-1"></div>
+               </div>
+               
+               {/* Articles List */}
+               <div className="space-y-4">
+                 {cat.articles.map((art) => (
+                    <div 
+                      key={art.id}
+                      onClick={() => onSelectArticle(cat.id, art.id)}
+                      className="group bg-white p-5 rounded-2xl border border-gray-100 hover:border-l-4 hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
+                      style={{ borderLeftColor: 'transparent' }} // Standard state
+                    >
+                       <div 
+                          className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-brand-500 transition-colors"
+                          style={{ backgroundColor: 'transparent' }} // We override via class/style logic on hover actually handled by border-l-4 logic above but explicit div is nicer for animation
+                       ></div>
+                       
+                       <div className="flex justify-between items-start gap-4">
+                          <div>
+                             <h4 className="font-bold text-gray-900 text-lg group-hover:text-brand-600 transition-colors">{art.title}</h4>
+                             <p className="text-sm text-gray-500 mt-1 line-clamp-2 leading-relaxed">{art.entry.summary || 'No summary available.'}</p>
+                             
+                             <div className="flex items-center gap-3 mt-4">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
+                                   <Clock className="w-3 h-3" /> ~5 min
+                                </span>
+                                {art.roles && art.roles.length > 0 && (
+                                   <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500 bg-brand-50 px-2 py-0.5 rounded-md">
+                                      {art.roles[0]}
+                                   </span>
+                                )}
+                             </div>
+                          </div>
+                          <div className="p-2 bg-gray-50 rounded-full text-gray-300 group-hover:bg-brand-500 group-hover:text-white transition-all">
+                             <ChevronRight className="w-5 h-5" />
+                          </div>
+                       </div>
+                    </div>
+                 ))}
+               </div>
+            </div>
+          );
+        })}
+        
+        {/* Finish Line */}
+        <div className="relative pl-8 md:pl-12 pt-4">
+           <div className="absolute -left-[11px] top-4 w-6 h-6 rounded-full border-4 border-white bg-gray-200 z-10"></div>
+           <p className="text-gray-400 text-sm font-medium italic">You've reached the end of this learning path.</p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -278,6 +387,7 @@ const LearningPageContent: React.FC = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [activeRoleFilter, setActiveRoleFilter] = useState<UserRoleFilter | 'Alle'>('Alle');
+  const [viewMode, setViewMode] = useState<'grid' | 'path'>('grid');
 
   // Filter Data based on Role
   const filteredData = useMemo(() => {
@@ -320,7 +430,7 @@ const LearningPageContent: React.FC = () => {
     return results;
   }, [searchQuery]);
 
-  // View: Root (Grid)
+  // View: Root (Grid or Path)
   if (!selectedCategory && !searchQuery) {
     return (
       <div className="max-w-6xl mx-auto pb-20 pt-8 px-4">
@@ -332,50 +442,66 @@ const LearningPageContent: React.FC = () => {
            </div>
         </div>
 
-        <RoleFilterBar active={activeRoleFilter} onChange={setActiveRoleFilter} />
-
-        {/* Categories Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-           {filteredData.map((cat, index) => {
-             const IconComponent = ICON_MAP[cat.iconKey] || CircleHelp;
-             const cardColor = CATEGORY_COLORS[cat.id] || '#0093D5';
-             return (
-               <Card 
-                  key={cat.id} 
-                  onClick={() => setSelectedCategoryId(cat.id)}
-                  color={cardColor}
-                  interactive
-                  enableLedEffect={true}
-                  className="group text-left items-start h-full"
-               >
-                  {/* Step Numbering - Watermark style */}
-                  <div className="absolute top-2 left-4 text-[4rem] font-black text-gray-100/80 leading-none select-none z-0 pointer-events-none transition-colors group-hover:text-gray-100">
-                    0{index + 1}
-                  </div>
-
-                  <div className="flex justify-center mb-6 w-full relative z-10">
-                    <IconComponent 
-                        className="w-12 h-12 opacity-90 transition-transform group-hover:scale-110" 
-                        style={{ color: cardColor }}
-                    />
-                  </div>
-                  
-                  <h3 
-                    className="text-2xl font-black mb-4 w-full text-center relative z-10"
-                    style={{ color: cardColor }}
-                  >{cat.title}</h3>
-                  
-                  <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-1 text-center w-full relative z-10">{cat.description}</p>
-                  
-                  <div className="w-full border-t border-gray-100 pt-6 mt-auto relative z-10">
-                    <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">
-                        {cat.articles.length} Articles <ChevronRight className="w-3 h-3" />
-                    </div>
-                  </div>
-               </Card>
-             );
-           })}
+        <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 border-b border-gray-100 pb-4 mb-8">
+           <div className="flex-1 w-full md:w-auto">
+              <RoleFilterBar active={activeRoleFilter} onChange={setActiveRoleFilter} />
+           </div>
+           {/* View Switcher only useful if filtering is active or generally to see order */}
+           <ViewSwitcher mode={viewMode} onChange={setViewMode} />
         </div>
+
+        {viewMode === 'path' ? (
+           <LearningPathView 
+              categories={filteredData} 
+              onSelectArticle={(catId, artId) => {
+                 setSelectedCategoryId(catId);
+                 setSelectedArticleId(artId);
+              }} 
+           />
+        ) : (
+           /* Categories Grid */
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {filteredData.map((cat, index) => {
+                const IconComponent = ICON_MAP[cat.iconKey] || CircleHelp;
+                const cardColor = CATEGORY_COLORS[cat.id] || '#0093D5';
+                return (
+                  <Card 
+                     key={cat.id} 
+                     onClick={() => setSelectedCategoryId(cat.id)}
+                     color={cardColor}
+                     interactive
+                     enableLedEffect={true}
+                     className="group text-left items-start h-full"
+                  >
+                     {/* Step Numbering - Watermark style */}
+                     <div className="absolute top-2 left-4 text-[4rem] font-black text-gray-100/80 leading-none select-none z-0 pointer-events-none transition-colors group-hover:text-gray-100">
+                       0{index + 1}
+                     </div>
+
+                     <div className="flex justify-center mb-6 w-full relative z-10">
+                       <IconComponent 
+                           className="w-12 h-12 opacity-90 transition-transform group-hover:scale-110" 
+                           style={{ color: cardColor }}
+                       />
+                     </div>
+                     
+                     <h3 
+                       className="text-2xl font-black mb-4 w-full text-center relative z-10"
+                       style={{ color: cardColor }}
+                     >{cat.title}</h3>
+                     
+                     <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-1 text-center w-full relative z-10">{cat.description}</p>
+                     
+                     <div className="w-full border-t border-gray-100 pt-6 mt-auto relative z-10">
+                       <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">
+                           {cat.articles.length} Articles <ChevronRight className="w-3 h-3" />
+                       </div>
+                     </div>
+                  </Card>
+                );
+              })}
+           </div>
+        )}
 
         {/* Footer Teasers */}
         <div className="mt-24 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -396,7 +522,7 @@ const LearningPageContent: React.FC = () => {
               <div>
                  <h4 className="font-bold text-gray-900 mb-2">Report a bug?</h4>
                  <p className="text-sm text-gray-600 mb-4">Found a bug or have a feature request? Contact us directly.</p>
-                 <a href="#" className="text-sm font-black text-brand-500 hover:underline">Contact support {'->'}</a>
+                 <Link to="/contact" className="text-sm font-black text-brand-500 hover:underline">Contact support {'->'}</Link>
               </div>
            </div>
         </div>
