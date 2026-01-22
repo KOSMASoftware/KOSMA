@@ -69,7 +69,7 @@ const RAW_DATA: KnowledgeCategory[] = [
   {
     "id": "budgeting-general-ui-screen-gliederung",
     "title": "Budgeting – General UI (Screen-Gliederung)",
-    "iconKey": "BookOpen",
+    "iconKey": "Calculator",
     "description": "General UI & Screen Structure",
     "sections": [
       {
@@ -235,6 +235,166 @@ const RAW_DATA: KnowledgeCategory[] = [
             "synonyms": [],
             "relatedLearningIds": [],
             "content": { "definition": "Financing grid values helps you interpret state.", "sections": [] }
+          }
+        ]
+      },
+      {
+        "id": "create-manage",
+        "title": "Create / Manage",
+        "iconKey": "PlusCircle",
+        "articles": [
+          {
+            "id": "financing-general-ui-create-manage-01-add-source",
+            "title": "Add Financing Source",
+            "synonyms": [],
+            "relatedLearningIds": [],
+            "content": { "definition": "Add new funding sources to your plan.", "sections": [] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cash-flow-general-ui",
+    "title": "Cash Flow – General UI",
+    "iconKey": "Coins",
+    "description": "Timeline & Liquidity Management",
+    "sections": [
+      {
+        "id": "read-understand",
+        "title": "Read / Understand",
+        "iconKey": "Eye",
+        "articles": [
+          {
+            "id": "cash-flow-general-ui-read-understand-01-timeline-view",
+            "title": "Timeline View",
+            "synonyms": ["timeline"],
+            "relatedLearningIds": [],
+            "content": { "definition": "Visualize your cash flow over time.", "sections": [] }
+          }
+        ]
+      },
+      {
+        "id": "create-manage",
+        "title": "Create / Manage",
+        "iconKey": "PlusCircle",
+        "articles": [
+          {
+            "id": "cash-flow-general-ui-create-manage-01-add-milestone",
+            "title": "Add Milestone",
+            "synonyms": ["milestone"],
+            "relatedLearningIds": [],
+            "content": { "definition": "Define payment milestones on the timeline.", "sections": [] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cost-control-general-ui",
+    "title": "Cost Control – General UI",
+    "iconKey": "TrendingUp",
+    "description": "Tracking & Reporting",
+    "sections": [
+      {
+        "id": "read-understand",
+        "title": "Read / Understand",
+        "iconKey": "Eye",
+        "articles": [
+          {
+            "id": "cost-control-general-ui-read-understand-01-variance-column",
+            "title": "Variance Column",
+            "synonyms": ["variance", "deviation"],
+            "relatedLearningIds": [],
+            "content": { "definition": "Shows the difference between Budget and Actuals.", "sections": [] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "admin-project-management",
+    "title": "Admin / Project Management",
+    "iconKey": "ShieldCheck",
+    "description": "User Roles & Permissions",
+    "sections": [
+      {
+        "id": "create-manage",
+        "title": "Create / Manage",
+        "iconKey": "PlusCircle",
+        "articles": [
+          {
+            "id": "admin-project-management-create-manage-01-invite-user",
+            "title": "Invite User",
+            "synonyms": ["invite"],
+            "relatedLearningIds": [],
+            "content": { "definition": "Invite team members to your project.", "sections": [] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "printing-sharing",
+    "title": "Printing & Sharing",
+    "iconKey": "Printer",
+    "description": "Export & PDF Generation",
+    "sections": [
+      {
+        "id": "navigate-views",
+        "title": "Navigate / Views",
+        "iconKey": "Layout",
+        "articles": [
+          {
+            "id": "printing-sharing-navigate-views-01-export-options",
+            "title": "Export Options",
+            "synonyms": ["pdf", "excel"],
+            "relatedLearningIds": [],
+            "content": { "definition": "Choose between PDF and Excel formats.", "sections": [] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "licensing",
+    "title": "Licensing",
+    "iconKey": "CreditCard",
+    "description": "Plans & Billing",
+    "sections": [
+      {
+        "id": "read-understand",
+        "title": "Read / Understand",
+        "iconKey": "Eye",
+        "articles": [
+          {
+            "id": "licensing-read-understand-01-plan-tiers",
+            "title": "Plan Tiers",
+            "synonyms": ["pricing"],
+            "relatedLearningIds": [],
+            "content": { "definition": "Overview of available subscription plans.", "sections": [] }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "faq",
+    "title": "FAQ",
+    "iconKey": "CircleHelp",
+    "description": "Common Questions",
+    "sections": [
+      {
+        "id": "read-understand",
+        "title": "Read / Understand",
+        "iconKey": "Eye",
+        "articles": [
+          {
+            "id": "faq-read-understand-01-offline-mode",
+            "title": "Offline Mode",
+            "synonyms": ["internet"],
+            "relatedLearningIds": [],
+            "content": { "definition": "How KOSMA works without an internet connection.", "sections": [] }
           }
         ]
       }
