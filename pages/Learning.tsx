@@ -31,7 +31,7 @@ const ICON_MAP: Record<string, any> = {
   'Coins': Coins
 };
 
-// --- COLOR MAPPING (Updated for new Learning Paths) ---
+// --- COLOR MAPPING ---
 const CATEGORY_COLORS: Record<string, string> = {
   'project-basics': '#5CB912', // Green
   'budgeting': '#0093D5',      // Brand Blue
@@ -93,7 +93,14 @@ const RoleFilterBar = ({ active, onChange }: { active: string, onChange: (r: any
   const roles: (UserRoleFilter | 'Alle')[] = ['Alle', 'Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'];
 
   return (
-    <div className="flex justify-center mb-12">
+    <div className="flex flex-col items-center mb-12">
+      {/* Action Line Hint */}
+      <p className="text-center text-gray-500 mb-4 font-medium animate-in fade-in text-sm">
+          {active === 'Alle'
+            ? "Select your role to start your personal learning path:"
+            : <>Your learning path as <span className="text-brand-500 font-bold">{ROLE_LABELS[active as UserRoleFilter] || active}</span>:</>}
+      </p>
+
       <div className="inline-flex flex-wrap justify-center gap-2 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
         {roles.map((role) => (
           <button
@@ -158,11 +165,14 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
     }
   };
 
+  // Safe helper for Role Labels (since JSON might contain string IDs)
+  const getRoleLabel = (r: string) => ROLE_LABELS[r as UserRoleFilter] || r;
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-2 mb-4">
          {article.roles?.map(r => (
-           <span key={r} className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider">{ROLE_LABELS[r]}</span>
+           <span key={r} className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider">{getRoleLabel(r)}</span>
          ))}
       </div>
       <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-8 tracking-tight leading-tight">
@@ -181,20 +191,29 @@ const ArticleView = ({ article }: { article: HelpArticle }) => {
         </div>
       )}
 
-      <div className="flex justify-end mb-6">
-        <button 
-          onClick={toggleAll}
-          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-brand-500 transition-colors uppercase tracking-wider"
-        >
-          {allOpen ? (
-            <><Minimize2 className="w-4 h-4" /> Close all</>
-          ) : (
-            <><Maximize2 className="w-4 h-4" /> Open all</>
-          )}
-        </button>
-      </div>
+      {/* Only show steps controls if there are steps */}
+      {article.entry.steps.length > 0 && (
+        <div className="flex justify-end mb-6">
+          <button 
+            onClick={toggleAll}
+            className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-brand-500 transition-colors uppercase tracking-wider"
+          >
+            {allOpen ? (
+              <><Minimize2 className="w-4 h-4" /> Close all</>
+            ) : (
+              <><Maximize2 className="w-4 h-4" /> Open all</>
+            )}
+          </button>
+        </div>
+      )}
 
       <div className="space-y-4">
+        {article.entry.steps.length === 0 && (
+            <div className="p-12 text-center bg-gray-50 rounded-2xl border border-gray-100 border-dashed text-gray-400 italic">
+                Content coming soon.
+            </div>
+        )}
+        
         {article.entry.steps.map((step, idx) => {
           const isOpen = openStepIds.has(step.id);
           
@@ -271,8 +290,8 @@ const LearningPageContent: React.FC = () => {
         if (activeRoleFilter === 'Alle') return true;
         return art.roles.includes(activeRoleFilter);
       })
-    })); // Removed empty filter to show all tiles
-  }, [activeRoleFilter]); // searchQuery is handled separately
+    })).filter(cat => cat.articles.length > 0); // Hide empty categories
+  }, [activeRoleFilter]); 
 
   const selectedCategory = useMemo(() => 
     filteredData.find(c => c.id === selectedCategoryId), 
@@ -287,8 +306,6 @@ const LearningPageContent: React.FC = () => {
     const lowerQ = searchQuery.toLowerCase();
     const results: { category: HelpCategory, article: HelpArticle }[] = [];
     
-    // Search in original data to ensure we find everything even if role filtered?
-    // Using HELP_DATA to allow finding everything via search
     HELP_DATA.forEach(cat => {
       cat.articles.forEach(art => {
         const titleMatch = art.title.toLowerCase().includes(lowerQ);
@@ -317,8 +334,9 @@ const LearningPageContent: React.FC = () => {
 
         <RoleFilterBar active={activeRoleFilter} onChange={setActiveRoleFilter} />
 
+        {/* Categories Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-           {filteredData.map((cat) => {
+           {filteredData.map((cat, index) => {
              const IconComponent = ICON_MAP[cat.iconKey] || CircleHelp;
              const cardColor = CATEGORY_COLORS[cat.id] || '#0093D5';
              return (
@@ -330,7 +348,12 @@ const LearningPageContent: React.FC = () => {
                   enableLedEffect={true}
                   className="group text-left items-start h-full"
                >
-                  <div className="flex justify-center mb-6 w-full">
+                  {/* Step Numbering - Watermark style */}
+                  <div className="absolute top-2 left-4 text-[4rem] font-black text-gray-100/80 leading-none select-none z-0 pointer-events-none transition-colors group-hover:text-gray-100">
+                    0{index + 1}
+                  </div>
+
+                  <div className="flex justify-center mb-6 w-full relative z-10">
                     <IconComponent 
                         className="w-12 h-12 opacity-90 transition-transform group-hover:scale-110" 
                         style={{ color: cardColor }}
@@ -338,13 +361,13 @@ const LearningPageContent: React.FC = () => {
                   </div>
                   
                   <h3 
-                    className="text-2xl font-black mb-4 w-full text-center"
+                    className="text-2xl font-black mb-4 w-full text-center relative z-10"
                     style={{ color: cardColor }}
                   >{cat.title}</h3>
                   
-                  <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-1 text-center w-full">{cat.description}</p>
+                  <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-1 text-center w-full relative z-10">{cat.description}</p>
                   
-                  <div className="w-full border-t border-gray-100 pt-6 mt-auto">
+                  <div className="w-full border-t border-gray-100 pt-6 mt-auto relative z-10">
                     <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">
                         {cat.articles.length} Articles <ChevronRight className="w-3 h-3" />
                     </div>

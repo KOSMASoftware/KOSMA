@@ -32,8 +32,8 @@ export const DOC_ICONS: Record<string, any> = {
 };
 
 export const ROLE_LABELS: Record<UserRoleFilter | 'Alle', string> = {
-  'Alle': 'Alle',
-  'Produktion': 'Produktionsleitung',
-  'Herstellungsleitung': 'Herstellungsleitung',
-  'Finanzbuchhaltung': 'Finanzbuchhaltung'
+  'Alle': 'All',
+  'Produktion': 'Production Manager',
+  'Herstellungsleitung': 'Line Producer',
+  'Finanzbuchhaltung': 'Accounting'
 };
