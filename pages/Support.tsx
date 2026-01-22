@@ -34,37 +34,35 @@ export const SupportPage: React.FC = () => {
     <MarketingLayout>
       <div className="min-h-[calc(100vh-72px)] pb-20">
          
-         {/* HERO SECTION */}
-         <div className="bg-gray-900 text-white py-20 px-6">
-            <div className="max-w-4xl mx-auto text-center">
-                <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-8 text-brand-400 backdrop-blur-sm border border-white/10">
-                     <CircleHelp className="w-8 h-8" />
-                </div>
-                <h1 className="text-4xl md:text-6xl font-black tracking-tighter mb-6">Support Center</h1>
-                <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
-                    How can we help you? Browse our FAQs or get in touch with our team directly.
-                </p>
+         {/* HERO SECTION - Light Theme */}
+         <div className="text-center pt-20 pb-16 px-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="w-16 h-16 bg-brand-50 rounded-3xl flex items-center justify-center mx-auto mb-8 text-brand-500 shadow-sm border border-brand-100">
+                 <CircleHelp className="w-8 h-8" />
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-gray-900 mb-6">Support Center</h1>
+            <p className="text-xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+                How can we help you? Browse our FAQs or get in touch with our team directly.
+            </p>
 
-                {/* FAQ Search */}
-                <div className="max-w-xl mx-auto mt-12 relative group">
-                    <div className="absolute inset-0 bg-brand-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <div className="relative bg-white rounded-2xl shadow-xl flex items-center overflow-hidden p-2">
-                        <Search className="w-5 h-5 text-gray-400 ml-4" />
-                        <input 
-                            type="text" 
-                            placeholder="Search questions..." 
-                            value={faqSearch}
-                            onChange={e => setFaqSearch(e.target.value)}
-                            className="w-full p-3 outline-none text-gray-900 font-medium placeholder:text-gray-400 text-lg bg-transparent"
-                        />
-                    </div>
+            {/* FAQ Search */}
+            <div className="max-w-xl mx-auto mt-12 relative group z-20">
+                <div className="absolute inset-0 bg-brand-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center overflow-hidden p-2 focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
+                    <Search className="w-5 h-5 text-gray-400 ml-4" />
+                    <input 
+                        type="text" 
+                        placeholder="Search questions..." 
+                        value={faqSearch}
+                        onChange={e => setFaqSearch(e.target.value)}
+                        className="w-full p-3 outline-none text-gray-900 font-medium placeholder:text-gray-400 text-lg bg-transparent"
+                    />
                 </div>
             </div>
          </div>
 
          {/* FAQ SECTION */}
-         <div className="max-w-3xl mx-auto px-6 -mt-8 relative z-10">
-             <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
+         <div className="max-w-3xl mx-auto px-6 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+             <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
                 {filteredFaq.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                         {filteredFaq.map((item) => {
@@ -73,16 +71,23 @@ export const SupportPage: React.FC = () => {
                                 <div key={item.id} className="bg-white hover:bg-gray-50/50 transition-colors">
                                     <button 
                                         onClick={() => setOpenFaqId(isOpen ? null : item.id)}
-                                        className="w-full text-left px-8 py-6 flex justify-between items-center gap-4"
+                                        className="w-full text-left px-8 py-6 flex justify-between items-center gap-4 group"
                                     >
-                                        <span className={`font-bold text-lg transition-colors ${isOpen ? 'text-brand-600' : 'text-gray-900'}`}>
-                                            {item.question}
-                                        </span>
-                                        {isOpen ? <ChevronUp className="w-5 h-5 text-gray-400 shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 shrink-0" />}
+                                        <div className="flex flex-col items-start gap-1">
+                                            {item.category && (
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-brand-500 transition-colors">
+                                                    {item.category}
+                                                </span>
+                                            )}
+                                            <span className={`font-bold text-lg transition-colors ${isOpen ? 'text-brand-600' : 'text-gray-900'}`}>
+                                                {item.question}
+                                            </span>
+                                        </div>
+                                        {isOpen ? <ChevronUp className="w-5 h-5 text-brand-500 shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-brand-500 shrink-0" />}
                                     </button>
                                     
                                     {isOpen && (
-                                        <div className="px-8 pb-8 text-gray-600 leading-relaxed font-medium animate-in slide-in-from-top-2">
+                                        <div className="px-8 pb-8 text-gray-600 leading-relaxed font-medium animate-in slide-in-from-top-2 whitespace-pre-wrap">
                                             {item.answer}
                                         </div>
                                     )}
@@ -97,10 +102,10 @@ export const SupportPage: React.FC = () => {
          </div>
 
          {/* CONTACT SECTION */}
-         <div className="max-w-4xl mx-auto px-6 mt-24">
+         <div className="max-w-4xl mx-auto px-6 mt-24 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
              <div className="text-center mb-12">
                  <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-4">Still need help?</h2>
-                 <p className="text-gray-500">Send us a message and we'll get back to you as soon as possible.</p>
+                 <p className="text-gray-500 text-lg">Send us a message and we'll get back to you as soon as possible.</p>
              </div>
 
              {success ? (
@@ -111,7 +116,7 @@ export const SupportPage: React.FC = () => {
                      <button onClick={() => { setSuccess(false); setFormData({name:'', email:'', message:''}); }} className="font-bold text-brand-500 hover:text-brand-700">Send another message</button>
                  </div>
              ) : (
-                 <div className="max-w-2xl mx-auto bg-gray-50 p-8 md:p-12 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                 <div className="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50">
                      <form onSubmit={handleSubmit} className="space-y-6">
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div>
@@ -122,7 +127,7 @@ export const SupportPage: React.FC = () => {
                                     placeholder="Your Name"
                                     value={formData.name}
                                     onChange={e => setFormData({...formData, name: e.target.value})}
-                                    className="w-full p-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-brand-500 bg-white text-gray-900 font-medium placeholder:text-gray-300 outline-none"
+                                    className="w-full p-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-gray-900 font-medium placeholder:text-gray-400 outline-none transition-all"
                                  />
                              </div>
                              <div>
@@ -133,7 +138,7 @@ export const SupportPage: React.FC = () => {
                                     placeholder="hello@example.com"
                                     value={formData.email}
                                     onChange={e => setFormData({...formData, email: e.target.value})}
-                                    className="w-full p-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-brand-500 bg-white text-gray-900 font-medium placeholder:text-gray-300 outline-none"
+                                    className="w-full p-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-gray-900 font-medium placeholder:text-gray-400 outline-none transition-all"
                                  />
                              </div>
                          </div>
@@ -145,7 +150,7 @@ export const SupportPage: React.FC = () => {
                                 placeholder="Describe your issue..."
                                 value={formData.message}
                                 onChange={e => setFormData({...formData, message: e.target.value})}
-                                className="w-full p-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-brand-500 bg-white text-gray-900 font-medium placeholder:text-gray-300 outline-none resize-none"
+                                className="w-full p-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-gray-900 font-medium placeholder:text-gray-400 outline-none resize-none transition-all"
                              />
                          </div>
                          
@@ -153,7 +158,7 @@ export const SupportPage: React.FC = () => {
                             <button 
                                 type="submit" 
                                 disabled={loading}
-                                className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-brand-500 transition-all shadow-xl hover:shadow-brand-500/20 disabled:opacity-50"
+                                className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 hover:-translate-y-1"
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 Send Message
