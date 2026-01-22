@@ -39,7 +39,7 @@ export interface KnowledgeSection {
   id: string; 
   title: string; 
   iconKey: string; 
-  visualMap?: VisualMap; // Neu: Optionales visuelles Overlay
+  visualMap?: VisualMap; // Optionales visuelles Overlay
   articles: KnowledgeArticle[];
 }
 
@@ -51,25 +51,15 @@ export interface KnowledgeCategory {
   sections: KnowledgeSection[];
 }
 
-// Helper to generate mock positions for prototyping
-const mockVisualMap = (articles: any[]): VisualMap => {
-  return {
-    imageSrc: 'https://i.ibb.co/F13why4/KOSMA-Vergleich.png',
-    markers: articles.map((art, idx) => ({
-      articleId: art.id,
-      label: idx + 1,
-      // Simple algorithm to scatter points for demo purposes
-      x: 15 + ((idx * 23) % 70), 
-      y: 20 + ((idx * 17) % 60)
-    }))
-  };
-};
+// Full Dataset from JSON
+// Note: Replacing 'demo/kosma-vergleich.png' with the hosted URL for prototype visibility
+const IMG_URL = "https://i.ibb.co/F13why4/KOSMA-Vergleich.png";
 
-const RAW_DATA: KnowledgeCategory[] = [
+export const KB_DATA: KnowledgeCategory[] = [
   {
     "id": "budgeting-general-ui-screen-gliederung",
     "title": "Budgeting – General UI (Screen-Gliederung)",
-    "iconKey": "Calculator",
+    "iconKey": "BookOpen",
     "description": "General UI & Screen Structure",
     "sections": [
       {
@@ -85,7 +75,9 @@ const RAW_DATA: KnowledgeCategory[] = [
             "content": {
               "definition": "Grand Total helps you interpret the current state of your data on this screen.",
               "sections": [
-                { "heading": "What it shows", "body": "Grand Total is a read-only indicator that helps you interpret the current state of your work." }
+                { "heading": "What it shows", "body": "Grand Total is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
               ]
             }
           },
@@ -97,7 +89,9 @@ const RAW_DATA: KnowledgeCategory[] = [
             "content": {
               "definition": "Grid values helps you interpret the current state of your data on this screen.",
               "sections": [
-                { "heading": "What it shows", "body": "Grid values is a read-only indicator that helps you interpret the current state of your work." }
+                { "heading": "What it shows", "body": "Grid values is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
               ]
             }
           },
@@ -109,11 +103,21 @@ const RAW_DATA: KnowledgeCategory[] = [
             "content": {
               "definition": "Search results helps you interpret the current state of your data on this screen.",
               "sections": [
-                { "heading": "What it shows", "body": "Search results is a read-only indicator that helps you interpret the current state of your work." }
+                { "heading": "What it shows", "body": "Search results is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
               ]
             }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "budgeting-general-ui-screen-gliederung-read-understand-01-grand-total", "label": 1, "x": 15, "y": 20 },
+            { "articleId": "budgeting-general-ui-screen-gliederung-read-understand-02-grid-values", "label": 2, "x": 38, "y": 37 },
+            { "articleId": "budgeting-general-ui-screen-gliederung-read-understand-03-search-results", "label": 3, "x": 61, "y": 54 }
+          ]
+        }
       },
       {
         "id": "change-control",
@@ -123,34 +127,54 @@ const RAW_DATA: KnowledgeCategory[] = [
           {
             "id": "budgeting-general-ui-screen-gliederung-change-control-01-display-currency-dropdown",
             "title": "Display Currency Dropdown",
-            "synonyms": [],
+            "synonyms": ["display currency dropdown"],
             "relatedLearningIds": [],
             "content": {
-              "definition": "Use Display Currency Dropdown to adjust how data is displayed.",
-              "sections": []
+              "definition": "Use Display Currency Dropdown to adjust how data is displayed or calculated on this screen.",
+              "sections": [
+                { "heading": "What it controls", "body": "Display Currency Dropdown changes how information is displayed or calculated in this module." },
+                { "heading": "Example", "body": "Toggle the setting and compare the output before and after to confirm the effect.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
             }
           },
           {
             "id": "budgeting-general-ui-screen-gliederung-change-control-02-numbers-vs-formulas-toggle",
             "title": "Numbers vs. Formulas Toggle",
-            "synonyms": [],
+            "synonyms": ["numbers vs. formulas toggle"],
             "relatedLearningIds": [],
             "content": {
-              "definition": "Use Numbers vs. Formulas Toggle to adjust how data is displayed.",
-              "sections": []
+              "definition": "Use Numbers vs. Formulas Toggle to adjust how data is displayed or calculated on this screen.",
+              "sections": [
+                { "heading": "What it controls", "body": "Numbers vs. Formulas Toggle changes how information is displayed or calculated in this module." },
+                { "heading": "Example", "body": "Toggle the setting and compare the output before and after to confirm the effect.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
             }
           },
           {
             "id": "budgeting-general-ui-screen-gliederung-change-control-03-fringes-supplements-extra-costs-toggle",
-            "title": "Fringes/Supplements Toggle",
-            "synonyms": [],
+            "title": "Fringes/Supplements/Extra Costs Toggle",
+            "synonyms": ["fringes/supplements/extra costs toggle"],
             "relatedLearningIds": [],
             "content": {
-              "definition": "Use Fringes/Supplements/Extra Costs Toggle to adjust view.",
-              "sections": []
+              "definition": "Use Fringes/Supplements/Extra Costs Toggle to adjust how data is displayed or calculated on this screen.",
+              "sections": [
+                { "heading": "What it controls", "body": "Fringes/Supplements/Extra Costs Toggle changes how information is displayed or calculated in this module." },
+                { "heading": "Example", "body": "Toggle the setting and compare the output before and after to confirm the effect.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
             }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "budgeting-general-ui-screen-gliederung-change-control-01-display-currency-dropdown", "label": 1, "x": 15, "y": 20 },
+            { "articleId": "budgeting-general-ui-screen-gliederung-change-control-02-numbers-vs-formulas-toggle", "label": 2, "x": 38, "y": 37 },
+            { "articleId": "budgeting-general-ui-screen-gliederung-change-control-03-fringes-supplements-extra-costs-toggle", "label": 3, "x": 61, "y": 54 }
+          ]
+        }
       },
       {
         "id": "create-manage",
@@ -160,18 +184,39 @@ const RAW_DATA: KnowledgeCategory[] = [
           {
             "id": "budgeting-general-ui-screen-gliederung-create-manage-01-add-category",
             "title": "Add Category",
-            "synonyms": [],
+            "synonyms": ["add category"],
             "relatedLearningIds": [],
-            "content": { "definition": "Add Category lets you create items.", "sections": [] }
+            "content": {
+              "definition": "Add Category lets you create or manage items directly in this module.",
+              "sections": [
+                { "heading": "What you can create", "body": "Add Category is used to create, duplicate, or manage items in this screen." },
+                { "heading": "Example", "body": "Create a new item, rename it, and save to confirm it appears in the list.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           },
           {
             "id": "budgeting-general-ui-screen-gliederung-create-manage-02-add-group",
             "title": "Add Group",
-            "synonyms": [],
+            "synonyms": ["add group"],
             "relatedLearningIds": [],
-            "content": { "definition": "Add Group lets you create items.", "sections": [] }
+            "content": {
+              "definition": "Add Group lets you create or manage items directly in this module.",
+              "sections": [
+                { "heading": "What you can create", "body": "Add Group is used to create, duplicate, or manage items in this screen." },
+                { "heading": "Example", "body": "Create a new item, rename it, and save to confirm it appears in the list.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "budgeting-general-ui-screen-gliederung-create-manage-01-add-category", "label": 1, "x": 15, "y": 20 },
+            { "articleId": "budgeting-general-ui-screen-gliederung-create-manage-02-add-group", "label": 2, "x": 38, "y": 37 }
+          ]
+        }
       },
       {
         "id": "navigate-views",
@@ -181,11 +226,24 @@ const RAW_DATA: KnowledgeCategory[] = [
           {
             "id": "budgeting-general-ui-screen-gliederung-navigate-views-01-module-navigation-bar",
             "title": "Module Navigation Bar",
-            "synonyms": [],
+            "synonyms": ["module navigation bar"],
             "relatedLearningIds": [],
-            "content": { "definition": "Module Navigation Bar helps you switch views.", "sections": [] }
+            "content": {
+              "definition": "Module Navigation Bar helps you switch views or move to related modules.",
+              "sections": [
+                { "heading": "Where it takes you", "body": "Module Navigation Bar takes you to a different view or module without losing context." },
+                { "heading": "Example", "body": "Use it to switch from Budgeting to Financing and compare the same project data.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "budgeting-general-ui-screen-gliederung-navigate-views-01-module-navigation-bar", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   },
@@ -203,18 +261,66 @@ const RAW_DATA: KnowledgeCategory[] = [
           {
             "id": "project-manager-projects-read-understand-01-projects-list",
             "title": "Projects list",
-            "synonyms": [],
-            "relatedLearningIds": [],
-            "content": { "definition": "Projects list helps you interpret current state.", "sections": [] }
+            "synonyms": ["projects list"],
+            "relatedLearningIds": ["registration"],
+            "content": {
+              "definition": "Projects list helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Projects list is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           },
           {
             "id": "project-manager-projects-read-understand-02-permission-column",
             "title": "Permission column",
-            "synonyms": [],
-            "relatedLearningIds": [],
-            "content": { "definition": "Permission column helps you interpret current state.", "sections": [] }
+            "synonyms": ["permission column"],
+            "relatedLearningIds": ["registration"],
+            "content": {
+              "definition": "Permission column helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Permission column is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "project-manager-projects-read-understand-01-projects-list", "label": 1, "x": 15, "y": 20 },
+            { "articleId": "project-manager-projects-read-understand-02-permission-column", "label": 2, "x": 38, "y": 37 }
+          ]
+        }
+      },
+      {
+        "id": "create-manage",
+        "title": "Create / Manage",
+        "iconKey": "PlusCircle",
+        "articles": [
+          {
+            "id": "project-manager-projects-create-manage-01-create-new-project",
+            "title": "Create new project",
+            "synonyms": ["create new project"],
+            "relatedLearningIds": ["registration"],
+            "content": {
+              "definition": "Create new project lets you create or manage items directly in this module.",
+              "sections": [
+                { "heading": "What you can create", "body": "Create new project is used to create, duplicate, or manage items in this screen." },
+                { "heading": "Example", "body": "Create a new item, rename it, and save to confirm it appears in the list.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
+          }
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "project-manager-projects-create-manage-01-create-new-project", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   },
@@ -232,25 +338,24 @@ const RAW_DATA: KnowledgeCategory[] = [
           {
             "id": "financing-general-ui-read-understand-01-financing-grid-values",
             "title": "Financing grid values",
-            "synonyms": [],
+            "synonyms": ["financing grid values"],
             "relatedLearningIds": [],
-            "content": { "definition": "Financing grid values helps you interpret state.", "sections": [] }
+            "content": {
+              "definition": "Financing grid values helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Financing grid values is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
-      },
-      {
-        "id": "create-manage",
-        "title": "Create / Manage",
-        "iconKey": "PlusCircle",
-        "articles": [
-          {
-            "id": "financing-general-ui-create-manage-01-add-source",
-            "title": "Add Financing Source",
-            "synonyms": [],
-            "relatedLearningIds": [],
-            "content": { "definition": "Add new funding sources to your plan.", "sections": [] }
-          }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "financing-general-ui-read-understand-01-financing-grid-values", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   },
@@ -258,7 +363,7 @@ const RAW_DATA: KnowledgeCategory[] = [
     "id": "cash-flow-general-ui",
     "title": "Cash Flow – General UI",
     "iconKey": "Coins",
-    "description": "Timeline & Liquidity Management",
+    "description": "General UI & Screen Structure",
     "sections": [
       {
         "id": "read-understand",
@@ -266,27 +371,26 @@ const RAW_DATA: KnowledgeCategory[] = [
         "iconKey": "Eye",
         "articles": [
           {
-            "id": "cash-flow-general-ui-read-understand-01-timeline-view",
-            "title": "Timeline View",
-            "synonyms": ["timeline"],
+            "id": "cash-flow-general-ui-read-understand-01-cash-flow-grid",
+            "title": "Cash flow grid",
+            "synonyms": ["cash flow grid"],
             "relatedLearningIds": [],
-            "content": { "definition": "Visualize your cash flow over time.", "sections": [] }
+            "content": {
+              "definition": "Cash flow grid helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Cash flow grid is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
-      },
-      {
-        "id": "create-manage",
-        "title": "Create / Manage",
-        "iconKey": "PlusCircle",
-        "articles": [
-          {
-            "id": "cash-flow-general-ui-create-manage-01-add-milestone",
-            "title": "Add Milestone",
-            "synonyms": ["milestone"],
-            "relatedLearningIds": [],
-            "content": { "definition": "Define payment milestones on the timeline.", "sections": [] }
-          }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "cash-flow-general-ui-read-understand-01-cash-flow-grid", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   },
@@ -294,7 +398,7 @@ const RAW_DATA: KnowledgeCategory[] = [
     "id": "cost-control-general-ui",
     "title": "Cost Control – General UI",
     "iconKey": "TrendingUp",
-    "description": "Tracking & Reporting",
+    "description": "General UI & Screen Structure",
     "sections": [
       {
         "id": "read-understand",
@@ -302,35 +406,61 @@ const RAW_DATA: KnowledgeCategory[] = [
         "iconKey": "Eye",
         "articles": [
           {
-            "id": "cost-control-general-ui-read-understand-01-variance-column",
-            "title": "Variance Column",
-            "synonyms": ["variance", "deviation"],
+            "id": "cost-control-general-ui-read-understand-01-cost-control-grid",
+            "title": "Cost control grid",
+            "synonyms": ["cost control grid"],
             "relatedLearningIds": [],
-            "content": { "definition": "Shows the difference between Budget and Actuals.", "sections": [] }
+            "content": {
+              "definition": "Cost control grid helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Cost control grid is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "cost-control-general-ui-read-understand-01-cost-control-grid", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   },
   {
     "id": "admin-project-management",
     "title": "Admin / Project Management",
-    "iconKey": "ShieldCheck",
-    "description": "User Roles & Permissions",
+    "iconKey": "Settings",
+    "description": "General UI & Screen Structure",
     "sections": [
       {
-        "id": "create-manage",
-        "title": "Create / Manage",
-        "iconKey": "PlusCircle",
+        "id": "read-understand",
+        "title": "Read / Understand",
+        "iconKey": "Eye",
         "articles": [
           {
-            "id": "admin-project-management-create-manage-01-invite-user",
-            "title": "Invite User",
-            "synonyms": ["invite"],
-            "relatedLearningIds": [],
-            "content": { "definition": "Invite team members to your project.", "sections": [] }
+            "id": "admin-project-management-read-understand-01-members-list-roles",
+            "title": "Members list / roles",
+            "synonyms": ["members list / roles"],
+            "relatedLearningIds": ["registration"],
+            "content": {
+              "definition": "Members list / roles helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Members list / roles is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "admin-project-management-read-understand-01-members-list-roles", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   },
@@ -338,29 +468,7 @@ const RAW_DATA: KnowledgeCategory[] = [
     "id": "printing-sharing",
     "title": "Printing & Sharing",
     "iconKey": "Printer",
-    "description": "Export & PDF Generation",
-    "sections": [
-      {
-        "id": "navigate-views",
-        "title": "Navigate / Views",
-        "iconKey": "Layout",
-        "articles": [
-          {
-            "id": "printing-sharing-navigate-views-01-export-options",
-            "title": "Export Options",
-            "synonyms": ["pdf", "excel"],
-            "relatedLearningIds": [],
-            "content": { "definition": "Choose between PDF and Excel formats.", "sections": [] }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "licensing",
-    "title": "Licensing",
-    "iconKey": "CreditCard",
-    "description": "Plans & Billing",
+    "description": "General UI & Screen Structure",
     "sections": [
       {
         "id": "read-understand",
@@ -368,13 +476,61 @@ const RAW_DATA: KnowledgeCategory[] = [
         "iconKey": "Eye",
         "articles": [
           {
-            "id": "licensing-read-understand-01-plan-tiers",
-            "title": "Plan Tiers",
-            "synonyms": ["pricing"],
+            "id": "printing-sharing-read-understand-01-export-print-options",
+            "title": "Export/print options",
+            "synonyms": ["export/print options"],
             "relatedLearningIds": [],
-            "content": { "definition": "Overview of available subscription plans.", "sections": [] }
+            "content": {
+              "definition": "Export/print options helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Export/print options is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "printing-sharing-read-understand-01-export-print-options", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "licensing",
+    "title": "Licensing",
+    "iconKey": "ShieldCheck",
+    "description": "General UI & Screen Structure",
+    "sections": [
+      {
+        "id": "read-understand",
+        "title": "Read / Understand",
+        "iconKey": "Eye",
+        "articles": [
+          {
+            "id": "licensing-read-understand-01-current-plan-status",
+            "title": "Current plan / status",
+            "synonyms": ["current plan / status"],
+            "relatedLearningIds": [],
+            "content": {
+              "definition": "Current plan / status helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "Current plan / status is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
+          }
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "licensing-read-understand-01-current-plan-status", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   },
@@ -382,7 +538,7 @@ const RAW_DATA: KnowledgeCategory[] = [
     "id": "faq",
     "title": "FAQ",
     "iconKey": "CircleHelp",
-    "description": "Common Questions",
+    "description": "General UI & Screen Structure",
     "sections": [
       {
         "id": "read-understand",
@@ -390,26 +546,30 @@ const RAW_DATA: KnowledgeCategory[] = [
         "iconKey": "Eye",
         "articles": [
           {
-            "id": "faq-read-understand-01-offline-mode",
-            "title": "Offline Mode",
-            "synonyms": ["internet"],
+            "id": "faq-read-understand-01-faq-list-answers",
+            "title": "FAQ list / answers",
+            "synonyms": ["faq list / answers"],
             "relatedLearningIds": [],
-            "content": { "definition": "How KOSMA works without an internet connection.", "sections": [] }
+            "content": {
+              "definition": "FAQ list / answers helps you interpret the current state of your data on this screen.",
+              "sections": [
+                { "heading": "What it shows", "body": "FAQ list / answers is a read-only indicator that helps you interpret the current state of your work." },
+                { "heading": "Example", "body": "Check this area after applying filters to verify what is included in your view.", "type": "technical" },
+                { "heading": "Visual example", "body": "Screenshot reference for context.", "type": "example", "media": { "kind": "image", "bucket": "help-assets", "path": IMG_URL, "alt": "KOSMA Vergleich" } }
+              ]
+            }
           }
-        ]
+        ],
+        "visualMap": {
+          "imageSrc": IMG_URL,
+          "markers": [
+            { "articleId": "faq-read-understand-01-faq-list-answers", "label": 1, "x": 15, "y": 20 }
+          ]
+        }
       }
     ]
   }
 ];
-
-// Automatically inject mock visual maps for the prototype
-export const KB_DATA: KnowledgeCategory[] = RAW_DATA.map(cat => ({
-  ...cat,
-  sections: cat.sections.map(sec => ({
-    ...sec,
-    visualMap: mockVisualMap(sec.articles)
-  }))
-}));
 
 // --- HELPER FOR SMART LINKS ---
 export const findArticleById = (id: string): { article: KnowledgeArticle, category: KnowledgeCategory } | null => {

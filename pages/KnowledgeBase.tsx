@@ -1,11 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ExternalLink,
   CornerDownRight, Hash, GraduationCap, ChevronRight,
-  LayoutGrid, Info, Eye, Sliders, PlusCircle, Layout, RefreshCw, Home, Layers, MousePointer2
+  LayoutGrid, Info, Eye, Sliders, PlusCircle, Layout, RefreshCw, Home, Layers, FileText, MousePointer2
 } from 'lucide-react';
-import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory, KnowledgeSection, VisualMap } from '../data/knowledge-data';
+import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory, KnowledgeSection, VisualMap, ImageMarker } from '../data/knowledge-data';
 import { LEARNING_DATA } from '../data/learning-data';
 import { DOC_ICONS } from '../data/taxonomy';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -57,6 +57,9 @@ const VisualMapRenderer = ({
             key={marker.articleId}
             onMouseEnter={() => onHover(marker.articleId)}
             onMouseLeave={() => onHover(null)}
+            onClick={() => {
+                // Optional: Scroll to article list or navigate
+            }}
             className={`absolute flex items-center justify-center rounded-full font-bold shadow-lg transition-all duration-300 z-10 hover:z-20 ${
               isHovered 
                 ? 'w-10 h-10 bg-gray-900 text-white border-2 border-white scale-110' 
@@ -83,7 +86,7 @@ const KnowledgeSectionView = ({ section }: { section: KnowledgeSection }) => {
   const [hoveredArticleId, setHoveredArticleId] = useState<string | null>(null);
 
   // If no visual map, fallback to simple list
-  if (!section.visualMap) {
+  if (!section.visualMap || section.visualMap.markers.length === 0) {
      return (
        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden mb-12">
           <div className="px-8 py-6 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3">
