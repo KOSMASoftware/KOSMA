@@ -312,6 +312,73 @@ const TrustSection = () => {
   );
 };
 
+// --- NEW USP COMPONENT ---
+const USPBlock = () => {
+  return (
+    <div className="relative py-12 md:py-20 text-center px-4">
+       <style>{`
+         @keyframes converge-tl {
+           0%, 100% { transform: translate(0, 0); }
+           50% { transform: translate(24px, 24px); }
+         }
+         @keyframes converge-tr {
+           0%, 100% { transform: translate(0, 0); }
+           50% { transform: translate(-24px, 24px); }
+         }
+         @keyframes converge-br {
+           0%, 100% { transform: translate(0, 0); }
+           50% { transform: translate(-24px, -24px); }
+         }
+         @keyframes converge-bl {
+           0%, 100% { transform: translate(0, 0); }
+           50% { transform: translate(24px, -24px); }
+         }
+         
+         .anim-dot {
+           animation-duration: 4s;
+           animation-timing-function: ease-in-out;
+           animation-iteration-count: infinite;
+         }
+       `}</style>
+
+       {/* Animation Canvas */}
+       <div className="h-32 w-full flex items-center justify-center mb-8 relative">
+          <div className="relative w-20 h-20">
+             {/* Center Core */}
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-900 rounded-xl rotate-45 z-10 shadow-lg border-2 border-white"></div>
+             
+             {/* 4 Modules - Animated */}
+             {/* Top Left - Amber */}
+             <div className="absolute top-0 left-0 w-5 h-5 bg-amber-500 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-tl' }}></div>
+             {/* Top Right - Purple */}
+             <div className="absolute top-0 right-0 w-5 h-5 bg-purple-600 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-tr' }}></div>
+             {/* Bottom Right - Green */}
+             <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-600 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-br' }}></div>
+             {/* Bottom Left - Gray */}
+             <div className="absolute bottom-0 left-0 w-5 h-5 bg-gray-500 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-bl' }}></div>
+          </div>
+       </div>
+
+       <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-6 leading-[0.9]">
+         Four Modules.<br/>One System.
+       </h2>
+       
+       <p className="text-lg md:text-2xl text-gray-500 font-medium max-w-3xl mx-auto leading-relaxed mb-10">
+         Most tools split budgeting, financing, cash flow, and cost control into separate products.<br className="hidden md:block" />
+         <span className="text-gray-900 font-bold">KOSMA keeps everything connected — in one system.</span>
+       </p>
+
+       {/* Module List */}
+       <div className="flex flex-wrap justify-center gap-3 mb-12 opacity-90">
+          <span className="px-4 py-1.5 rounded-full bg-amber-50 text-amber-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-amber-100">Budgeting</span>
+          <span className="px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-purple-100">Financing</span>
+          <span className="px-4 py-1.5 rounded-full bg-green-50 text-green-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-green-100">Cash Flow</span>
+          <span className="px-4 py-1.5 rounded-full bg-gray-100 text-gray-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-gray-200">Cost Control</span>
+       </div>
+    </div>
+  );
+};
+
 const FeatureScrollytelling = () => {
   const [activeModuleId, setActiveModuleId] = useState('budgeting');
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
@@ -383,22 +450,12 @@ const FeatureScrollytelling = () => {
     <section id="features" className="relative w-full py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
-        {/* Intro */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-           <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight mb-6">
-             One System.<br/>Complete Control.
-           </h2>
-           <p className="text-xl text-gray-500 font-medium leading-relaxed">
-             Stop switching between spreadsheets. KOSMA unifies your production finance workflow.
-           </p>
-        </div>
+        {/* NEW USP BLOCK REPLACES OLD INTRO */}
+        <USPBlock />
 
         {/* Navigation Hint */}
         <div className="text-center mb-8">
-           <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">
-             Four Modules – One System. Navigate through the features.
-           </p>
-           <p className="text-xs font-bold text-gray-500">
+           <p className="text-xs font-bold text-gray-400 animate-pulse">
              Switch between modules to see how KOSMA works.
            </p>
         </div>
