@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
 import { Logo } from '../components/ui/Logo';
-import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X, Check, ArrowRight, AlertCircle, Zap } from 'lucide-react';
+import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X, Check, ArrowRight, AlertCircle, Zap, Quote } from 'lucide-react';
 import { Footer } from '../components/layout/Footer';
 import { Card } from '../components/ui/Card';
 
@@ -226,6 +226,91 @@ const MODULES: ModuleData[] = [
 ];
 
 // --- COMPONENTS ---
+
+// Fake Logo Component using SVG
+const FakeLogo = ({ type }: { type: '1'|'2'|'3'|'4'|'5'|'6' }) => {
+  const shapes: Record<string, React.ReactNode> = {
+    '1': <path d="M12 2L2 19.7778H22L12 2Z" stroke="currentColor" strokeWidth="3" fill="none"/>, // Triangle
+    '2': <rect x="2" y="2" width="20" height="20" rx="4" stroke="currentColor" strokeWidth="3" fill="none"/>, // Rounded Square
+    '3': <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none"/>, // Circle
+    '4': <path d="M2 12L12 2L22 12L12 22L2 12Z" stroke="currentColor" strokeWidth="3" fill="none"/>, // Diamond
+    '5': <path d="M2 2H10V10H2V2ZM14 14H22V22H14V14Z" fill="currentColor"/>, // Two Blocks
+    '6': <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round"/> // Open Circle
+  };
+
+  return (
+    <div className="h-10 w-auto opacity-40 hover:opacity-100 transition-opacity duration-300 text-gray-900 flex items-center justify-center">
+       <svg width="40" height="40" viewBox="0 0 24 24" className="w-8 h-8 md:w-10 md:h-10">
+          {shapes[type]}
+       </svg>
+    </div>
+  );
+};
+
+const TrustSection = () => {
+  return (
+    <section className="py-24 relative z-10">
+       <div className="max-w-7xl mx-auto px-6">
+          {/* Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 tracking-tight leading-tight">
+               Trusted by production teams who need budget certainty.
+             </h2>
+             <p className="text-lg text-gray-500 font-medium leading-relaxed">
+               From budgeting to cash flow and cost control — KOSMA keeps every project financially aligned.
+             </p>
+          </div>
+
+          {/* Logo Row */}
+          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 mb-24 px-4">
+             <FakeLogo type="1" />
+             <FakeLogo type="2" />
+             <FakeLogo type="3" />
+             <FakeLogo type="4" />
+             <FakeLogo type="5" />
+             <FakeLogo type="6" />
+          </div>
+
+          {/* Testimonials */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             {/* Card 1 */}
+             <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 hover:-translate-y-1 transition-transform duration-300 relative group">
+                <Quote className="absolute top-8 right-8 w-8 h-8 text-gray-100 group-hover:text-brand-100 transition-colors" />
+                <p className="text-lg md:text-xl font-medium text-gray-700 italic mb-8 leading-relaxed">
+                  “KOSMA keeps our budget and cash flow in sync — no more spreadsheet chaos.”
+                </p>
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 font-black shadow-sm">
+                      HP
+                   </div>
+                   <div>
+                      <div className="font-bold text-gray-900 text-sm">Head of Production</div>
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Berlin</div>
+                   </div>
+                </div>
+             </div>
+
+             {/* Card 2 */}
+             <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 hover:-translate-y-1 transition-transform duration-300 relative group">
+                <Quote className="absolute top-8 right-8 w-8 h-8 text-gray-100 group-hover:text-brand-100 transition-colors" />
+                <p className="text-lg md:text-xl font-medium text-gray-700 italic mb-8 leading-relaxed">
+                  “We finally have a single source of truth for costs and financing.”
+                </p>
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 font-black shadow-sm">
+                      LP
+                   </div>
+                   <div>
+                      <div className="font-bold text-gray-900 text-sm">Line Producer</div>
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Zurich</div>
+                   </div>
+                </div>
+             </div>
+          </div>
+       </div>
+    </section>
+  );
+};
 
 const FeatureScrollytelling = () => {
   const [activeModuleId, setActiveModuleId] = useState('budgeting');
@@ -716,6 +801,9 @@ export const Landing: React.FC = () => {
           <PulsingDotsBackground containerClassName="overflow-visible relative z-10">
               {/* FEATURES SCROLLYTELLING */}
               <FeatureScrollytelling />
+
+              {/* TRUST SECTION */}
+              <TrustSection />
 
               {/* FOOTER */}
               <Footer />
