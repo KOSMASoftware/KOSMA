@@ -94,22 +94,22 @@ const RoleFilterBar = ({ active, onChange }: { active: string, onChange: (r: any
   const roles: (UserRoleFilter | 'Alle')[] = ['Alle', 'Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'];
 
   return (
-    <div className="flex flex-col items-center mb-8">
+    <div className="flex flex-col items-center">
       {/* Action Line Hint */}
-      <p className="text-center text-gray-500 mb-4 font-medium animate-in fade-in text-sm">
+      <p className="text-center text-gray-500 mb-3 font-medium animate-in fade-in text-xs uppercase tracking-wider">
           {active === 'Alle'
-            ? "Select your role to start your personal learning path:"
-            : <>Your learning path as <span className="text-brand-500 font-bold">{ROLE_LABELS[active as UserRoleFilter] || active}</span>:</>}
+            ? "Filter by Role"
+            : <>Filtered for <span className="text-brand-500 font-bold">{ROLE_LABELS[active as UserRoleFilter] || active}</span></>}
       </p>
 
-      <div className="inline-flex flex-wrap justify-center gap-2 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="inline-flex flex-wrap justify-center gap-1 bg-white p-1 rounded-2xl border border-gray-200 shadow-sm">
         {roles.map((role) => (
           <button
             key={role}
             onClick={() => onChange(role)}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               active === role
-                ? 'bg-brand-50 text-white shadow-md'
+                ? 'bg-brand-50 text-brand-700 shadow-sm ring-1 ring-brand-100'
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
@@ -122,29 +122,27 @@ const RoleFilterBar = ({ active, onChange }: { active: string, onChange: (r: any
 };
 
 const ViewSwitcher = ({ mode, onChange }: { mode: 'grid' | 'path', onChange: (m: 'grid' | 'path') => void }) => (
-  <div className="flex justify-end mb-6">
-    <div className="inline-flex bg-gray-100 p-1 rounded-xl shadow-inner">
-      <button
-        onClick={() => onChange('grid')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-          mode === 'grid' 
-            ? 'bg-white text-gray-900 shadow-sm' 
-            : 'text-gray-500 hover:text-gray-900'
-        }`}
-      >
-        <LayoutGrid className="w-4 h-4" /> Grid
-      </button>
-      <button
-        onClick={() => onChange('path')}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-          mode === 'path' 
-            ? 'bg-white text-gray-900 shadow-sm' 
-            : 'text-gray-500 hover:text-gray-900'
-        }`}
-      >
-        <Map className="w-4 h-4" /> Path
-      </button>
-    </div>
+  <div className="inline-flex bg-gray-100 p-1 rounded-xl shadow-inner">
+    <button
+      onClick={() => onChange('grid')}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+        mode === 'grid' 
+          ? 'bg-white text-gray-900 shadow-sm' 
+          : 'text-gray-500 hover:text-gray-900'
+      }`}
+    >
+      <LayoutGrid className="w-4 h-4" /> Grid
+    </button>
+    <button
+      onClick={() => onChange('path')}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+        mode === 'path' 
+          ? 'bg-white text-gray-900 shadow-sm' 
+          : 'text-gray-500 hover:text-gray-900'
+      }`}
+    >
+      <Map className="w-4 h-4" /> Path
+    </button>
   </div>
 );
 
@@ -567,7 +565,7 @@ const LearningPageContent: React.FC = () => {
     <div className={`mx-auto px-4 pt-8 pb-20 transition-all duration-500 ${isSearchActive ? 'max-w-4xl' : 'max-w-6xl'}`}>
        
        {/* HEADER SECTION (Stable wrapper for SearchBar) */}
-       <div className="mb-8">
+       <div className="mb-10">
           {!isSearchActive && (
              <div className="text-center mb-8 animate-in fade-in slide-in-from-top-4">
                 <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Learning Campus</h1>
@@ -630,11 +628,20 @@ const LearningPageContent: React.FC = () => {
        ) : (
           /* OVERVIEW GRID */
           <div className="animate-in fade-in slide-in-from-bottom-4">
-             <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 border-b border-gray-100 pb-4 mb-8">
-                <div className="flex-1 w-full md:w-auto">
+             {/* Symmetrical Control Bar */}
+             <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-gray-100 pb-6 mb-8 relative">
+                {/* Left Spacer for Balance (Hidden on mobile) */}
+                <div className="hidden md:block flex-1"></div>
+
+                {/* Center: Role Filter */}
+                <div className="flex-initial">
                    <RoleFilterBar active={activeRoleFilter} onChange={setActiveRoleFilter} />
                 </div>
-                <ViewSwitcher mode={viewMode} onChange={setViewMode} />
+
+                {/* Right: View Switcher */}
+                <div className="flex-1 flex justify-center md:justify-end w-full md:w-auto">
+                   <ViewSwitcher mode={viewMode} onChange={setViewMode} />
+                </div>
              </div>
 
              {viewMode === 'path' ? (
