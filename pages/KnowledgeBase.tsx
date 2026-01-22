@@ -1,11 +1,11 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ExternalLink,
   CornerDownRight, Hash, GraduationCap, ChevronRight,
-  LayoutGrid, Info, Eye, Sliders, PlusCircle, Layout, RefreshCw, Home, Layers, FileText
+  LayoutGrid, Info, Eye, Sliders, PlusCircle, Layout, RefreshCw, Home, Layers, FileText, MousePointer2
 } from 'lucide-react';
-import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory } from '../data/knowledge-data';
+import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory, KnowledgeSection, VisualMap, ImageMarker } from '../data/knowledge-data';
 import { LEARNING_DATA } from '../data/learning-data';
 import { DOC_ICONS } from '../data/taxonomy';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -29,6 +29,170 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 // --- COMPONENTS ---
+
+const VisualMapRenderer = ({ 
+  mapData, 
+  hoveredId, 
+  onHover 
+}: { 
+  mapData: VisualMap, 
+  hoveredId: string | null, 
+  onHover: (id: string | null) => void 
+}) => {
+  return (
+    <div className="relative w-full rounded-xl overflow-hidden shadow-sm border border-gray-100 bg-gray-50 group">
+      {/* The Image */}
+      <img 
+        src={mapData.imageSrc} 
+        alt="UI Reference" 
+        className="w-full h-auto block opacity-90 transition-opacity group-hover:opacity-100"
+      />
+      
+      {/* The Markers */}
+      {mapData.markers.map((marker) => {
+        const isHovered = hoveredId === marker.articleId;
+        
+        return (
+          <button
+            key={marker.articleId}
+            onMouseEnter={() => onHover(marker.articleId)}
+            onMouseLeave={() => onHover(null)}
+            onClick={() => {
+                // Optional: Scroll to article list or navigate
+            }}
+            className={`absolute flex items-center justify-center rounded-full font-bold shadow-lg transition-all duration-300 z-10 hover:z-20 ${
+              isHovered 
+                ? 'w-10 h-10 bg-gray-900 text-white border-2 border-white scale-110' 
+                : 'w-8 h-8 bg-brand-500 text-white border-2 border-white opacity-90 hover:opacity-100'
+            }`}
+            style={{
+              left: `${marker.x}%`,
+              top: `${marker.y}%`,
+              transform: 'translate(-50%, -50%)',
+              fontSize: isHovered ? '16px' : '14px'
+            }}
+            aria-label={`Marker ${marker.label}`}
+          >
+            {marker.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+const KnowledgeSectionView = ({ section }: { section: KnowledgeSection }) => {
+  const SectionIcon = DOC_ICONS[section.iconKey] || LayoutGrid;
+  const [hoveredArticleId, setHoveredArticleId] = useState<string | null>(null);
+
+  // If no visual map, fallback to simple list
+  if (!section.visualMap) {
+     return (
+       <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden mb-12">
+          <div className="px-8 py-6 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3">
+             <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 text-gray-400">
+                <SectionIcon className="w-5 h-5" />
+             </div>
+             <h2 className="text-lg font-black text-gray-900 uppercase tracking-wide">{section.title}</h2>
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+             {section.articles.map(article => (
+                <Link key={article.id} to={`/help/article/${article.id}`} className="group flex items-start gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                   <div className="mt-1"><CornerDownRight className="w-5 h-5 text-gray-300 group-hover:text-brand-500" /></div>
+                   <div>
+                      <h3 className="font-bold text-gray-900 group-hover:text-brand-600">{article.title}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-1">{article.content.definition}</p>
+                   </div>
+                </Link>
+             ))}
+          </div>
+       </div>
+     );
+  }
+
+  // Helper to get number for list
+  const getMarkerLabel = (artId: string) => section.visualMap?.markers.find(m => m.articleId === artId)?.label;
+
+  return (
+    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden mb-12">
+       {/* Header */}
+       <div className="px-8 py-6 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+             <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 text-brand-500">
+                <SectionIcon className="w-5 h-5" />
+             </div>
+             <h2 className="text-lg font-black text-gray-900 uppercase tracking-wide">{section.title}</h2>
+          </div>
+          <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white px-3 py-1 rounded-full border border-gray-100">
+             <MousePointer2 className="w-3 h-3" /> Interactive Map
+          </div>
+       </div>
+
+       {/* Interactive Content Grid */}
+       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-8">
+          
+          {/* Left: Screenshot (Takes up more space) */}
+          <div className="lg:col-span-7 bg-gray-50/30 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 flex items-center justify-center">
+             <VisualMapRenderer 
+                mapData={section.visualMap} 
+                hoveredId={hoveredArticleId} 
+                onHover={setHoveredArticleId}
+             />
+          </div>
+
+          {/* Right: Article List */}
+          <div className="lg:col-span-5 p-6 lg:p-8 flex flex-col justify-center">
+             <div className="space-y-2">
+                {section.articles.map(article => {
+                   const label = getMarkerLabel(article.id);
+                   const isHovered = hoveredArticleId === article.id;
+
+                   return (
+                      <Link 
+                        key={article.id} 
+                        to={`/help/article/${article.id}`}
+                        onMouseEnter={() => setHoveredArticleId(article.id)}
+                        onMouseLeave={() => setHoveredArticleId(null)}
+                        className={`group flex items-center gap-4 p-3 rounded-2xl transition-all duration-200 border ${
+                           isHovered 
+                             ? 'bg-blue-50 border-brand-200 shadow-sm' 
+                             : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-100'
+                        }`}
+                      >
+                         {/* Number Badge */}
+                         {label && (
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
+                               isHovered 
+                                 ? 'bg-brand-500 text-white shadow-md' 
+                                 : 'bg-gray-100 text-gray-500 group-hover:bg-white group-hover:shadow-inner'
+                            }`}>
+                               {label}
+                            </div>
+                         )}
+                         
+                         <div className="min-w-0">
+                            <h3 className={`font-bold text-sm transition-colors truncate ${
+                               isHovered ? 'text-brand-700' : 'text-gray-900 group-hover:text-brand-600'
+                            }`}>
+                               {article.title}
+                            </h3>
+                            {isHovered && (
+                               <p className="text-xs text-brand-600/70 line-clamp-1 mt-0.5 animate-in fade-in">
+                                  Click to view definition
+                               </p>
+                            )}
+                         </div>
+                         
+                         {isHovered && <ChevronRight className="w-4 h-4 text-brand-400 ml-auto animate-in slide-in-from-left-1" />}
+                      </Link>
+                   );
+                })}
+             </div>
+          </div>
+       </div>
+    </div>
+  );
+};
 
 // Sticky Header with Breadcrumbs & Compact Search
 const StickyHeader = ({ 
@@ -86,17 +250,6 @@ const ArticleDetail = ({ article, category }: { article: KnowledgeArticle, categ
   const navigate = useNavigate();
   const [localSearch, setLocalSearch] = useState('');
 
-  // Handle local search redirection logic if needed, or just highlight
-  // For now, let's allow the sticky header to redirect back to main search if typed
-  const handleHeaderSearch = (q: string) => {
-     if (q.length > 2) {
-        // Redirect to main overview with query
-        // We use state passing or URL params. 
-        // Simple approach: Navigate to root with hash or query
-        // navigate(`/help?q=${q}`); // Implementation detail for later
-     }
-  };
-
   const relatedLearning = useMemo(() => {
      const results: { id: string, title: string, category: string }[] = [];
      if (!article.relatedLearningIds) return results;
@@ -123,10 +276,10 @@ const ArticleDetail = ({ article, category }: { article: KnowledgeArticle, categ
        <StickyHeader 
           category={category} 
           articleTitle={article.title} 
-          onSearch={(q) => setLocalSearch(q)} // Wired to local state for now, could act as global filter
+          onSearch={(q) => setLocalSearch(q)} 
        />
 
-       {/* Search Results Overlay (If typing in Sticky Header) */}
+       {/* Search Results Overlay */}
        {localSearch && (
           <div className="max-w-5xl mx-auto px-4 mb-8">
              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
@@ -236,7 +389,7 @@ const CategoryDetail = ({ category }: { category: KnowledgeCategory }) => {
   const Icon = DOC_ICONS[category.iconKey] || BookOpen;
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 pt-8 px-4 animate-in fade-in slide-in-from-right-4 duration-500">
+    <div className="max-w-7xl mx-auto pb-20 pt-8 px-4 animate-in fade-in slide-in-from-right-4 duration-500">
        <button onClick={() => navigate('/help')} className="mb-8 flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Knowledge Base
        </button>
@@ -252,44 +405,12 @@ const CategoryDetail = ({ category }: { category: KnowledgeCategory }) => {
           </div>
        </div>
 
-       {/* Sections Grid */}
+       {/* Sections with Visual Maps */}
        <div className="space-y-12">
           {category.sections.map(section => {
-             const SectionIcon = DOC_ICONS[section.iconKey] || LayoutGrid;
-             
-             // Hide empty sections to keep it clean
+             // Hide empty sections
              if (section.articles.length === 0) return null;
-             
-             return (
-               <div key={section.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="px-8 py-6 bg-gray-50/50 border-b border-gray-100 flex items-center gap-3">
-                     <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 text-gray-400">
-                        <SectionIcon className="w-5 h-5" />
-                     </div>
-                     <h2 className="text-lg font-black text-gray-900 uppercase tracking-wide">{section.title}</h2>
-                  </div>
-                  
-                  <div className="p-2">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {section.articles.map(article => (
-                           <Link 
-                             key={article.id} 
-                             to={`/help/article/${article.id}`} 
-                             className="group flex items-start gap-4 p-6 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
-                           >
-                              <div className="mt-1">
-                                 <CornerDownRight className="w-5 h-5 text-gray-300 group-hover:text-brand-500 transition-colors" />
-                              </div>
-                              <div>
-                                 <h3 className="font-bold text-gray-900 text-lg group-hover:text-brand-600 transition-colors mb-1">{article.title}</h3>
-                                 <p className="text-sm text-gray-500 line-clamp-2">{article.content.definition}</p>
-                              </div>
-                           </Link>
-                        ))}
-                     </div>
-                  </div>
-               </div>
-             );
+             return <KnowledgeSectionView key={section.id} section={section} />;
           })}
        </div>
     </div>
@@ -347,11 +468,6 @@ const GuideLegend = () => (
 // --- MAIN CONTENT SWITCHER ---
 
 const KnowledgeBaseContent: React.FC = () => {
-  // Routes: 
-  // /help -> overview
-  // /help/:id -> category detail
-  // /help/article/:articleId -> article detail
-  
   const { id, articleId } = useParams(); 
   const location = window.location.hash; 
   const [search, setSearch] = useState('');
@@ -378,8 +494,6 @@ const KnowledgeBaseContent: React.FC = () => {
     return results;
   }, [search]);
 
-  // ROUTE: Article Detail (Matched via new route or legacy hash logic)
-  // We prefer useParams from the new route, but keep hash fallback just in case
   const targetArticleId = articleId || (location.includes('/help/article/') ? location.split('/help/article/')[1]?.split('?')[0] : null);
 
   if (targetArticleId) {
@@ -388,7 +502,6 @@ const KnowledgeBaseContent: React.FC = () => {
      return <div className="p-20 text-center text-gray-400">Article not found.</div>;
   }
 
-  // ROUTE: Category Detail
   if (id) {
      const category = KB_DATA.find(c => c.id === id);
      if (category) return <CategoryDetail category={category} />;
@@ -470,12 +583,12 @@ const KnowledgeBaseContent: React.FC = () => {
                       
                       <p className="text-sm text-gray-500 font-medium leading-relaxed mb-8">{cat.description}</p>
                       
-                      {/* Rubriken Preview (The Content Map Concept) */}
+                      {/* Rubriken Preview */}
                       <div className="w-full border-t border-gray-100 pt-6 mt-auto">
                          <div className="flex flex-wrap gap-2">
                             {cat.sections.map(sec => {
                                const SecIcon = DOC_ICONS[sec.iconKey] || LayoutGrid;
-                               if (sec.articles.length === 0) return null; // Hide empty from preview
+                               if (sec.articles.length === 0) return null;
                                
                                return (
                                  <span key={sec.id} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wide border border-gray-100 group-hover:border-gray-200 transition-colors">
