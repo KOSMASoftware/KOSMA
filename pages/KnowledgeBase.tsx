@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ExternalLink,
   CornerDownRight, Hash, GraduationCap, ChevronRight,
-  LayoutGrid
+  LayoutGrid, Info
 } from 'lucide-react';
 import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory } from '../data/knowledge-data';
 import { LEARNING_DATA } from '../data/learning-data';
@@ -18,15 +18,15 @@ import { Card } from '../components/ui/Card';
 // --- COLOR MAPPING ---
 // Consistently assign colors to categories based on ID
 const CATEGORY_COLORS: Record<string, string> = {
-  'kb-budgeting': '#0093D5',      // Brand Blue
-  'kb-projects': '#305583',       // Dark Blue
-  'kb-financing': '#07929E',      // Teal
-  'kb-cashflow': '#FD7A36',       // Orange
-  'kb-costcontrol': '#7A62D2',    // Purple
-  'kb-admin': '#475569',          // Slate
-  'kb-printing': '#ADB5BD',       // Gray
-  'kb-licensing': '#F59E0B',      // Amber
-  'kb-faq': '#10B981',            // Emerald
+  'budgeting-general-ui-screen-gliederung': '#0093D5', // Brand Blue
+  'project-manager-projects': '#305583',             // Dark Blue
+  'financing-general-ui': '#07929E',                 // Teal
+  'cash-flow-general-ui': '#FD7A36',                 // Orange
+  'cost-control-general-ui': '#7A62D2',              // Purple
+  'admin-project-management': '#475569',             // Slate
+  'printing-sharing': '#ADB5BD',                     // Gray
+  'licensing': '#F59E0B',                            // Amber
+  'faq': '#10B981',                                  // Emerald
 };
 
 // --- COMPONENTS ---
@@ -146,8 +146,9 @@ const CategoryDetail = ({ category }: { category: KnowledgeCategory }) => {
        <div className="space-y-12">
           {category.sections.map(section => {
              const SectionIcon = DOC_ICONS[section.iconKey] || LayoutGrid;
-             // Only show section if it has articles OR if we want to show empty structure (user requested empty structure to start)
-             // We show empty sections to indicate scope.
+             
+             // Hide empty sections to keep it clean
+             if (section.articles.length === 0) return null;
              
              return (
                <div key={section.id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
@@ -159,29 +160,23 @@ const CategoryDetail = ({ category }: { category: KnowledgeCategory }) => {
                   </div>
                   
                   <div className="p-2">
-                     {section.articles.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                           {section.articles.map(article => (
-                              <Link 
-                                key={article.id} 
-                                to={`/help/article/${article.id}`} 
-                                className="group flex items-start gap-4 p-6 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
-                              >
-                                 <div className="mt-1">
-                                    <CornerDownRight className="w-5 h-5 text-gray-300 group-hover:text-brand-500 transition-colors" />
-                                 </div>
-                                 <div>
-                                    <h3 className="font-bold text-gray-900 text-lg group-hover:text-brand-600 transition-colors mb-1">{article.title}</h3>
-                                    <p className="text-sm text-gray-500 line-clamp-2">{article.content.definition}</p>
-                                 </div>
-                              </Link>
-                           ))}
-                        </div>
-                     ) : (
-                        <div className="p-8 text-center text-gray-400 italic text-sm">
-                           No articles in this section yet.
-                        </div>
-                     )}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {section.articles.map(article => (
+                           <Link 
+                             key={article.id} 
+                             to={`/help/article/${article.id}`} 
+                             className="group flex items-start gap-4 p-6 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
+                           >
+                              <div className="mt-1">
+                                 <CornerDownRight className="w-5 h-5 text-gray-300 group-hover:text-brand-500 transition-colors" />
+                              </div>
+                              <div>
+                                 <h3 className="font-bold text-gray-900 text-lg group-hover:text-brand-600 transition-colors mb-1">{article.title}</h3>
+                                 <p className="text-sm text-gray-500 line-clamp-2">{article.content.definition}</p>
+                              </div>
+                           </Link>
+                        ))}
+                     </div>
                   </div>
                </div>
              );
@@ -199,12 +194,6 @@ const KnowledgeBaseContent: React.FC = () => {
   const [search, setSearch] = useState('');
 
   // Handle Routing manually because standard Routes are tricky with strict props
-  // URL Pattern: 
-  // /help -> Overview
-  // /help/kb-budgeting -> Category Detail
-  // /help/article/kb-markups -> Article Detail
-
-  // Re-parse params for custom sub-routes
   const isArticle = location.includes('/help/article/');
   const articleId = isArticle ? location.split('/help/article/')[1]?.split('?')[0] : null;
   
@@ -251,6 +240,12 @@ const KnowledgeBaseContent: React.FC = () => {
           <p className="text-xl text-gray-500 font-medium max-w-2xl mx-auto mb-10">
              The central reference for terms, concepts, and logic in KOSMA.
           </p>
+          
+          {/* Action Categories Hint */}
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-blue-50 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wide border border-blue-100 mb-8 mx-auto animate-in fade-in slide-in-from-top-2">
+             <Info className="w-4 h-4" />
+             <span>Browse by screen features: Read, Change, Create, Navigate, and Share.</span>
+          </div>
           
           <div className="relative max-w-2xl mx-auto group z-20">
              <div className="absolute inset-0 bg-brand-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -321,6 +316,8 @@ const KnowledgeBaseContent: React.FC = () => {
                          <div className="flex flex-wrap gap-2">
                             {cat.sections.map(sec => {
                                const SecIcon = DOC_ICONS[sec.iconKey] || LayoutGrid;
+                               if (sec.articles.length === 0) return null; // Hide empty from preview
+                               
                                return (
                                  <span key={sec.id} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wide border border-gray-100 group-hover:border-gray-200 transition-colors">
                                     <SecIcon className="w-3 h-3" />
