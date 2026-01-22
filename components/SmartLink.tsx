@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { KNOWLEDGE_ARTICLES } from '../data/knowledge-data';
+import { findArticleById } from '../data/knowledge-data';
 import { LEARNING_DATA } from '../data/learning-data';
 import { BookOpen, Rocket } from 'lucide-react';
 
@@ -27,26 +27,24 @@ export const SmartLink: React.FC<SmartLinkProps> = ({ text, className = "" }) =>
           const id = match[2];
 
           if (type === 'kb') {
-            const article = KNOWLEDGE_ARTICLES.find(a => a.id === id);
-            if (!article) return <span key={index} className="text-red-400 font-mono text-xs" title="Broken Link">{id}</span>;
+            const matchResult = findArticleById(id);
+            if (!matchResult) return <span key={index} className="text-red-400 font-mono text-xs" title="Broken Link">{id}</span>;
             
             return (
               <Link 
                 key={index} 
-                to={`/help/${id}`} 
+                to={`/help/article/${id}`} 
                 className="inline-flex items-baseline gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-900 font-medium transition-colors border border-blue-100 mx-0.5 decoration-0"
-                title={`Knowledge Base: ${article.title}`}
+                title={`Knowledge Base: ${matchResult.article.title}`}
               >
                 <BookOpen className="w-3 h-3 self-center opacity-50" />
-                {article.title}
+                {matchResult.article.title}
               </Link>
             );
           }
 
           if (type === 'learn') {
-             // For Learning Campus, we just link to /learning main page or if deep linking supported in future
-             // For now, the user requested strict 1:1 revert of Learning Campus which doesn't support deep linking to articles via URL directly
-             // But we can link to the main page
+             // Basic implementation for learning links
              return (
                <Link 
                  key={index} 

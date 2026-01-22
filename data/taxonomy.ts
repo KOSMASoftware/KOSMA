@@ -1,5 +1,9 @@
 
-import { Rocket, Calculator, PieChart, TrendingUp, Settings, Printer, Share2, CircleHelp, BookOpen, GraduationCap, ShieldCheck, Film } from 'lucide-react';
+import { 
+  Rocket, Calculator, PieChart, TrendingUp, Settings, Printer, Share2, 
+  CircleHelp, BookOpen, GraduationCap, ShieldCheck, Film,
+  Eye, Sliders, PlusCircle, Layout, RefreshCw, Compass, FolderCog, Edit3, Coins
+} from 'lucide-react';
 
 // --- SHARED TYPES ---
 
@@ -17,18 +21,30 @@ export interface HelpMedia {
 
 // --- ICON MAPPING ---
 export const DOC_ICONS: Record<string, any> = {
+  // Module Icons
   'Rocket': Rocket,
   'Calculator': Calculator,
   'PieChart': PieChart,
   'TrendingUp': TrendingUp,
   'Settings': Settings,
-  'CircleHelp': CircleHelp,
   'Printer': Printer,
   'Share2': Share2,
   'BookOpen': BookOpen,
   'GraduationCap': GraduationCap,
   'ShieldCheck': ShieldCheck,
-  'Film': Film
+  'Film': Film,
+  'CircleHelp': CircleHelp,
+  'Coins': Coins,
+
+  // KB Section Icons (Standardized)
+  'Eye': Eye,             // Read / Understand
+  'Sliders': Sliders,     // Change / Control
+  'PlusCircle': PlusCircle, // Create / Manage
+  'Layout': Layout,       // Navigate / Views
+  'RefreshCw': RefreshCw, // Share / Sync
+  'FolderCog': FolderCog,
+  'Edit3': Edit3,
+  'Compass': Compass
 };
 
 export const ROLE_LABELS: Record<UserRoleFilter | 'Alle', string> = {
