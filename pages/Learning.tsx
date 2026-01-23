@@ -12,6 +12,7 @@ import { Layout as DashboardLayout } from '../components/Layout';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { supabase } from '../lib/supabaseClient';
 import { Card } from '../components/ui/Card';
+import { SmartLink } from '../components/SmartLink';
 
 // --- HELPER: Find Article Content ---
 const findArticleContent = (articleId: string): HelpArticle | undefined => {
@@ -195,11 +196,13 @@ const CourseOverviewView = ({
 const ArticleDetailView = ({ 
   course, 
   articleId, 
-  onBack 
+  onBack,
+  onNavigate // Add navigation handler
 }: { 
   course: LearningCourse, 
   articleId: string, 
-  onBack: () => void 
+  onBack: () => void,
+  onNavigate: (articleId: string) => void
 }) => {
   // Find current goal index
   const currentGoalIndex = course.goals.findIndex(g => g.articleId === articleId);
@@ -265,7 +268,10 @@ const ArticleDetailView = ({
                    </div>
                    
                    <div className="pl-[3rem]">
-                      <p className="text-gray-600 leading-relaxed mb-4 font-medium">{step.content}</p>
+                      <div className="text-gray-600 leading-relaxed mb-4 font-medium">
+                        {/* Use SmartLink to handle [[kb:id]] references inside learning content */}
+                        <SmartLink text={step.content} />
+                      </div>
 
                       {step.media && <MediaRenderer media={step.media} />}
 
@@ -296,8 +302,8 @@ const ArticleDetailView = ({
           </button>
 
           {nextGoal ? (
-             <a 
-                href={`#/learning?course=${course.id}&article=${nextGoal.articleId}`}
+             <button 
+                onClick={() => onNavigate(nextGoal.articleId)}
                 className="flex items-center gap-3 px-8 py-4 rounded-xl bg-gray-900 text-white font-black hover:bg-brand-500 transition-all shadow-lg shadow-gray-900/10"
              >
                 <div className="text-left">
@@ -305,7 +311,7 @@ const ArticleDetailView = ({
                    <span>{nextGoal.title}</span>
                 </div>
                 <ChevronRight className="w-5 h-5" />
-             </a>
+             </button>
           ) : (
              <div className="text-green-600 font-black flex items-center gap-2 bg-green-50 px-6 py-3 rounded-xl border border-green-100">
                 <CheckCircle className="w-5 h-5" /> Course Completed
@@ -350,7 +356,14 @@ const LearningPageContent: React.FC = () => {
 
   // State Machine for Views
   if (selectedCourse && selectedArticleId) {
-    return <ArticleDetailView course={selectedCourse} articleId={selectedArticleId} onBack={handleBackToOverview} />;
+    return (
+      <ArticleDetailView 
+        course={selectedCourse} 
+        articleId={selectedArticleId} 
+        onBack={handleBackToOverview} 
+        onNavigate={handleSelectGoal} // Fix: Pass the navigation handler
+      />
+    );
   }
 
   if (selectedCourse) {

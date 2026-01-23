@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
 import { PulsingDotsBackground } from '../components/ui/pulsing-dots-background';
 import { Logo } from '../components/ui/Logo';
-import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X, Check, ArrowRight, AlertCircle, Zap, Quote } from 'lucide-react';
+import { Globe, ChevronDown, CheckCircle, Download, AlertTriangle, Lightbulb, TrendingUp, Menu, X, Check, ArrowRight, AlertCircle, Zap, Quote, PencilRuler, Coins, Video, Scissors, Flag, Calculator, PieChart, BarChart3, Layers } from 'lucide-react';
 import { Footer } from '../components/layout/Footer';
 import { Card } from '../components/ui/Card';
+import TestimonialSlider from '../components/TestimonialSlider';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
@@ -34,14 +35,16 @@ type FeatureItem = {
 type ModuleData = {
   id: string;
   label: string;
+  icon: any; // Lucide Icon Component
   theme: ModuleTheme;
   features: FeatureItem[];
 };
 
 const MODULES: ModuleData[] = [
   {
-    id: 'budgeting',
-    label: 'Budgeting',
+    id: 'development',
+    label: 'Development',
+    icon: PencilRuler,
     theme: {
       activeTab: 'text-amber-600 bg-amber-50 shadow-amber-500/10 ring-1 ring-amber-100',
       dotActive: 'bg-amber-500 border-amber-100',
@@ -52,11 +55,11 @@ const MODULES: ModuleData[] = [
     },
     features: [
       {
-        title: 'Split costs between producers',
-        desc: 'Clear cost ownership and faster co‑production reporting.',
-        pain: 'Costs are split manually across partners, making co‑production budgets messy.',
-        solution: 'KOSMA lets you assign costs to multiple producers directly in settings.',
-        impact: 'Clear cost ownership and faster co‑production reporting.',
+        title: 'Financing plan templates',
+        desc: 'Faster setup with consistent financing structure.',
+        pain: 'Each financing plan starts from scratch.',
+        solution: 'Load a financing plan template and adapt it quickly.',
+        impact: 'Faster setup with consistent financing structure.',
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       },
       {
@@ -65,14 +68,6 @@ const MODULES: ModuleData[] = [
         pain: 'Fringes and wage supplements are calculated differently across projects.',
         solution: 'Define standard fringes and wage supplements once in settings.',
         impact: 'Consistent, compliant cost calculations across all accounts.',
-        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
-      },
-      {
-        title: 'Assign fringes to accounts',
-        desc: 'Accurate labor costs with fewer manual corrections.',
-        pain: 'Applying fringes per account is slow and error‑prone.',
-        solution: 'Assign fringes and supplements directly to specific accounts.',
-        impact: 'Accurate labor costs with fewer manual corrections.',
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       },
       {
@@ -88,6 +83,7 @@ const MODULES: ModuleData[] = [
   {
     id: 'financing',
     label: 'Financing',
+    icon: Coins,
     theme: {
       activeTab: 'text-purple-600 bg-purple-50 shadow-purple-500/10 ring-1 ring-purple-100',
       dotActive: 'bg-purple-600 border-purple-100',
@@ -98,19 +94,19 @@ const MODULES: ModuleData[] = [
     },
     features: [
       {
-        title: 'Financing plan templates',
-        desc: 'Faster setup with consistent financing structure.',
-        pain: 'Each financing plan starts from scratch.',
-        solution: 'Load a financing plan template and adapt it quickly.',
-        impact: 'Faster setup with consistent financing structure.',
-        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
-      },
-      {
         title: 'Manage financing sources',
         desc: 'Clear funding ownership and easier partner reporting.',
         pain: 'Financing sources and producer shares are scattered across files.',
         solution: 'Edit financing sources and assign them to producers directly.',
         impact: 'Clear funding ownership and easier partner reporting.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Split costs between producers',
+        desc: 'Clear cost ownership and faster co‑production reporting.',
+        pain: 'Costs are split manually across partners, making co‑production budgets messy.',
+        solution: 'KOSMA lets you assign costs to multiple producers directly in settings.',
+        impact: 'Clear cost ownership and faster co‑production reporting.',
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       },
       {
@@ -120,27 +116,20 @@ const MODULES: ModuleData[] = [
         solution: 'Use funding effects as variables in the financing plan.',
         impact: 'Accurate funding calculations tied to real budget data.',
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
-      },
-      {
-        title: 'Link expenses to sources',
-        desc: 'Transparent funding allocation and stronger auditability.',
-        pain: 'It’s unclear which funding source covers which expense effect.',
-        solution: 'Connect expense effects to specific financing sources.',
-        impact: 'Transparent funding allocation and stronger auditability.',
-        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       }
     ]
   },
   {
-    id: 'cashflow',
-    label: 'Cash Flow',
+    id: 'production',
+    label: 'Production',
+    icon: Video,
     theme: {
-      activeTab: 'text-green-600 bg-green-50 shadow-green-500/10 ring-1 ring-green-100',
-      dotActive: 'bg-green-600 border-green-100',
-      ring: 'ring-green-600',
-      label: 'text-green-600',
-      pill: 'bg-green-50 border-green-200 text-green-700',
-      mobileNumber: 'bg-green-50 text-green-600 border-green-100'
+      activeTab: 'text-brand-600 bg-brand-50 shadow-brand-500/10 ring-1 ring-brand-100',
+      dotActive: 'bg-brand-600 border-brand-100',
+      ring: 'ring-brand-600',
+      label: 'text-brand-600',
+      pill: 'bg-brand-50 border-brand-200 text-brand-700',
+      mobileNumber: 'bg-brand-50 text-brand-600 border-brand-100'
     },
     features: [
       {
@@ -166,27 +155,20 @@ const MODULES: ModuleData[] = [
         solution: 'Generate a cash‑flow plan from budget + financing.',
         impact: 'Immediate financial visibility for production planning.',
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
-      },
-      {
-        title: 'Add loans/transfers',
-        desc: 'Complete cash‑flow picture without external tools.',
-        pain: 'Inter‑producer transfers and loans are tracked separately.',
-        solution: 'Add loans or transfers directly into the cash‑flow plan.',
-        impact: 'Complete cash‑flow picture without external tools.',
-        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       }
     ]
   },
   {
-    id: 'costcontrol',
-    label: 'Cost Control',
+    id: 'post-production',
+    label: 'Post Production',
+    icon: Scissors,
     theme: {
-      activeTab: 'text-gray-900 bg-gray-100 shadow-gray-500/10 ring-1 ring-gray-200',
-      dotActive: 'bg-gray-800 border-gray-200',
-      ring: 'ring-gray-800',
-      label: 'text-gray-800',
-      pill: 'bg-gray-100 border-gray-300 text-gray-900',
-      mobileNumber: 'bg-gray-100 text-gray-900 border-gray-300'
+      activeTab: 'text-rose-600 bg-rose-50 shadow-rose-500/10 ring-1 ring-rose-100',
+      dotActive: 'bg-rose-600 border-rose-100',
+      ring: 'ring-rose-600',
+      label: 'text-rose-600',
+      pill: 'bg-rose-50 border-rose-200 text-rose-700',
+      mobileNumber: 'bg-rose-50 text-rose-600 border-rose-100'
     },
     features: [
       {
@@ -198,6 +180,37 @@ const MODULES: ModuleData[] = [
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       },
       {
+        title: 'Recalculate forecasts',
+        desc: 'Up‑to‑date cost outlooks at any time.',
+        pain: 'Forecasts are outdated as soon as costs change.',
+        solution: 'Recalculate forecasts per account instantly.',
+        impact: 'Up‑to‑date cost outlooks at any time.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      },
+      {
+        title: 'Link expenses to sources',
+        desc: 'Transparent funding allocation and stronger auditability.',
+        pain: 'It’s unclear which funding source covers which expense effect.',
+        solution: 'Connect expense effects to specific financing sources.',
+        impact: 'Transparent funding allocation and stronger auditability.',
+        image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
+      }
+    ]
+  },
+  {
+    id: 'final-accounts',
+    label: 'Final Accounts',
+    icon: Flag,
+    theme: {
+      activeTab: 'text-green-600 bg-green-50 shadow-green-500/10 ring-1 ring-green-100',
+      dotActive: 'bg-green-600 border-green-100',
+      ring: 'ring-green-600',
+      label: 'text-green-600',
+      pill: 'bg-green-50 border-green-200 text-green-700',
+      mobileNumber: 'bg-green-50 text-green-600 border-green-100'
+    },
+    features: [
+      {
         title: 'Import accounting data',
         desc: 'Less manual work and fewer reconciliation errors.',
         pain: 'Accounting data must be re‑entered manually.',
@@ -206,11 +219,11 @@ const MODULES: ModuleData[] = [
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       },
       {
-        title: 'Recalculate forecasts',
-        desc: 'Up‑to‑date cost outlooks at any time.',
-        pain: 'Forecasts are outdated as soon as costs change.',
-        solution: 'Recalculate forecasts per account instantly.',
-        impact: 'Up‑to‑date cost outlooks at any time.',
+        title: 'Add loans/transfers',
+        desc: 'Complete cash‑flow picture without external tools.',
+        pain: 'Inter‑producer transfers and loans are tracked separately.',
+        solution: 'Add loans or transfers directly into the cash‑flow plan.',
+        impact: 'Complete cash‑flow picture without external tools.',
         image: 'https://i.ibb.co/tp0B8GWh/Cash-Flow.png'
       },
       {
@@ -262,7 +275,7 @@ const TrustSection = () => {
           </div>
 
           {/* Logo Row */}
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 mb-24 px-4">
+          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 mb-16 px-4">
              <FakeLogo type="1" />
              <FakeLogo type="2" />
              <FakeLogo type="3" />
@@ -271,116 +284,106 @@ const TrustSection = () => {
              <FakeLogo type="6" />
           </div>
 
-          {/* Testimonials */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             {/* Card 1 */}
-             <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 hover:-translate-y-1 transition-transform duration-300 relative group">
-                <Quote className="absolute top-8 right-8 w-8 h-8 text-gray-100 group-hover:text-brand-100 transition-colors" />
-                <p className="text-lg md:text-xl font-medium text-gray-700 italic mb-8 leading-relaxed">
-                  “KOSMA keeps our budget and cash flow in sync — no more spreadsheet chaos.”
-                </p>
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600 font-black shadow-sm">
-                      HP
-                   </div>
-                   <div>
-                      <div className="font-bold text-gray-900 text-sm">Head of Production</div>
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Berlin</div>
-                   </div>
-                </div>
-             </div>
-
-             {/* Card 2 */}
-             <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 hover:-translate-y-1 transition-transform duration-300 relative group">
-                <Quote className="absolute top-8 right-8 w-8 h-8 text-gray-100 group-hover:text-brand-100 transition-colors" />
-                <p className="text-lg md:text-xl font-medium text-gray-700 italic mb-8 leading-relaxed">
-                  “We finally have a single source of truth for costs and financing.”
-                </p>
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 font-black shadow-sm">
-                      LP
-                   </div>
-                   <div>
-                      <div className="font-bold text-gray-900 text-sm">Line Producer</div>
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Zurich</div>
-                   </div>
-                </div>
-             </div>
+          {/* Testimonial Slider */}
+          <div className="w-full">
+             <TestimonialSlider />
           </div>
        </div>
     </section>
   );
 };
 
-// --- NEW USP COMPONENT ---
+// --- NEW USP COMPONENT (COMPACT & ROBUST ANIMATION) ---
 const USPBlock = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+      }
+    }, { threshold: 0.1 });
+
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Helper for staged delay
+  // We use direct style injection to stagger the transitions
+  const transitionClass = `transition-all duration-1000 ease-out transform ${
+    isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+  }`;
+  
+  const delayStyle = (ms: number) => ({ transitionDelay: `${ms}ms` });
+
   return (
-    <div className="relative py-12 md:py-20 text-center px-4">
+    <div ref={ref} className="relative py-12 md:py-20 text-center px-4 max-w-6xl mx-auto">
        <style>{`
-         @keyframes converge-tl {
-           0%, 100% { transform: translate(0, 0); }
-           50% { transform: translate(24px, 24px); }
-         }
-         @keyframes converge-tr {
-           0%, 100% { transform: translate(0, 0); }
-           50% { transform: translate(-24px, 24px); }
-         }
-         @keyframes converge-br {
-           0%, 100% { transform: translate(0, 0); }
-           50% { transform: translate(-24px, -24px); }
-         }
-         @keyframes converge-bl {
-           0%, 100% { transform: translate(0, 0); }
-           50% { transform: translate(24px, -24px); }
-         }
-         
-         .anim-dot {
-           animation-duration: 4s;
-           animation-timing-function: ease-in-out;
-           animation-iteration-count: infinite;
-         }
+         /* Dot Animation */
+         @keyframes converge-tl { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(24px, 24px); } }
+         @keyframes converge-tr { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-24px, 24px); } }
+         @keyframes converge-br { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-24px, -24px); } }
+         @keyframes converge-bl { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(24px, -24px); } }
+         .anim-dot { animation-duration: 4s; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
        `}</style>
 
-       {/* Animation Canvas */}
-       <div className="h-32 w-full flex items-center justify-center mb-8 relative">
-          <div className="relative w-20 h-20">
-             {/* Center Core */}
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-900 rounded-xl rotate-45 z-10 shadow-lg border-2 border-white"></div>
+       <div className="h-32 w-full flex items-center justify-center mb-6 relative">
+          <div className="relative w-24 h-24">
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-gray-900 rounded-xl rotate-45 z-10 shadow-xl border-2 border-white flex items-center justify-center">
+                <Layers className="w-5 h-5 text-white -rotate-45" />
+             </div>
              
-             {/* 4 Modules - Animated */}
-             {/* Top Left - Amber */}
-             <div className="absolute top-0 left-0 w-5 h-5 bg-amber-500 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-tl' }}></div>
-             {/* Top Right - Purple */}
-             <div className="absolute top-0 right-0 w-5 h-5 bg-purple-600 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-tr' }}></div>
-             {/* Bottom Right - Green */}
-             <div className="absolute bottom-0 right-0 w-5 h-5 bg-green-600 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-br' }}></div>
-             {/* Bottom Left - Gray */}
-             <div className="absolute bottom-0 left-0 w-5 h-5 bg-gray-500 rounded-full anim-dot shadow-sm" style={{ animationName: 'converge-bl' }}></div>
+             <div className="absolute top-0 left-0 w-6 h-6 bg-amber-500 rounded-full anim-dot shadow-md border-2 border-white" style={{ animationName: 'converge-tl' }}></div>
+             <div className="absolute top-0 right-0 w-6 h-6 bg-purple-600 rounded-full anim-dot shadow-md border-2 border-white" style={{ animationName: 'converge-tr' }}></div>
+             <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-600 rounded-full anim-dot shadow-md border-2 border-white" style={{ animationName: 'converge-br' }}></div>
+             <div className="absolute bottom-0 left-0 w-6 h-6 bg-slate-500 rounded-full anim-dot shadow-md border-2 border-white" style={{ animationName: 'converge-bl' }}></div>
           </div>
        </div>
 
-       <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-6 leading-[0.9]">
-         Four Modules.<br/>One System.
+       {/* Headline - Reduced Margin (mb-6) */}
+       <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-6 leading-[0.95]">
+         <span className={`block ${transitionClass}`} style={delayStyle(0)}>
+           Four Modules.
+         </span>
+         <span className={`block ${transitionClass}`} style={delayStyle(200)}>
+           <span className="text-brand-500">One System.</span>
+         </span>
        </h2>
-       
-       <p className="text-lg md:text-2xl text-gray-500 font-medium max-w-3xl mx-auto leading-relaxed mb-10">
-         Most tools split budgeting, financing, cash flow, and cost control into separate products.<br className="hidden md:block" />
-         <span className="text-gray-900 font-bold">KOSMA keeps everything connected — in one system.</span>
-       </p>
 
-       {/* Module List */}
-       <div className="flex flex-wrap justify-center gap-3 mb-12 opacity-90">
-          <span className="px-4 py-1.5 rounded-full bg-amber-50 text-amber-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-amber-100">Budgeting</span>
-          <span className="px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-purple-100">Financing</span>
-          <span className="px-4 py-1.5 rounded-full bg-green-50 text-green-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-green-100">Cash Flow</span>
-          <span className="px-4 py-1.5 rounded-full bg-gray-100 text-gray-700 text-[10px] md:text-xs font-black uppercase tracking-widest border border-gray-200">Cost Control</span>
+       {/* Modules Grid - Reduced Margin (mb-8) */}
+       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 max-w-5xl mx-auto">
+          {[
+            { label: 'Budgeting', icon: Calculator, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-100', delay: 300 },
+            { label: 'Financing', icon: PieChart, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', delay: 400 },
+            { label: 'Cash Flow', icon: Coins, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', delay: 500 },
+            { label: 'Cost Control', icon: BarChart3, color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200', delay: 600 }
+          ].map((item) => (
+             <div 
+               key={item.label}
+               className={`rounded-2xl p-6 flex flex-col items-center gap-3 border shadow-sm transform hover:scale-105 transition-all duration-300 ${item.bg} ${item.border} ${transitionClass}`}
+               style={delayStyle(item.delay)}
+             >
+                <div className="bg-white p-3 rounded-xl shadow-sm">
+                    <item.icon className={`w-8 h-8 ${item.color}`} />
+                </div>
+                <span className={`font-black uppercase tracking-widest text-xs ${item.color.replace('text-', 'text-opacity-80 text-')}`}>{item.label}</span>
+             </div>
+          ))}
+       </div>
+
+       {/* Definition Text - No Divider Line */}
+       <div className={`max-w-4xl mx-auto ${transitionClass}`} style={delayStyle(700)}>
+          <p className="text-xl md:text-2xl font-medium text-gray-500 leading-relaxed px-4">
+            KOSMA is a software for film production companies and production managers providing a variety of unique tools to plan and control the financial side of projects from development to delivery.
+          </p>
        </div>
     </div>
   );
 };
 
 const FeatureScrollytelling = () => {
-  const [activeModuleId, setActiveModuleId] = useState('budgeting');
+  const [activeModuleId, setActiveModuleId] = useState('development');
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -453,11 +456,14 @@ const FeatureScrollytelling = () => {
         {/* NEW USP BLOCK REPLACES OLD INTRO */}
         <USPBlock />
 
-        {/* Navigation Hint */}
-        <div className="text-center mb-8">
-           <p className="text-xs font-bold text-gray-400 animate-pulse">
-             Switch between modules to see how KOSMA works.
-           </p>
+        {/* Phase Headline */}
+        <div className="text-center mb-10 max-w-4xl mx-auto mt-32">
+           <div className="inline-block p-3 rounded-full bg-gray-50 border border-gray-100 mb-6">
+              <TrendingUp className="w-6 h-6 text-gray-400" />
+           </div>
+           <h3 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight">
+             Maximum oversight, control and safety in all phases of production
+           </h3>
         </div>
 
         {/* TABS - Sticky outside the scroll container with reduced margin */}
@@ -467,12 +473,13 @@ const FeatureScrollytelling = () => {
                 <button
                   key={module.id}
                   onClick={() => setActiveModuleId(module.id)}
-                  className={`px-6 py-3 rounded-xl text-sm font-black transition-all ${
+                  className={`px-6 py-3 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${
                     activeModuleId === module.id
                       ? `${module.theme.activeTab} transform scale-105 shadow-md`
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
                   }`}
                 >
+                  <module.icon className="w-4 h-4" />
                   {module.label}
                 </button>
               ))}
