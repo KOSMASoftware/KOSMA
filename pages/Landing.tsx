@@ -240,26 +240,6 @@ const MODULES: ModuleData[] = [
 
 // --- COMPONENTS ---
 
-// Fake Logo Component using SVG
-const FakeLogo = ({ type }: { type: '1'|'2'|'3'|'4'|'5'|'6' }) => {
-  const shapes: Record<string, React.ReactNode> = {
-    '1': <path d="M12 2L2 19.7778H22L12 2Z" stroke="currentColor" strokeWidth="3" fill="none"/>, // Triangle
-    '2': <rect x="2" y="2" width="20" height="20" rx="4" stroke="currentColor" strokeWidth="3" fill="none"/>, // Rounded Square
-    '3': <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none"/>, // Circle
-    '4': <path d="M2 12L12 2L22 12L12 22L2 12Z" stroke="currentColor" strokeWidth="3" fill="none"/>, // Diamond
-    '5': <path d="M2 2H10V10H2V2ZM14 14H22V22H14V14Z" fill="currentColor"/>, // Two Blocks
-    '6': <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round"/> // Open Circle
-  };
-
-  return (
-    <div className="h-10 w-auto opacity-40 hover:opacity-100 transition-opacity duration-300 text-gray-900 flex items-center justify-center">
-       <svg width="40" height="40" viewBox="0 0 24 24" className="w-8 h-8 md:w-10 md:h-10">
-          {shapes[type]}
-       </svg>
-    </div>
-  );
-};
-
 const TrustSection = () => {
   return (
     <section className="py-24 relative z-10">
@@ -272,16 +252,6 @@ const TrustSection = () => {
              <p className="text-lg text-gray-500 font-medium leading-relaxed">
                From budgeting to cash flow and cost control — KOSMA keeps every project financially aligned.
              </p>
-          </div>
-
-          {/* Logo Row */}
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 mb-16 px-4">
-             <FakeLogo type="1" />
-             <FakeLogo type="2" />
-             <FakeLogo type="3" />
-             <FakeLogo type="4" />
-             <FakeLogo type="5" />
-             <FakeLogo type="6" />
           </div>
 
           {/* Testimonial Slider */}
@@ -326,6 +296,12 @@ const USPBlock = () => {
          @keyframes converge-br { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-24px, -24px); } }
          @keyframes converge-bl { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(24px, -24px); } }
          .anim-dot { animation-duration: 4s; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+         
+         /* LED Border Spin */
+         @keyframes border-spin {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+         }
        `}</style>
 
        <div className="h-32 w-full flex items-center justify-center mb-6 relative">
@@ -354,20 +330,41 @@ const USPBlock = () => {
        {/* Modules Grid - Reduced Margin (mb-8) */}
        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 max-w-5xl mx-auto">
           {[
-            { label: 'Budgeting', icon: Calculator, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-100', delay: 300 },
-            { label: 'Financing', icon: PieChart, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', delay: 400 },
-            { label: 'Cash Flow', icon: Coins, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', delay: 500 },
-            { label: 'Cost Control', icon: BarChart3, color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200', delay: 600 }
+            { label: 'Budgeting', icon: Calculator, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-100', glowColor: '#F59E0B', delay: 300 },
+            { label: 'Financing', icon: PieChart, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', glowColor: '#9333EA', delay: 400 },
+            { label: 'Cash Flow', icon: Coins, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', glowColor: '#16A34A', delay: 500 },
+            { label: 'Cost Control', icon: BarChart3, color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-200', glowColor: '#475569', delay: 600 }
           ].map((item) => (
              <div 
                key={item.label}
-               className={`rounded-2xl p-6 flex flex-col items-center gap-3 border shadow-sm transform hover:scale-105 transition-all duration-300 ${item.bg} ${item.border} ${transitionClass}`}
+               className={`group relative rounded-2xl p-6 flex flex-col items-center gap-3 border shadow-sm transform hover:scale-105 transition-all duration-300 ${item.bg} ${item.border} ${transitionClass} overflow-hidden`}
                style={delayStyle(item.delay)}
              >
-                <div className="bg-white p-3 rounded-xl shadow-sm">
-                    <item.icon className={`w-8 h-8 ${item.color}`} />
+                {/* Glow Border Overlay */}
+                <div 
+                   className="absolute inset-0 rounded-2xl pointer-events-none z-0 p-[2px]"
+                   style={{
+                     mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                     maskComposite: 'exclude',
+                     WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                     WebkitMaskComposite: 'xor',
+                   }}
+                 >
+                    <div 
+                      className="absolute top-1/2 left-1/2 w-[200%] h-[200%] opacity-0 group-hover:opacity-100 group-hover:animate-[border-spin_3s_linear_infinite]"
+                      style={{
+                        background: `conic-gradient(from 0deg at 50% 50%, transparent 0deg, ${item.glowColor} 60deg, transparent 100deg)`,
+                      }}
+                    />
+                 </div>
+
+                {/* Content */}
+                <div className="relative z-10 flex flex-col items-center gap-3">
+                    <div className="bg-white p-3 rounded-xl shadow-sm">
+                        <item.icon className={`w-8 h-8 ${item.color}`} />
+                    </div>
+                    <span className={`font-black uppercase tracking-widest text-xs ${item.color.replace('text-', 'text-opacity-80 text-')}`}>{item.label}</span>
                 </div>
-                <span className={`font-black uppercase tracking-widest text-xs ${item.color.replace('text-', 'text-opacity-80 text-')}`}>{item.label}</span>
              </div>
           ))}
        </div>
@@ -837,17 +834,19 @@ export const Landing: React.FC = () => {
                 <div className="mt-8 flex flex-wrap gap-4 justify-center pointer-events-auto">
                     <Link
                     to="/download"
-                    className="rounded-xl px-6 py-4 text-sm font-bold border border-white/10 transition-transform hover:scale-105 active:scale-95 shadow-xl shadow-brand-500/20"
+                    className="group relative rounded-xl px-8 py-4 text-sm font-black transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,147,213,0.4)] hover:shadow-[0_0_40px_rgba(0,147,213,0.6)]"
                     style={{ background: BRAND, color: '#061018' }}
                     >
-                    Get started
+                      {/* Pulse Ring */}
+                      <span className="absolute inset-0 rounded-xl ring-2 ring-white/20 animate-pulse group-hover:ring-white/40"></span>
+                      Download
                     </Link>
                     <a
                     href="#features"
                     onClick={scrollToFeatures}
-                    className="rounded-xl px-6 py-4 text-sm font-bold border border-white/15 bg-white/10 text-white/90 backdrop-blur hover:bg-white/20 transition-all cursor-pointer"
+                    className="rounded-xl px-8 py-4 text-sm font-bold border border-white/15 bg-white/10 text-white/90 backdrop-blur hover:bg-white/20 transition-all cursor-pointer hover:border-white/30"
                     >
-                    See it in action
+                    Explore Features
                     </a>
                 </div>
                 </div>
