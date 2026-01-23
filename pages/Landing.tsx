@@ -812,7 +812,7 @@ export const Landing: React.FC = () => {
                     className="m-0 font-black tracking-[-0.04em] leading-[0.95] text-[clamp(38px,6vw,86px)]"
                     style={{ textShadow: '0 0 24px rgba(0,0,0,0.65)' }}
                 >
-                    Bring AI to your budget
+                    Bring AI to your film budget
                 </h1>
                 <p className="mt-4 mx-auto max-w-2xl text-[clamp(14px,1.6vw,18px)] leading-[1.45] text-white/80">
                     Simply the most advanced{' '}
