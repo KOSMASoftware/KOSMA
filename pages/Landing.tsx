@@ -45,6 +45,7 @@ type ModuleData = {
   id: string;
   label: string;
   icon: any; // Lucide Icon Component
+  colorName: 'amber' | 'purple' | 'brand' | 'rose' | 'green';
   theme: ModuleTheme;
   features: FeatureItem[];
 };
@@ -54,6 +55,7 @@ const MODULES: ModuleData[] = [
     id: 'development',
     label: 'Development',
     icon: PencilRuler,
+    colorName: 'amber',
     theme: {
       activeTab: 'text-amber-600 bg-amber-50 shadow-amber-500/10 ring-1 ring-amber-100',
       dotActive: 'bg-amber-500 border-amber-100',
@@ -93,6 +95,7 @@ const MODULES: ModuleData[] = [
     id: 'financing',
     label: 'Financing',
     icon: Coins,
+    colorName: 'purple',
     theme: {
       activeTab: 'text-purple-600 bg-purple-50 shadow-purple-500/10 ring-1 ring-purple-100',
       dotActive: 'bg-purple-600 border-purple-100',
@@ -132,6 +135,7 @@ const MODULES: ModuleData[] = [
     id: 'production',
     label: 'Production',
     icon: Video,
+    colorName: 'brand',
     theme: {
       activeTab: 'text-brand-600 bg-brand-50 shadow-brand-500/10 ring-1 ring-brand-100',
       dotActive: 'bg-brand-600 border-brand-100',
@@ -171,6 +175,7 @@ const MODULES: ModuleData[] = [
     id: 'post-production',
     label: 'Post Production',
     icon: Scissors,
+    colorName: 'rose',
     theme: {
       activeTab: 'text-rose-600 bg-rose-50 shadow-rose-500/10 ring-1 ring-rose-100',
       dotActive: 'bg-rose-600 border-rose-100',
@@ -210,6 +215,7 @@ const MODULES: ModuleData[] = [
     id: 'final-accounts',
     label: 'Final Accounts',
     icon: Flag,
+    colorName: 'green',
     theme: {
       activeTab: 'text-green-600 bg-green-50 shadow-green-500/10 ring-1 ring-green-100',
       dotActive: 'bg-green-600 border-green-100',
@@ -248,6 +254,60 @@ const MODULES: ModuleData[] = [
 ];
 
 // --- COMPONENTS ---
+
+// Helper to render the consistent feature boxes
+const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorName: string }) => {
+  // Color Mapping
+  const colors: Record<string, any> = {
+    amber: { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700', icon: 'text-amber-600', light: 'bg-amber-50/50' },
+    purple: { bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-700', icon: 'text-purple-600', light: 'bg-purple-50/50' },
+    brand: { bg: 'bg-brand-50', border: 'border-brand-100', text: 'text-brand-700', icon: 'text-brand-600', light: 'bg-brand-50/50' }, // map 'brand' to blue-ish
+    rose: { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-700', icon: 'text-rose-600', light: 'bg-rose-50/50' },
+    green: { bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-700', icon: 'text-green-600', light: 'bg-green-50/50' },
+  };
+  
+  const theme = colors[colorName] || colors.brand;
+
+  return (
+    <div className="flex flex-col gap-3">
+       {/* 1. Challenge (Neutral) */}
+       <div className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:border-slate-200">
+          <div className="shrink-0 mt-0.5">
+             <AlertCircle className="w-5 h-5 text-slate-400" />
+          </div>
+          <div>
+             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">The Challenge</div>
+             <p className="text-sm text-slate-600 font-medium leading-relaxed">{feature.pain}</p>
+          </div>
+       </div>
+
+       {/* 2. Solution (Themed Highlight) */}
+       <div className={`flex gap-4 p-4 rounded-xl border ${theme.bg} ${theme.border} relative overflow-hidden transition-all shadow-sm`}>
+          {/* Subtle decoration */}
+          <div className={`absolute top-0 right-0 w-16 h-16 ${theme.icon} opacity-5 -mr-4 -mt-4 rounded-full blur-xl pointer-events-none`}></div>
+          
+          <div className="shrink-0 mt-0.5 bg-white rounded-lg p-1 shadow-sm border border-white/50 h-fit">
+             <Zap className={`w-4 h-4 ${theme.icon}`} />
+          </div>
+          <div className="relative z-10">
+             <div className={`text-[10px] font-black uppercase tracking-widest ${theme.text} mb-1 opacity-90`}>The KOSMA Way</div>
+             <p className="text-sm text-gray-900 font-bold leading-relaxed">{feature.solution}</p>
+          </div>
+       </div>
+
+       {/* 3. Impact (High Value) */}
+       <div className="flex gap-4 p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md hover:border-gray-200">
+          <div className="shrink-0 mt-0.5">
+             <TrendingUp className="w-5 h-5 text-gray-900" />
+          </div>
+          <div>
+             <div className="text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">The Result</div>
+             <p className="text-sm text-gray-600 font-medium leading-relaxed">{feature.impact}</p>
+          </div>
+       </div>
+    </div>
+  );
+};
 
 const TrustSection = () => {
   return (
@@ -597,21 +657,8 @@ const FeatureScrollytelling = () => {
                        <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
                        <p className="text-lg font-bold text-gray-400 mb-6">{feature.desc}</p>
 
-                       {/* Pain/Solution/Impact Mobile */}
-                       <div className="space-y-4 mb-8">
-                          <div className="bg-red-50 p-4 rounded-xl text-sm border border-red-100">
-                             <span className="font-black text-red-400 uppercase text-[10px] block mb-1">Pain</span>
-                             {feature.pain}
-                          </div>
-                          <div className={`p-4 rounded-xl text-sm border ${activeModule.theme.pill}`}>
-                             <span className="font-black uppercase text-[10px] block mb-1 opacity-80">Solution</span>
-                             {feature.solution}
-                          </div>
-                          <div className="bg-green-50 p-4 rounded-xl text-sm border border-green-100">
-                             <span className="font-black text-green-500 uppercase text-[10px] block mb-1">Impact</span>
-                             {feature.impact}
-                          </div>
-                       </div>
+                       {/* Unified Cards for Mobile */}
+                       <FeatureProcess feature={feature} colorName={activeModule.colorName} />
                     </div>
                     
                     {/* Visual - Aspect Ratio 9:16 for Mobile - Updated with ImageZoom */}
@@ -687,41 +734,8 @@ const FeatureScrollytelling = () => {
                                     {feature.desc}
                                 </p>
 
-                                {/* Pain / Solution / Impact Cards */}
-                                <div className="space-y-4">
-                                    {/* PAIN */}
-                                    <div className="bg-red-50/80 backdrop-blur-sm border border-red-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-red-200 hover:shadow-sm">
-                                        <div className="mt-1 bg-red-100 text-red-600 p-1.5 rounded-lg shrink-0">
-                                            <AlertCircle className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-red-400 block mb-1">The Pain</span>
-                                            <p className="text-gray-700 font-medium text-sm leading-relaxed">{feature.pain}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* SOLUTION */}
-                                    <div className={`backdrop-blur-sm p-6 rounded-2xl flex gap-4 items-start transition-all hover:shadow-sm border ${activeModule.theme.pill}`}>
-                                        <div className="mt-1 bg-white/80 p-1.5 rounded-lg shrink-0 shadow-sm">
-                                            <Zap className={`w-4 h-4 ${activeModule.theme.label.replace('text-', 'text-')}`} />
-                                        </div>
-                                        <div>
-                                            <span className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${activeModule.theme.label}`}>The Solution</span>
-                                            <p className="text-gray-900 font-medium text-sm leading-relaxed">{feature.solution}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* IMPACT */}
-                                    <div className="bg-green-50/80 backdrop-blur-sm border border-green-100 p-6 rounded-2xl flex gap-4 items-start transition-all hover:border-green-200 hover:shadow-sm">
-                                        <div className="mt-1 bg-green-100 text-green-600 p-1.5 rounded-lg shrink-0">
-                                            <TrendingUp className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-green-500 block mb-1">The Impact</span>
-                                            <p className="text-gray-900 font-bold text-sm leading-relaxed">{feature.impact}</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                {/* Unified Cards for Desktop */}
+                                <FeatureProcess feature={feature} colorName={activeModule.colorName} />
                             </div>
                             ))}
                         </div>
