@@ -7,6 +7,7 @@ import { Loader2, Download, CreditCard, FileText, Settings, Zap, Briefcase, Layo
 import { Routes, Route, Navigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { STRIPE_LINKS } from '../config/stripe';
 import { Card } from '../components/ui/Card';
+import { Notice, NoticeProps } from '../components/ui/Notice';
 
 // --- SHARED COMPONENTS ---
 
@@ -139,10 +140,13 @@ const useCustomerData = (user: User) => {
 
 const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle: string, status: SubscriptionStatus, hasStripeId: boolean }> = ({ user, currentTier, currentCycle, status, hasStripeId }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
+    const [notice, setNotice] = useState<NoticeProps | null>(null);
+    
     const isManagedViaPortal = hasStripeId && (status === SubscriptionStatus.ACTIVE || status === SubscriptionStatus.PAST_DUE || status === SubscriptionStatus.TRIAL);
 
     const handlePortalRedirect = async () => {
         setLoadingPortal(true);
+        setNotice(null);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
@@ -154,7 +158,11 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
             else throw new Error(error?.message || "No URL returned");
         } catch (e) {
             console.error(e);
-            alert("Could not open billing portal. Please try again.");
+            setNotice({ 
+                variant: 'error', 
+                title: 'Portal Error', 
+                message: 'Could not open billing portal. Please try again or contact support.' 
+            });
         } finally {
             setLoadingPortal(false);
         }
@@ -162,6 +170,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
 
     const handleDowngrade = async (targetPlan: PlanTier, targetCycle: 'yearly' | 'monthly') => {
         setLoadingPortal(true);
+        setNotice(null);
         try {
             const { data, error } = await supabase.functions.invoke('schedule-downgrade', {
                 body: { planTier: targetPlan, billingCycle: targetCycle }
@@ -169,11 +178,19 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
             if (error || data?.success === false) {
                 throw new Error(data?.error || error?.message || 'Downgrade failed');
             }
-            const dateLabel = new Date(data.effectiveAt).toLocaleDateString('de-DE');
-            alert(`Downgrade geplant zum Periodenende (${dateLabel}).`);
+            const dateLabel = new Date(data.effectiveAt).toLocaleDateString('en-GB');
+            setNotice({
+                variant: 'success',
+                title: 'Downgrade Scheduled',
+                message: `Your plan will change to ${targetPlan} on ${dateLabel}.`
+            });
         } catch (err: any) {
             console.error("Downgrade error:", err);
-            alert(`Fehler: ${err.message}`);
+            setNotice({
+                variant: 'error',
+                title: 'Downgrade Failed',
+                message: err.message
+            });
         } finally {
             setLoadingPortal(false);
         }
@@ -182,7 +199,11 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
     const handlePurchase = (planName: PlanTier, cycle: 'yearly' | 'monthly') => {
         const link = STRIPE_LINKS[planName]?.[cycle];
         if (!link) {
-            alert("Payment link configuration missing.");
+            setNotice({
+                variant: 'error',
+                title: 'Configuration Error',
+                message: 'Payment link is missing. Please contact support.'
+            });
             return;
         }
         const url = new URL(link);
@@ -239,6 +260,12 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                     <button onClick={() => setBillingInterval('monthly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
                 </div>
             </div>
+
+            {notice && (
+                <div className="mb-8">
+                    <Notice {...notice} onClose={() => setNotice(null)} />
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {plans.map((plan) => {
@@ -535,11 +562,24 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
 const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, licenses, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const [notice, setNotice] = useState<NoticeProps | null>(null);
 
     const activeLicense = licenses[0];
     const hasStripeId = activeLicense?.stripeSubscriptionId && activeLicense.stripeSubscriptionId.startsWith('sub_');
+    const hasStripeCustomer = !!activeLicense?.stripeCustomerId;
 
     const handlePortal = async () => {
+        setNotice(null);
+        // GUARD: No Stripe Customer = No Portal
+        if (!hasStripeCustomer || activeLicense?.planTier === PlanTier.FREE) {
+            setNotice({
+                variant: 'warning',
+                title: 'No Billing Account',
+                message: 'You are currently on a free or trial plan. Please subscribe to a paid plan to manage billing details or payment methods.'
+            });
+            return;
+        }
+
         setLoadingPortal(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -550,7 +590,11 @@ const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: 
             if (data?.url) window.location.href = data.url;
             else throw new Error(error?.message);
         } catch (e) {
-            alert("Payment account not found or Stripe is unreachable.");
+            setNotice({
+                variant: 'error',
+                title: 'Portal Unavailable',
+                message: 'Could not connect to Stripe. Please try again later.'
+            });
         } finally {
             setLoadingPortal(false);
         }
@@ -562,17 +606,26 @@ const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: 
         }
 
         setCancelling(true);
+        setNotice(null);
         try {
             const { data, error } = await supabase.functions.invoke('cancel-subscription');
             
             if (error) throw error;
             if (data?.success === false) throw new Error(data.error || "Cancellation failed");
 
-            alert("Cancellation requested. Your account status will update once Stripe confirms the change.");
+            setNotice({
+                variant: 'success',
+                title: 'Cancellation Requested',
+                message: 'Your subscription will be cancelled at the end of the billing period.'
+            });
             refresh();
         } catch (err: any) {
             console.error("Cancellation error:", err);
-            alert(`Could not cancel subscription: ${err.message}`);
+            setNotice({
+                variant: 'error',
+                title: 'Cancellation Failed',
+                message: err.message || 'Please contact support.'
+            });
         } finally {
             setCancelling(false);
         }
@@ -582,6 +635,13 @@ const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: 
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Account Settings</h1>
             <DashboardTabs />
+            
+            {notice && (
+                <div className="mb-8">
+                    <Notice {...notice} onClose={() => setNotice(null)} />
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50">
                     <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
