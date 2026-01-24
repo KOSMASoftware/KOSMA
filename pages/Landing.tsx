@@ -263,6 +263,92 @@ const TrustSection = () => {
   );
 };
 
+// --- SIGNATURE STATEMENT CARD (Interactive 3D Tilt) ---
+const SignatureCard: React.FC = () => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [glowPos, setGlowPos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    // Only engage on desktop-like environments if needed, but safe to run always on JS
+    // Logic: Map mouse position relative to card center to a small rotation range (-2.5 to 2.5 deg)
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateY = ((x - centerX) / centerX) * 2.5; // Rotate Y depends on X axis
+    const rotateX = ((centerY - y) / centerY) * 2.5; // Rotate X depends on Y axis (inverted)
+
+    setRotation({ x: rotateX, y: rotateY });
+    setGlowPos({ x: (x / rect.width) * 100, y: (y / rect.height) * 100 });
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    // Smoothly reset
+    setRotation({ x: 0, y: 0 });
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto perspective-1000 mt-8 md:mt-12 mb-8 px-4">
+      <div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className={`
+          relative rounded-[2rem] border transition-all duration-300 ease-out
+          ${isHovering ? 'border-white/60 shadow-2xl shadow-gray-200/50 scale-[1.01]' : 'border-white/20 shadow-xl shadow-gray-100/30'}
+          bg-white/70 backdrop-blur-md overflow-hidden group
+        `}
+        style={{
+          transform: isHovering 
+            ? `perspective(1000px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` 
+            : 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
+          transition: isHovering ? 'none' : 'transform 0.5s ease-out'
+        }}
+      >
+        {/* Shine Effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay"
+          style={{
+            background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 60%)`
+          }}
+        />
+        
+        {/* Content */}
+        <div className="relative z-10 px-8 py-12 md:px-16 md:py-16 text-center">
+           <div className="flex flex-col items-center">
+             
+             {/* Decorative Top Line - Inside Card now */}
+             <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent mb-8 opacity-40"></div>
+             
+             <p className="text-2xl md:text-4xl font-medium text-gray-400 leading-snug tracking-tight">
+               <span className="text-transparent bg-clip-text bg-gradient-to-br from-gray-900 via-brand-600 to-brand-400 font-black drop-shadow-sm">
+                 KOSMA
+               </span>
+               {' '}is a software for{' '}
+               <span className="text-gray-900 font-bold">film production companies</span>
+               {' '}and production managers providing a variety of unique tools to{' '}
+               <span className="text-brand-600 font-black">plan and control</span>
+               {' '}the financial side of projects from{' '}
+               <span className="text-gray-800 italic font-serif">development</span>
+               {' '}to{' '}
+               <span className="text-gray-800 italic font-serif">delivery</span>.
+             </p>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- NEW USP COMPONENT (COMPACT & ROBUST ANIMATION) ---
 const USPBlock = () => {
   const ref = useRef<HTMLDivElement>(null);
@@ -301,6 +387,11 @@ const USPBlock = () => {
          @keyframes border-spin {
             from { transform: translate(-50%, -50%) rotate(0deg); }
             to { transform: translate(-50%, -50%) rotate(360deg); }
+         }
+         
+         /* Perspective container for the card */
+         .perspective-1000 {
+            perspective: 1000px;
          }
        `}</style>
 
@@ -369,18 +460,9 @@ const USPBlock = () => {
           ))}
        </div>
 
-       {/* Definition Text - Redesigned: Clean Typography (No Box) */}
-       <div className={`max-w-5xl mx-auto mt-20 md:mt-28 px-4 ${transitionClass}`} style={delayStyle(700)}>
-          <div className="flex flex-col items-center text-center">
-             
-             {/* Decorative Connecting Line */}
-             <div className="w-px h-16 bg-gradient-to-b from-transparent via-gray-300 to-transparent mb-8 opacity-60"></div>
-             
-             {/* Statement Text */}
-             <p className="text-2xl md:text-4xl font-medium text-gray-400 leading-snug tracking-tight max-w-4xl mx-auto">
-               <span className="text-gray-900 font-bold">KOSMA</span> is a software for <span className="text-gray-900 font-bold">film production companies</span> and production managers providing a variety of unique tools to <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400 font-black">plan and control</span> the financial side of projects from <span className="text-gray-800 italic font-serif">development</span> to <span className="text-gray-800 italic font-serif">delivery</span>.
-             </p>
-          </div>
+       {/* SIGNATURE CARD COMPONENT REPLACES PLAIN TEXT */}
+       <div className={`${transitionClass}`} style={delayStyle(700)}>
+          <SignatureCard />
        </div>
     </div>
   );
