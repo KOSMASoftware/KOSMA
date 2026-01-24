@@ -392,11 +392,11 @@ const SignatureCard: React.FC = () => {
         />
         
         {/* Content */}
-        <div className="relative z-10 px-8 py-12 md:px-16 md:py-16 text-center">
+        <div className="relative z-10 px-8 py-8 md:px-16 md:py-8 text-center">
            <div className="flex flex-col items-center">
              
              {/* Decorative Top Line - Inside Card now */}
-             <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent mb-8 opacity-40"></div>
+             <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent mb-4 opacity-40"></div>
              
              <p className="text-2xl md:text-4xl font-medium text-gray-400 leading-snug tracking-tight">
                <span className="text-transparent bg-clip-text bg-gradient-to-br from-gray-900 via-brand-600 to-brand-400 font-black drop-shadow-sm">
