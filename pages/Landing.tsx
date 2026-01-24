@@ -9,6 +9,7 @@ import { Footer } from '../components/layout/Footer';
 import { Card } from '../components/ui/Card';
 import TestimonialSlider from '../components/TestimonialSlider';
 import { ShimmerButton } from '../components/ui/ShimmerButton';
+import { ImageZoom } from '../components/ui/ImageZoom';
 
 const BRAND = '#0093D5';
 const BG = '#0b0f14';
@@ -613,14 +614,12 @@ const FeatureScrollytelling = () => {
                        </div>
                     </div>
                     
-                    {/* Visual - Aspect Ratio 9:16 for Mobile */}
+                    {/* Visual - Aspect Ratio 9:16 for Mobile - Updated with ImageZoom */}
                     <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-gray-100 aspect-[9/16]">
-                       <img 
+                       <ImageZoom 
                             src={feature.image} 
                             alt={feature.title} 
                             className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async" 
                        />
                     </div>
                  </div>
@@ -728,8 +727,8 @@ const FeatureScrollytelling = () => {
                         </div>
                      </div>
 
-                     {/* RIGHT: Image Stage - Fixed Height 520px */}
-                     <div className="relative w-full h-[520px] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+                     {/* RIGHT: Image Stage - Fixed Height 520px - UPDATED FOR ZOOM */}
+                     <div className="relative w-full h-[520px] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden group">
                         {/* Fake Browser Header */}
                         <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
                            <div className="w-2.5 h-2.5 rounded-full bg-red-400/20"></div>
@@ -737,16 +736,26 @@ const FeatureScrollytelling = () => {
                            <div className="w-2.5 h-2.5 rounded-full bg-green-400/20"></div>
                         </div>
 
-                        {/* Single Active Image - No Multi-Layer */}
-                        <div className="absolute inset-0 top-8 bg-white">
-                            <img 
-                                key={activeModule.features[activeFeatureIndex].image}
-                                src={activeModule.features[activeFeatureIndex].image} 
-                                alt={activeModule.features[activeFeatureIndex].title} 
-                                className="w-full h-full object-cover object-top"
-                                loading="lazy"
-                                decoding="async"
+                        {/* Single Active Image - Background Blur + Contain Zoom Strategy */}
+                        <div className="absolute inset-0 top-8 bg-gray-100 flex items-center justify-center overflow-hidden">
+                            {/* 1. Background Blur Layer (fills container to remove whitespace) */}
+                            <div 
+                                className="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 scale-110 transition-all duration-700"
+                                style={{ 
+                                    backgroundImage: `url(${activeModule.features[activeFeatureIndex].image})`,
+                                }}
                             />
+
+                            {/* 2. Main Image (Zoomable, Contained) */}
+                            <div className="relative z-10 w-full h-full p-4 flex items-center justify-center">
+                                <ImageZoom
+                                    key={activeModule.features[activeFeatureIndex].image} // Key forces re-mount on change for clean transition
+                                    src={activeModule.features[activeFeatureIndex].image}
+                                    alt={activeModule.features[activeFeatureIndex].title}
+                                    className="max-h-full max-w-full object-contain shadow-2xl rounded-lg animate-in fade-in zoom-in-95 duration-500"
+                                    style={{ maxHeight: '460px' }} // 520px total - 32px header - padding
+                                />
+                            </div>
                         </div>
                         
                         <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-lg border border-gray-100 pointer-events-none z-30">

@@ -19,7 +19,8 @@
     "lucide-react": "^0.469.0",
     "@supabase/supabase-js": "^2.39.3",
     "recharts": "^2.10.3",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "react-medium-image-zoom": "^5.1.10"
   },
   "devDependencies": {
     "typescript": "^5.3.3",
