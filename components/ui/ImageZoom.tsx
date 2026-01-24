@@ -1,9 +1,9 @@
-
 import React from 'react';
 import Zoom from 'react-medium-image-zoom';
 import { cn } from '../../lib/utils';
 
-interface ImageZoomProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+// Use React.ComponentProps<'img'> to properly inherit all img attributes including src, alt, className, style
+export interface ImageZoomProps extends React.ComponentProps<'img'> {
   zoomMargin?: number;
   overlayBgColor?: string;
 }
@@ -18,10 +18,7 @@ export const ImageZoom = ({
   ...props 
 }: ImageZoomProps) => {
   return (
-    <Zoom 
-        margin={zoomMargin}
-        classDialog="custom-zoom-dialog"
-    >
+    <Zoom zoomMargin={zoomMargin}>
       <img
         src={src}
         alt={alt || 'Image'}

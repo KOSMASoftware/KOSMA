@@ -21,6 +21,13 @@ const KosmaTextLogo = () => (
   </svg>
 );
 
+// --- KOSMA ICON MARK (The "K" Logo) ---
+const KosmaMarkIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M127.843 413.204V77.0264H203.638V214.694H205.7L305.729 77.0264H389.258L287.682 211.085L407.819 413.204H324.806L242.824 271.411L203.638 322.972V413.204H127.843Z" fill="currentColor"/>
+  </svg>
+);
+
 // --- DATA STRUCTURE ---
 
 type ModuleTheme = {
@@ -287,7 +294,7 @@ const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorNam
           <div className={`absolute top-0 right-0 w-16 h-16 ${theme.icon} opacity-5 -mr-4 -mt-4 rounded-full blur-xl pointer-events-none`}></div>
           
           <div className="shrink-0 mt-0.5 bg-white rounded-lg p-1 shadow-sm border border-white/50 h-fit">
-             <Zap className={`w-4 h-4 ${theme.icon}`} />
+             <KosmaMarkIcon className={`w-4 h-4 ${theme.icon}`} />
           </div>
           <div className="relative z-10">
              <div className={`text-[10px] font-black uppercase tracking-widest ${theme.text} mb-1 opacity-90`}>The KOSMA Way</div>
@@ -932,58 +939,63 @@ export const Landing: React.FC = () => {
             <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
 
             <div className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none">
-                <div className="max-w-5xl w-full">
+                <div className="max-w-5xl w-full flex flex-col items-center">
                     
-                    {/* NEW ROW 1: Logo + "Simply..." Subheadline */}
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-6 text-lg md:text-xl font-bold text-white/80 tracking-wide pointer-events-auto">
-                        <div className="flex items-center gap-3">
-                            <KosmaTextLogo />
-                            <span className="hidden md:inline text-brand-500">—</span>
+                    {/* HERO CONTENT (No Card) */}
+                    <div className="pointer-events-auto inline-block">
+                        
+                        {/* NEW ROW 1: Logo + "Simply..." Subheadline */}
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-6 text-lg md:text-xl font-bold text-gray-200 tracking-wide">
+                            <div className="flex items-center gap-3">
+                                <KosmaTextLogo />
+                                <span className="hidden md:inline text-brand-500">—</span>
+                            </div>
+                            <p className="leading-relaxed">
+                                Simply the most advanced{' '}
+                                <MorphingText
+                                words={[
+                                    'Budgeting',
+                                    'Financing',
+                                    'Cash Flow',
+                                    'Cost Control'
+                                ]}
+                                className="text-white"
+                                />{' '}
+                                Software
+                            </p>
                         </div>
-                        <p className="leading-relaxed">
-                            Simply the most advanced{' '}
-                            <MorphingText
-                              words={[
-                                'Budgeting',
-                                'Financing',
-                                'Cash Flow',
-                                'Cost Control'
-                              ]}
-                            />{' '}
-                            Software
-                        </p>
-                    </div>
 
-                    {/* NEW ROW 2: Main Headline */}
-                    <h1
-                        className="m-0 font-black tracking-[-0.04em] leading-[0.95] text-[clamp(38px,6vw,86px)] mb-10"
-                        style={{ textShadow: '0 0 24px rgba(0,0,0,0.65)' }}
-                    >
-                        Bring AI to your film budget
-                    </h1>
-
-                    <div className="mt-8 flex flex-wrap gap-6 justify-center pointer-events-auto items-center">
-                        <ShimmerButton
-                            onClick={() => navigate('/download')}
-                            className="shadow-[0_0_30px_rgba(0,147,213,0.5)] hover:shadow-[0_0_50px_rgba(0,147,213,0.7)] transition-shadow"
-                            background="#0093D5"
-                            shimmerColor="#ffffff"
-                            borderRadius="1rem"
-                            shimmerDuration="2.5s"
+                        {/* NEW ROW 2: Main Headline */}
+                        <h1
+                            className="m-0 font-black tracking-[-0.04em] leading-[0.95] text-[clamp(38px,6vw,86px)] mb-10 text-white"
+                            style={{ textShadow: '0 0 24px rgba(255,255,255,0.65)' }}
                         >
-                            <span className="text-white font-black text-sm px-6 py-1 tracking-wide">Download</span>
-                        </ShimmerButton>
+                            Bring AI to your film budget
+                        </h1>
 
-                        <ShimmerButton
-                            onClick={scrollToFeatures}
-                            background="rgba(255, 255, 255, 0.05)"
-                            shimmerColor="rgba(255, 255, 255, 0.4)"
-                            borderRadius="1rem"
-                            className="backdrop-blur-md border border-white/10"
-                            shimmerDuration="4s"
-                        >
-                            <span className="text-white/90 font-bold text-sm px-6 py-1">Explore Features</span>
-                        </ShimmerButton>
+                        <div className="mt-8 flex flex-wrap gap-6 justify-center items-center">
+                            <ShimmerButton
+                                onClick={() => navigate('/download')}
+                                className="shadow-[0_0_30px_rgba(0,147,213,0.5)] hover:shadow-[0_0_50px_rgba(0,147,213,0.7)] transition-shadow"
+                                background="#0093D5"
+                                shimmerColor="#ffffff"
+                                borderRadius="1rem"
+                                shimmerDuration="2.5s"
+                            >
+                                <span className="text-white font-black text-sm px-6 py-1 tracking-wide">Download</span>
+                            </ShimmerButton>
+
+                            <ShimmerButton
+                                onClick={scrollToFeatures}
+                                background="rgba(255, 255, 255, 0.1)" // Changed from black/0.8 to white/0.1 for visibility on dark bg
+                                shimmerColor="rgba(255, 255, 255, 0.4)"
+                                borderRadius="1rem"
+                                className="backdrop-blur-md border border-white/10"
+                                shimmerDuration="4s"
+                            >
+                                <span className="text-white font-bold text-sm px-6 py-1">Explore Features</span>
+                            </ShimmerButton>
+                        </div>
                     </div>
                 </div>
             </div>
