@@ -1,31 +1,129 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
-import { Apple, Monitor, HardDrive, WifiOff, BookOpen, GraduationCap, ArrowRight, MessageCircle } from 'lucide-react';
+import { Apple, Monitor, HardDrive, WifiOff, BookOpen, GraduationCap, ArrowRight, MessageCircle, Download, Loader2, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ShimmerButton } from '../components/ui/ShimmerButton';
 
 export const DownloadPage: React.FC = () => {
+  const [os, setOs] = useState<'mac' | 'windows' | 'unknown'>('unknown');
+  const [downloadStarted, setDownloadStarted] = useState(false);
+
+  useEffect(() => {
+    const ua = window.navigator.userAgent.toLowerCase();
+    if (ua.includes('mac')) setOs('mac');
+    else if (ua.includes('win')) setOs('windows');
+  }, []);
+
+  const handleDownload = (e: React.MouseEvent, platform: 'mac' | 'windows') => {
+    e.preventDefault();
+    setDownloadStarted(true);
+    
+    // In a real scenario, you might have different links. 
+    // Currently using the same AIR installer for demo purposes.
+    const link = 'https://services.kosma.io/installer/KOSMA.air';
+    
+    // Simulate slight delay for visual feedback before trigger
+    setTimeout(() => {
+        window.location.href = link;
+    }, 500);
+  };
+
+  // Modified Primary Button using ShimmerButton
+  const PrimaryButton = ({ platform }: { platform: 'mac' | 'windows' }) => (
+    <ShimmerButton 
+        onClick={(e) => handleDownload(e, platform)}
+        className="w-full sm:w-auto min-w-[280px] shadow-2xl shadow-brand-500/30"
+        background="#0093D0" // Using Brand Blue instead of Black
+        shimmerColor="#ffffff"
+        shimmerDuration="3s"
+        borderRadius="1rem" // Matches rounded-2xl
+    >
+        <div className="flex items-center gap-4 px-4 py-3 z-10 relative">
+            {platform === 'mac' ? <Apple className="w-8 h-8 mb-1" /> : <Monitor className="w-8 h-8" />}
+            <span className="text-xl font-black tracking-tight">Download for {platform === 'mac' ? 'macOS' : 'Windows'}</span>
+        </div>
+    </ShimmerButton>
+  );
+
+  const SecondaryLink = ({ platform }: { platform: 'mac' | 'windows' }) => (
+    <button 
+        onClick={(e) => handleDownload(e, platform)}
+        className="text-sm font-bold text-gray-400 hover:text-brand-500 transition-colors flex items-center gap-2 mt-6"
+    >
+        Also available for {platform === 'mac' ? 'macOS' : 'Windows'} <ArrowRight className="w-3 h-3" />
+    </button>
+  );
+
   return (
     <MarketingLayout>
       <div className="min-h-[calc(100vh-72px)]">
         {/* HERO */}
-        <div className="max-w-7xl mx-auto px-6 py-20 md:py-32 text-center">
-            <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-8">
-                Download KOSMA
+        <div className="max-w-7xl mx-auto px-6 py-20 md:py-32 text-center flex flex-col items-center">
+            <div className="w-20 h-20 bg-brand-50 rounded-[2rem] flex items-center justify-center mb-8 text-brand-500 shadow-sm border border-brand-100 animate-in fade-in zoom-in duration-700">
+                 <Download className="w-10 h-10" />
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-6 leading-tight">
+                Get KOSMA
             </h1>
             <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto mb-16 leading-relaxed">
-                Check out the full feature set with our 14-days trial.
+                Start your 14-day free trial. No credit card required.
             </p>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-6 mb-24">
-                <button className="flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-gray-900 text-white font-bold text-lg hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10 hover:shadow-brand-500/20 hover:-translate-y-1">
-                    <Apple className="w-6 h-6 mb-1" />
-                    Download for Mac
-                </button>
-                <button className="flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-gray-100 text-gray-900 font-bold text-lg hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-lg transition-all">
-                    <Monitor className="w-6 h-6" />
-                    Download for Windows
-                </button>
+            {/* DYNAMIC DOWNLOAD AREA */}
+            <div className="flex flex-col items-center w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+                
+                {/* 1. Buttons based on OS */}
+                {os === 'mac' ? (
+                    <>
+                        <PrimaryButton platform="mac" />
+                        <SecondaryLink platform="windows" />
+                    </>
+                ) : os === 'windows' ? (
+                    <>
+                        <PrimaryButton platform="windows" />
+                        <SecondaryLink platform="mac" />
+                    </>
+                ) : (
+                    <div className="flex flex-col sm:flex-row gap-6 w-full justify-center">
+                        <ShimmerButton 
+                            onClick={(e) => handleDownload(e, 'mac')}
+                            className="w-full shadow-xl shadow-brand-500/20"
+                            background="#0093D0"
+                            shimmerColor="#ffffff"
+                            borderRadius="1rem"
+                        >
+                            <div className="flex items-center gap-3 px-2 py-2">
+                                <Apple className="w-6 h-6 mb-1" />
+                                <span className="font-bold text-lg">macOS</span>
+                            </div>
+                        </ShimmerButton>
+
+                        <button 
+                            onClick={(e) => handleDownload(e, 'windows')}
+                            className="flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-white text-gray-900 font-bold text-lg border border-gray-200 hover:border-brand-500 hover:text-brand-500 transition-all shadow-lg hover:shadow-xl w-full"
+                        >
+                            <Monitor className="w-6 h-6" />
+                            Windows
+                        </button>
+                    </div>
+                )}
+
+                {/* 2. Download Status Box */}
+                {downloadStarted && (
+                    <div className="mt-8 w-full p-4 bg-brand-50 border border-brand-100 rounded-2xl flex items-center gap-4 text-left animate-in fade-in slide-in-from-top-2">
+                        <div className="relative">
+                            <Loader2 className="w-5 h-5 text-brand-600 animate-spin" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-bold text-brand-900">Your download is starting...</p>
+                            <p className="text-xs text-brand-600/80 mt-0.5 font-medium">
+                                If it doesn't, <a href="https://services.kosma.io/installer/KOSMA.air" className="underline hover:text-brand-800">click here</a> to restart.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
 
