@@ -369,11 +369,18 @@ const USPBlock = () => {
           ))}
        </div>
 
-       {/* Definition Text - No Divider Line */}
-       <div className={`max-w-4xl mx-auto ${transitionClass}`} style={delayStyle(700)}>
-          <p className="text-xl md:text-2xl font-medium text-gray-500 leading-relaxed px-4">
-            KOSMA is a software for film production companies and production managers providing a variety of unique tools to plan and control the financial side of projects from development to delivery.
-          </p>
+       {/* Definition Text - Redesigned: Clean Typography (No Box) */}
+       <div className={`max-w-5xl mx-auto mt-20 md:mt-28 px-4 ${transitionClass}`} style={delayStyle(700)}>
+          <div className="flex flex-col items-center text-center">
+             
+             {/* Decorative Connecting Line */}
+             <div className="w-px h-16 bg-gradient-to-b from-transparent via-gray-300 to-transparent mb-8 opacity-60"></div>
+             
+             {/* Statement Text */}
+             <p className="text-2xl md:text-4xl font-medium text-gray-400 leading-snug tracking-tight max-w-4xl mx-auto">
+               <span className="text-gray-900 font-bold">KOSMA</span> is a software for <span className="text-gray-900 font-bold">film production companies</span> and production managers providing a variety of unique tools to <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-brand-400 font-black">plan and control</span> the financial side of projects from <span className="text-gray-800 italic font-serif">development</span> to <span className="text-gray-800 italic font-serif">delivery</span>.
+             </p>
+          </div>
        </div>
     </div>
   );
