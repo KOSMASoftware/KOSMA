@@ -18,7 +18,7 @@ export const ImageZoom = ({
   ...props 
 }: ImageZoomProps) => {
   return (
-    <Zoom zoomMargin={zoomMargin}>
+    <Zoom zoomMargin={zoomMargin} overlayBgColorEnd={overlayBgColor}>
       <img
         src={src}
         alt={alt || 'Image'}

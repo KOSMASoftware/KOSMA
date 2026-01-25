@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ChevronRight, 
   Rocket, Calculator, PieChart, Coins, TrendingUp, Printer, Settings,
-  Hash, ExternalLink, CornerDownRight, FileText
+  Hash, ExternalLink, CornerDownRight, FileText, AlertTriangle, Lightbulb, Info, ListOrdered
 } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -237,10 +237,7 @@ const KBCategory = ({ slug }: { slug: string }) => {
 
   const Icon = CATEGORY_ICONS[config.icon] || BookOpen;
 
-  // DATA MAPPING LOGIC:
-  // 1. Get all articles belonging to this category's dataIds
-  // 2. Sort them into the config.groups based on keyword matching
-  
+  // DATA MAPPING LOGIC
   const categorizedArticles = useMemo(() => {
     // 1. Fetch relevant articles from KB_DATA
     const rawArticles: KnowledgeArticle[] = [];
@@ -379,31 +376,83 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
 
        {/* Content Sections */}
        <div className="space-y-12">
-          {article.content.sections.map((sec, idx) => (
-             <div key={idx} className="group">
-                <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 mb-4">
-                   <div className="p-1.5 rounded-lg bg-gray-100 text-gray-400">
-                      <Hash className="w-4 h-4" />
-                   </div>
-                   {sec.heading}
-                </h3>
-                <div className={`prose prose-slate max-w-none text-gray-600 font-medium leading-relaxed ${
-                   sec.type === 'technical' ? 'bg-gray-50 p-6 rounded-2xl border border-gray-100 text-sm font-mono' : ''
-                }`}>
-                   <SmartLink text={sec.body} />
-                </div>
-                
-                {sec.media && (
-                   <div className="mt-6 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-100">
-                      <img 
-                        src={supabase.storage.from(sec.media.bucket).getPublicUrl(sec.media.path).data.publicUrl} 
-                        alt={sec.media.alt || 'Visual'}
-                        className="w-full h-auto block"
-                      />
-                   </div>
-                )}
-             </div>
-          ))}
+          {article.content.sections.map((sec, idx) => {
+             // --- RENDER LOGIC BASED ON TYPE ---
+             
+             // 1. Process (Steps)
+             if (sec.type === 'process') {
+               const steps = sec.body.split('\n').filter(s => s.trim().length > 0);
+               return (
+                 <div key={idx} className="group">
+                    <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 mb-6">
+                       <div className="p-1.5 rounded-lg bg-gray-100 text-gray-400"><ListOrdered className="w-4 h-4" /></div>
+                       {sec.heading}
+                    </h3>
+                    <div className="space-y-4">
+                       {steps.map((step, sIdx) => (
+                          <div key={sIdx} className="flex gap-4">
+                             <div className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs mt-0.5">
+                                {sIdx + 1}
+                             </div>
+                             <div className="text-gray-600 font-medium leading-relaxed">
+                                <SmartLink text={step} />
+                             </div>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+               );
+             }
+
+             // 2. Callouts (Warning, Tip, Note)
+             if (['warning', 'tip', 'note'].includes(sec.type || '')) {
+               const styles = {
+                 warning: { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', icon: AlertTriangle, iconColor: 'text-amber-500' },
+                 tip: { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-900', icon: Lightbulb, iconColor: 'text-emerald-500' },
+                 note: { bg: 'bg-slate-50', border: 'border-slate-100', text: 'text-slate-700', icon: Info, iconColor: 'text-slate-400' }
+               };
+               // @ts-ignore
+               const style = styles[sec.type];
+               const Icon = style.icon;
+
+               return (
+                 <div key={idx} className={`p-6 rounded-2xl border ${style.bg} ${style.border} flex gap-4`}>
+                    <div className={`mt-0.5 ${style.iconColor}`}><Icon className="w-5 h-5" /></div>
+                    <div>
+                       <h4 className={`font-bold text-sm mb-1 uppercase tracking-wider opacity-80 ${style.text}`}>{sec.heading}</h4>
+                       <p className={`text-sm font-medium leading-relaxed ${style.text}`}><SmartLink text={sec.body} /></p>
+                    </div>
+                 </div>
+               );
+             }
+
+             // 3. Example & Standard
+             return (
+               <div key={idx} className="group">
+                  <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 mb-4">
+                     <div className="p-1.5 rounded-lg bg-gray-100 text-gray-400">
+                        <Hash className="w-4 h-4" />
+                     </div>
+                     {sec.heading}
+                  </h3>
+                  <div className={`prose prose-slate max-w-none text-gray-600 font-medium leading-relaxed ${
+                     sec.type === 'example' ? 'bg-gray-50 p-6 rounded-2xl border border-gray-100 text-sm' : ''
+                  }`}>
+                     <SmartLink text={sec.body} />
+                  </div>
+                  
+                  {sec.media && (
+                     <div className="mt-6 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-100">
+                        <img 
+                          src={supabase.storage.from(sec.media.bucket).getPublicUrl(sec.media.path).data.publicUrl} 
+                          alt={sec.media.alt || 'Visual'}
+                          className="w-full h-auto block"
+                        />
+                     </div>
+                  )}
+               </div>
+             );
+          })}
        </div>
 
        {/* Footer */}

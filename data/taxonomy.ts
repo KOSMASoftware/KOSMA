@@ -7,8 +7,6 @@ import {
 
 // --- SHARED TYPES ---
 
-export type UserRoleFilter = 'Produktion' | 'Herstellungsleitung' | 'Finanzbuchhaltung';
-
 export interface HelpMedia {
   kind: 'image' | 'video';
   bucket: string;
@@ -45,11 +43,4 @@ export const DOC_ICONS: Record<string, any> = {
   'FolderCog': FolderCog,
   'Edit3': Edit3,
   'Compass': Compass
-};
-
-export const ROLE_LABELS: Record<UserRoleFilter | 'Alle', string> = {
-  'Alle': 'All',
-  'Produktion': 'Production Manager',
-  'Herstellungsleitung': 'Line Producer',
-  'Finanzbuchhaltung': 'Accounting'
 };

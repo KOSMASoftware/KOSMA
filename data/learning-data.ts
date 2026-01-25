@@ -1,5 +1,5 @@
 
-import { HelpMedia, UserRoleFilter } from './taxonomy';
+import { HelpMedia } from './taxonomy';
 
 export interface LearningStep {
   id: string;
@@ -13,7 +13,6 @@ export interface LearningStep {
 export interface LearningArticle {
   id: string;
   title: string;
-  roles: UserRoleFilter[];
   difficulty: 'beginner' | 'advanced' | 'expert';
   durationMin: number;
   relatedKnowledgeIds?: string[];
@@ -41,7 +40,6 @@ export const LEARNING_DATA: LearningCategory[] = [
       {
         id: 'registration',
         title: 'Konto eröffnen & Software installieren',
-        roles: ['Produktion', 'Herstellungsleitung', 'Finanzbuchhaltung'],
         difficulty: 'beginner',
         durationMin: 5,
         relatedKnowledgeIds: ['kb-account-types', 'kb-magic-link'],
@@ -78,7 +76,6 @@ export const LEARNING_DATA: LearningCategory[] = [
       {
         id: 'create-budget',
         title: 'Ein neues Budget erstellen',
-        roles: ['Produktion', 'Herstellungsleitung'],
         difficulty: 'beginner',
         durationMin: 10,
         relatedKnowledgeIds: ['kb-budget-structure', 'kb-currency'],
@@ -93,7 +90,6 @@ export const LEARNING_DATA: LearningCategory[] = [
       {
         id: 'advanced-markup',
         title: 'Markups & Handlungskosten',
-        roles: ['Herstellungsleitung', 'Finanzbuchhaltung'],
         difficulty: 'advanced',
         durationMin: 15,
         relatedKnowledgeIds: ['kb-markups', 'kb-fringes'],

@@ -1,4 +1,3 @@
-import { UserRoleFilter } from './taxonomy';
 
 export interface HelpMedia {
   kind: 'image' | 'video';
@@ -29,7 +28,6 @@ export interface HelpEntry {
 export interface HelpArticle {
   id: string;
   title: string;
-  roles?: string[]; 
   tags?: string[];
   entry: HelpEntry;
 }
@@ -52,7 +50,6 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "A1",
         title: "Register and install the software",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: {
           summary: "Install KOSMA, sign in, and get your first project ready.",
           steps: [
@@ -106,38 +103,103 @@ export const HELP_DATA: HelpCategory[] = [
       },
       {
         id: "A2",
-        title: "Load and adapt a budget template",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
-        entry: { summary: "", steps: [] }
+        title: "Laden und anpassen einer Budgetvorlage",
+        tags: ["Vorlage", "laden", "anpassen"],
+        entry: {
+          summary: "Lerne wie du eine Budgetvorlage lädst und die wichtigsten Einstellungen überprüfst, damit du mit der Budgetierung beginnen kannst.",
+          steps: [
+            {
+              id: "s1",
+              title: "Neues Projekt anlegen oder öffnen",
+              content: "Logge dich in die Software ein und öffne im Projektmanager ein bestehendes Projekt oder erstelle ein neues."
+            },
+            {
+              id: "s2",
+              title: "Neues Budget erstellen, Vorlage auswählen",
+              content: "Klicke oben links im Projektfenster auf das Budget Dropdown und wähle \"Budgets bearbeiten\".\n\nKlicke im nun geöffneten Budgets Manager oben rechts auf \"Neues Budget\". Gib einen Namen für das neue Budget aus und wähle eine Vorlage aus der Liste. Klicke danach auf OK.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "Gif zeigt wie ein Name eingegeben wird und eine Vorlage ausgewählt"
+              },
+              warning: "Achte darauf, dass die Vorlage aus dem für dich passenden Land stammt, damit Nebenkosten, Steuern und Währungen bereits angelegt sind.",
+              tip: "Wenn du eine eigene Vorlage laden möchtest, klicke auf die Taste \"Vorlagen-Datei laden\". Wie du ein bestehendes Budget als Vorlage abspeicherst kannst du HIER NACHLESEN."
+            },
+            {
+              id: "s3",
+              title: "Budgetstruktur prüfen",
+              content: "Prüfe ob alle notwendigen Kategorien, Gruppen und Konten existieren. Mit den entsprechenden Tasten kannst du die Kategorien, Gruppen und Konten editieren.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "Gif das die Tasten Gruppe hinzu, Konto hinzu und löschen zeigt."
+              },
+              tip: "Die Hierarchie des Budgets in KOSMA ist entsprechend der folgenden Struktur gegliedert: Kategorie > Gruppe > Konto > Unterkonto. Ein Unterkonto benötigst du in der Regel nur, um Crew-Mitglieder in den unterschiedlichen Drehphasen zu kalkulieren."
+            },
+            {
+              id: "s4",
+              title: "Markups überprüfen",
+              content: "Prüfe, ob die Markup-Konten für Handlungskosten, Unvorhergesehenes etc. richtig angelegt sind.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "Gif das zeigt, wie auf Markups geklickt wird."
+              },
+              hint: "Hilfe, wie du Markups editierst findest du hier."
+            },
+            {
+              id: "s5",
+              title: "Einstellungen prüfen",
+              content: "Bevor du mit dem Budgetieren beginnst, prüfe ob alle Einstellungen für dein Projekt korrekt sind:\n\n- Produzenten: Sind die passenden Produzenten angelegt?\n- Effekte: Sind alle notwendigen Effekte angelegt?\n- Lohnnebenkosten und Lohnzuschläge: Sind die Sätze korrekt?\n- Zusatzkosten: Sind die angelegten Zusatzkosten passend oder brauche ich andere?\n- Sind die Steuern korrekt angelegt?",
+              warning: "Wir können nicht sicherstellen, dass stets die aktuellsten Werte in den Vorlagen hinterlegt sind. Bitte prüfe deshalb die Werte und gleiche sie mit den gesetzlichen Vorgaben ab.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "Gif das zeigt, wie man Konto-Details-Einstellungen aufruft"
+              }
+            },
+            {
+              id: "s6",
+              title: "Währungen prüfen",
+              content: "Prüfe nun, ob die notwendigen Währungen vorhanden und die Wechselkurse aktuell sind. Hilfe zu den Einstellungen von Währungen findest du hier.\n\nDu bist nun bereit für die Budgetierung.",
+              tip: "Währungen werden automatisch zum aktuellen Tageswechselkurs aktualisiert.",
+              media: {
+                kind: "image",
+                bucket: "help-assets",
+                path: "demo/kosma-vergleich.png",
+                alt: "Gif das zeigt, wie man Währungen editiert"
+              }
+            }
+          ]
+        }
       },
       {
         id: "B12",
         title: "Import data from Excel or other sources into my budget",
-        roles: ["Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B17",
         title: "Change currencies and exchange rates",
-        roles: ["Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "F1",
         title: "Add or delete a project",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "F2",
         title: "Archive my project",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "F3",
         title: "Add or remove project members",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       }
     ]
@@ -151,7 +213,6 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "A3",
         title: "Edit a budget account",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: {
           summary: "Create a new budget and start entering your first accounts.",
           steps: [
@@ -194,73 +255,61 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "A4",
         title: "Budget personnel and wage earners",
-        roles: ["Produktion"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "A5",
         title: "Edit markups",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B1",
         title: "Split costs between multiple producers",
-        roles: ["Produktion"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B2",
         title: "Define fringe benefits and wage supplements",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B3",
         title: "Apply/assign fringe benefits and wage supplements",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B4",
         title: "Define additional costs (e.g., meals, travel, hotels)",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B5",
         title: "Calculate additional costs (e.g., meals, travel, hotels)",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B6",
         title: "Define, apply, and view spending/funding effects",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B7",
         title: "Include VAT",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B8",
         title: "Automate budgets with formulas and variables (globals)",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B10",
         title: "Structure accounts with subaccounts",
-        roles: ["Produktion"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "B18",
         title: "Number accounts",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       }
     ]
@@ -274,7 +323,6 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "C1",
         title: "Load and adapt a financing plan template",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: {
           summary: "Set up your financing plan and track incoming installments.",
           steps: [
@@ -317,43 +365,36 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "C2",
         title: "Edit financing sources and assign producers",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "C3",
         title: "Use a funding effect as a variable in the financing plan",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "C4",
         title: "Link a spending effect to a financing source",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "C5",
         title: "Define and display equity shares, financing ratios, and similar metrics",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "C7",
         title: "Record financing status and incoming installments/payments",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "C8",
         title: "Link the financing plan to another budget or cost control",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "C10",
         title: "Export a financing plan to Excel",
-        roles: ["Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       }
     ]
@@ -367,7 +408,6 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "A7",
         title: "Adjust and use the timeline",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: {
           summary: "Plan cash flow based on your budget, financing, and schedule.",
           steps: [
@@ -410,37 +450,31 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "B16",
         title: "Adjust the project timeline and use the data for budgeting and cash flow",
-        roles: ["Produktion"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "D1",
         title: "Define milestones and phases to automate cash flow rules",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "D2",
         title: "Define and add cash flow rules",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "D3",
         title: "Create a cash flow plan",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "D4",
         title: "Adjust the cash flow plan view",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "D5",
         title: "Add a loan/transfer to the cash flow plan",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       }
     ]
@@ -454,7 +488,6 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "E1",
         title: "Reconcile my budget with actual costs / control costs",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: {
           summary: "Compare actuals vs. plan and keep the cost report accurate.",
           steps: [
@@ -497,37 +530,31 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "E2",
         title: "Track spending/funding effects",
-        roles: ["Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "E3",
         title: "Import accounting data into cost control",
-        roles: ["Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "E5",
         title: "Recalculate the forecast for an account",
-        roles: ["Produktion"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "E6",
         title: "Filter and display costs by criteria",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "E7",
         title: "View and print cost reports",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "E11",
         title: "Create a final settlement",
-        roles: ["Produktion", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       }
     ]
@@ -541,7 +568,6 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "A6",
         title: "Print budget",
-        roles: ["Produktion"],
         entry: {
           summary: "Export, print, and share your project data with others.",
           steps: [
@@ -584,31 +610,26 @@ export const HELP_DATA: HelpCategory[] = [
       {
         id: "B19",
         title: "Export budget to Excel",
-        roles: ["Produktion"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "D6",
         title: "Export the cash flow plan to Excel",
-        roles: ["Produktion", "Herstellungsleitung", "Finanzbuchhaltung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "G1",
         title: "Share a budget, financing plan, cash flow plan, or cost control with team members",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "G4",
         title: "Print the financing plan",
-        roles: ["Produktion", "Herstellungsleitung"],
         entry: { summary: "", steps: [] }
       },
       {
         id: "G5",
         title: "Print cost control",
-        roles: ["Produktion"],
         entry: { summary: "", steps: [] }
       }
     ]

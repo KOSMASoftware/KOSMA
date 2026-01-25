@@ -34,7 +34,7 @@ export const COURSES: LearningCourse[] = [
       { id: "2", title: "Add or delete a project", durationMin: 3, articleId: "F1" },
       { id: "3", title: "Archive my project", durationMin: 2, articleId: "F2" },
       { id: "4", title: "Manage project members", durationMin: 3, articleId: "F3" },
-      { id: "5", title: "Load budget templates", durationMin: 5, articleId: "A2" },
+      { id: "5", title: "Laden und anpassen einer Budgetvorlage", durationMin: 5, articleId: "A2" },
       { id: "6", title: "Edit budget accounts", durationMin: 10, articleId: "A3" },
       { id: "7", title: "Budget personnel", durationMin: 8, articleId: "A4" },
       { id: "8", title: "Edit markups", durationMin: 5, articleId: "A5" },
