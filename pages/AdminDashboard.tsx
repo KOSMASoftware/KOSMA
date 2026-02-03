@@ -266,6 +266,10 @@ const UsersManagement: React.FC = () => {
             
             const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
             
+            // Updated Status Filter Logic
+            const matchesStatus = statusFilter === 'all' || (() => {
+                if (lic?.status !== statusFilter) return false;
+
                 // For active and trial, ensure the date is valid and >= today (UTC day start)
                 if (statusFilter === 'active' || statusFilter === 'trial') {
                     if (!lic?.validUntil) return false;
@@ -304,7 +308,7 @@ const UsersManagement: React.FC = () => {
 
     const handleDelete = async (u: User) => {
         if (u.stripeCustomerId) {
-            alert("❌ LÖSCHEN NICHT ERLAUBT: Dieser Nutzer hat ein verknüpftes Stripe-Konto. Bitte kündige zuerst das Abo über das Stripe Dashboard, falls nötig.");
+            alert("LOESCHEN NICHT ERLAUBT: Dieser Nutzer hat ein verknuepftes Stripe-Konto. Bitte kuendige zuerst das Abo ueber das Stripe Dashboard, falls noetig.");
             return;
         }
         if (!confirm(`Soll ${u.email} permanent gelöscht werden? (Keine Stripe-Verbindung vorhanden, Löschen ist sicher).`)) return;
