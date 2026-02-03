@@ -80,24 +80,38 @@ const useCustomerData = (user: User) => {
                 if (profileData?.billing_address) setBillingAddress(profileData.billing_address);
 
                 if (licData && licData.length > 0) {
-                     const mappedLicenses = licData.map((l: any) => ({
-                        id: l.id,
-                        userId: l.user_id,
-                        productName: l.product_name,
-                        planTier: l.plan_tier as PlanTier,
-                        billingCycle: l.billing_cycle || 'none',
-                        status: l.status as SubscriptionStatus,
-                        validUntil: l.admin_valid_until_override || l.current_period_end || l.valid_until,
-                        licenseKey: l.license_key,
-                        billingProjectName: l.billing_project_name,
-                        stripeSubscriptionId: l.stripe_subscription_id,
-                        stripeCustomerId: l.stripe_customer_id,
-                        cancelAtPeriodEnd: l.cancel_at_period_end,
-                        currentPeriodEnd: l.current_period_end,
-                        pendingDowngradePlan: l.pending_downgrade_plan,
-                        pendingDowngradeCycle: l.pending_downgrade_cycle,
-                        pendingDowngradeAt: l.pending_downgrade_at
-                    }));
+                     const mappedLicenses = licData.map((l: any) => {
+                        // Calculate validUntil based on priority: Stripe > Trial > Admin Override
+                        let computedValidUntil: string | null = null;
+                        
+                        if (l.stripe_subscription_id) {
+                            computedValidUntil = l.current_period_end;
+                        } else if (l.status === 'trial') {
+                            computedValidUntil = l.trial_ends_at;
+                        } else {
+                            computedValidUntil = l.admin_valid_until_override;
+                        }
+
+                        return {
+                            id: l.id,
+                            userId: l.user_id,
+                            productName: l.product_name,
+                            planTier: l.plan_tier as PlanTier,
+                            billingCycle: l.billing_cycle || 'none',
+                            status: l.status as SubscriptionStatus,
+                            validUntil: computedValidUntil,
+                            licenseKey: l.license_key,
+                            billingProjectName: l.billing_project_name,
+                            stripeSubscriptionId: l.stripe_subscription_id,
+                            stripeCustomerId: l.stripe_customer_id,
+                            cancelAtPeriodEnd: l.cancel_at_period_end,
+                            currentPeriodEnd: l.current_period_end,
+                            trialEndsAt: l.trial_ends_at,
+                            pendingDowngradePlan: l.pending_downgrade_plan,
+                            pendingDowngradeCycle: l.pending_downgrade_cycle,
+                            pendingDowngradeAt: l.pending_downgrade_at
+                        };
+                    });
                     setLicenses(mappedLicenses);
                 } else {
                     setLicenses([{

@@ -25,13 +25,15 @@ import {
 
 /**
  * Berechnet die verbleibende Zeit der Lizenz als Badge
+ * Uses purely the pre-calculated lic.validUntil from the hook logic.
  */
 const getRemainingTimeBadge = (lic: License | undefined) => {
     if (!lic || lic.planTier === PlanTier.FREE) {
         return <span className="px-2 py-0.5 bg-gray-100 text-gray-400 text-[9px] font-bold uppercase rounded border border-gray-200">Unbegrenzt</span>;
     }
     
-    const validUntilDate = lic.adminValidUntilOverride || lic.currentPeriodEnd || lic.validUntil;
+    // Simplification: logic now relies solely on the correctly mapped validUntil
+    const validUntilDate = lic.validUntil;
     if (!validUntilDate) return null;
 
     const diff = new Date(validUntilDate).getTime() - Date.now();
@@ -123,16 +125,39 @@ const useAdminData = () => {
                     })));
                 }
                 if (licData && Array.isArray(licData)) {
-                    setLicenses((licData as any[]).map((l: any) => ({
-                        id: l.id, userId: l.user_id, productName: l.product_name, planTier: l.plan_tier as PlanTier, billingCycle: l.billing_cycle || 'none',
-                        status: l.status as SubscriptionStatus, validUntil: l.admin_valid_until_override || l.current_period_end || l.valid_until,
-                        licenseKey: l.license_key, billingProjectName: l.billing_project_name, stripeSubscriptionId: l.stripe_subscription_id,
-                        stripeCustomerId: l.stripe_customer_id, cancelAtPeriodEnd: l.cancel_at_period_end, adminValidUntilOverride: l.admin_valid_until_override,
-                        currentPeriodEnd: l.current_period_end,
-                        pendingDowngradePlan: l.pending_downgrade_plan,
-                        pendingDowngradeCycle: l.pending_downgrade_cycle,
-                        pendingDowngradeAt: l.pending_downgrade_at
-                    })));
+                    setLicenses((licData as any[]).map((l: any) => {
+                        // Calculate validUntil based on priority: Stripe > Trial > Admin Override
+                        let computedValidUntil: string | null = null;
+                        
+                        if (l.stripe_subscription_id) {
+                            computedValidUntil = l.current_period_end;
+                        } else if (l.status === 'trial') {
+                            computedValidUntil = l.trial_ends_at;
+                        } else {
+                            computedValidUntil = l.admin_valid_until_override;
+                        }
+
+                        return {
+                            id: l.id, 
+                            userId: l.user_id, 
+                            productName: l.product_name, 
+                            planTier: l.plan_tier as PlanTier, 
+                            billingCycle: l.billing_cycle || 'none',
+                            status: l.status as SubscriptionStatus, 
+                            validUntil: computedValidUntil,
+                            licenseKey: l.license_key, 
+                            billingProjectName: l.billing_project_name, 
+                            stripeSubscriptionId: l.stripe_subscription_id,
+                            stripeCustomerId: l.stripe_customer_id, 
+                            cancelAtPeriodEnd: l.cancel_at_period_end, 
+                            adminValidUntilOverride: l.admin_valid_until_override,
+                            currentPeriodEnd: l.current_period_end,
+                            trialEndsAt: l.trial_ends_at,
+                            pendingDowngradePlan: l.pending_downgrade_plan,
+                            pendingDowngradeCycle: l.pending_downgrade_cycle,
+                            pendingDowngradeAt: l.pending_downgrade_at
+                        };
+                    }));
                 }
                 const rev = (invData as any[])?.filter((i: any) => i.status === 'paid').reduce((acc: number, curr: any) => acc + ((Number(curr.amount) || 0) / 100), 0) || 0;
                 setStats({ totalUsers: profiles?.length || 0, activeLicenses: licData?.filter((l: any) => l.status === 'active').length || 0, inactiveLicenses: licData?.filter((l: any) => l.status !== 'active').length || 0, revenue: rev });
@@ -240,7 +265,22 @@ const UsersManagement: React.FC = () => {
                                  (u.billingAddress?.companyName || '').toLowerCase().includes(search.toLowerCase());
             
             const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
-            const matchesStatus = statusFilter === 'all' || lic?.status === statusFilter;
+            
+            // Updated Status Filter Logic
+            const matchesStatus = statusFilter === 'all' || (() => {
+                if (lic?.status !== statusFilter) return false;
+                
+                // For active and trial, ensure the date is valid and in the future
+                if (statusFilter === 'active' || statusFilter === 'trial') {
+                    if (!lic?.validUntil) return false;
+                    // UTC compare using timestamps
+                    return new Date(lic.validUntil).getTime() >= Date.now();
+                }
+                
+                // For past_due or canceled, we don't check date expiry strictly for the filter match
+                // (Requirement: past_due, canceled: immer anzeigen)
+                return true;
+            })();
             
             const isEngaged = !!u.lastLoginAt;
             const matchesEngagement = engagementFilter === 'all' || 
@@ -291,7 +331,6 @@ const UsersManagement: React.FC = () => {
             <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mb-10 space-y-6">
                 <div className="flex items-center gap-5 border-b border-gray-50 pb-6">
                     <Search className="w-6 h-6 text-gray-300" />
-                    {/* Fixed TypeScript error: onChange was passed the state setter directly instead of an event handler function */}
                     <input type="text" placeholder="Schnellsuche (Email, Name, Firma)..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1 outline-none text-lg font-bold placeholder:text-gray-300" />
                 </div>
                 

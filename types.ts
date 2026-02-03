@@ -58,7 +58,7 @@ export interface License {
   status: SubscriptionStatus;
   
   // The logic 'validUntil' displayed to user. 
-  // Should be calculated as COALESCE(adminOverride, currentPeriodEnd, originalValidUntil)
+  // Calculated based on specific priority rules (Stripe > Trial > Override)
   validUntil: string | null; 
   
   licenseKey: string | null;
@@ -68,6 +68,7 @@ export interface License {
   cancelAtPeriodEnd?: boolean;
   canceledAt?: string;
   currentPeriodEnd?: string;
+  trialEndsAt?: string;
   
   // Admin Overrides
   adminValidUntilOverride?: string;
