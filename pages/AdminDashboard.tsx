@@ -221,7 +221,7 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
                         <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
                             <option value="active">Bezahlt</option>
                             <option value="trial">Trial (Production)</option>
-                            <option value="past_due">Zahlung offen</option>
+                            <option value="past_due">Zahlung abgelehnt</option>
                             <option value="canceled">Gekündigt</option>
                             <option value="none">Kein Abo (Free)</option>
                         </select>
@@ -266,17 +266,21 @@ const UsersManagement: React.FC = () => {
             
             const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
             
-            // Updated Status Filter Logic
-            const matchesStatus = statusFilter === 'all' || (() => {
-                if (lic?.status !== statusFilter) return false;
-                
-                // For active and trial, ensure the date is valid and in the future
+                // For active and trial, ensure the date is valid and >= today (UTC day start)
                 if (statusFilter === 'active' || statusFilter === 'trial') {
                     if (!lic?.validUntil) return false;
-                    // UTC compare using timestamps
-                    return new Date(lic.validUntil).getTime() >= Date.now();
+
+                    const validUntilDate = new Date(lic.validUntil);
+                    const now = new Date();
+                    const todayUTC = new Date(Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate()
+                    ));
+
+                    return validUntilDate.getTime() >= todayUTC.getTime();
                 }
-                
+                                
                 // For past_due or canceled, we don't check date expiry strictly for the filter match
                 // (Requirement: past_due, canceled: immer anzeigen)
                 return true;
