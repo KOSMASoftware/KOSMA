@@ -1,4 +1,5 @@
 
+
 export enum UserRole {
   ADMIN = 'admin',
   CUSTOMER = 'customer'
@@ -105,4 +106,66 @@ export interface Invoice {
 export interface Session {
   user: User | null;
   token: string | null;
+}
+
+// --- MARKETING BACKEND TYPES ---
+
+export type MarketingJobStatus = 'scheduled' | 'running' | 'done' | 'done_with_errors' | 'failed' | 'cancelled';
+
+export interface MarketingJob {
+  id: string;
+  created_at: string;
+  created_by: string;
+  status: MarketingJobStatus;
+  run_at: string;
+  segment_key: string;
+  template_name: string;
+  event_key: string;
+  filters?: any;
+  dry_run: boolean;
+  stats?: {
+    total?: number;
+    sent?: number;
+    failed?: number;
+    skipped?: number;
+    queued?: number;
+    sending?: number;
+  };
+  last_error?: string;
+}
+
+export interface MarketingJobRecipient {
+  job_id: string;
+  user_id: string;
+  email: string;
+  status: 'queued' | 'sending' | 'sent' | 'failed' | 'skipped';
+  attempts: number;
+  error?: string;
+  sent_at?: string;
+  skip_reason?: string;
+  provider_message_id?: string;
+  created_at: string;
+}
+
+export interface EmailMessage {
+  id?: string; // Optional if not selected
+  to_email: string;
+  template_name: string;
+  event_key: string;
+  status: 'sent' | 'failed';
+  provider_message_id?: string;
+  sent_at: string;
+  job_id?: string;
+  provider?: string;
+  meta?: any;
+}
+
+export interface EmailEvent {
+  id?: string; // Optional
+  event_type: 'open' | 'click' | 'bounce' | 'unsub' | 'complaint' | 'delivered';
+  to_email: string;
+  occurred_at: string;
+  provider_event_id?: string;
+  message_id?: string;
+  raw?: any;
 }

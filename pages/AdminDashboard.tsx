@@ -1,10 +1,11 @@
 
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { Routes, Route, useNavigate, useSearchParams, Link, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { liveSystemService, SystemCheckResult } from '../services/liveSystemService';
-import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice } from '../types';
+import { License, SubscriptionStatus, User, UserRole, PlanTier, Project, Invoice, MarketingJob, EmailMessage, EmailEvent } from '../types';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Legend
@@ -18,7 +19,7 @@ import {
   History, Building, CalendarMinus, Plus, Minus, Check, Bug, Key, Globe, Info, 
   Play, Wifi, Edit, Trash2, UserCheck, UserMinus, TrendingDown, Eye, Loader2, 
   BarChart3, ClipboardCopy, ShieldAlert, HeartPulse, HardDrive, KeyRound, Globe2,
-  LockKeyhole, Network, Cable, MessageSquare, MonitorPlay
+  LockKeyhole, Network, Cable, MessageSquare, MonitorPlay, Send, MousePointer2, User as UserIcon
 } from 'lucide-react';
 
 // --- HELPERS ---
@@ -243,7 +244,538 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
     );
 };
 
-// --- VIEWS ---
+// --- MARKETING WIZARD COMPONENT ---
+
+const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () => void }> = ({ onClose, onCreated }) => {
+    const [step, setStep] = useState<1 | 2>(1);
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [loadingTemplates, setLoadingTemplates] = useState(false);
+    const [calculating, setCalculating] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [previewData, setPreviewData] = useState<{ count: number, sample: any[] } | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    // Form State
+    const [segmentKey, setSegmentKey] = useState('all_users');
+    const [templateName, setTemplateName] = useState('');
+    const [eventKey, setEventKey] = useState('');
+    const [runAt, setRunAt] = useState('');
+    const [dryRun, setDryRun] = useState(false);
+
+    const SEGMENT_KEYS = [
+        'all_users', 'trial_active', 'monthly_active', 'yearly_active', 'monthly_3_periods',
+        'monthly_to_yearly_offer', 'cancelled_or_expired', 'inactivity_short', 'inactivity_long',
+        'reactivation_offer', 'cancellation_confirmation', 'monthly_tips',
+        'deletion_warning_30d', 'deletion_warning_7d', 'deletion_due', 'never_logged_in'
+    ];
+
+    useEffect(() => {
+        const loadTemplates = async () => {
+            setLoadingTemplates(true);
+            try {
+                const { data, error } = await supabase.functions.invoke('marketing-templates');
+                if (error) throw error;
+                // Assuming data.templates is the array
+                setTemplates(data?.templates || []);
+            } catch (err: any) {
+                console.error("Failed to load templates", err);
+                // Fallback / Silent fail for UI
+            } finally {
+                setLoadingTemplates(false);
+            }
+        };
+        loadTemplates();
+    }, []);
+
+    const handlePreview = async () => {
+        setCalculating(true);
+        setError(null);
+        try {
+            const { data, error } = await supabase.functions.invoke('marketing-preview', {
+                body: { segment_key: segmentKey }
+            });
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+            
+            setPreviewData({
+                count: data.count || 0,
+                sample: data.sample || []
+            });
+            setStep(2);
+        } catch (err: any) {
+            setError(err.message || "Preview failed");
+        } finally {
+            setCalculating(false);
+        }
+    };
+
+    const handleCreate = async () => {
+        setSubmitting(true);
+        setError(null);
+        try {
+            const payload = {
+                segment_key: segmentKey,
+                template_name: templateName,
+                event_key: eventKey || templateName, // Default to template name if empty
+                run_at: runAt ? new Date(runAt).toISOString() : null, // Immediate if null
+                dry_run: dryRun
+            };
+
+            const { data, error } = await supabase.functions.invoke('marketing-create-job', {
+                body: payload
+            });
+
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            onCreated();
+            onClose();
+        } catch (err: any) {
+            setError(err.message || "Creation failed");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-2xl shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-3xl font-black text-gray-900 tracking-tight">Campaign Wizard</h3>
+                    <button onClick={onClose}><X className="w-6 h-6 text-gray-400 hover:text-gray-900"/></button>
+                </div>
+
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex gap-3">
+                        <AlertTriangle className="w-5 h-5 shrink-0" />
+                        <p>{error}</p>
+                    </div>
+                )}
+
+                {step === 1 && (
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Segment</label>
+                                <select 
+                                    value={segmentKey} 
+                                    onChange={e => setSegmentKey(e.target.value)} 
+                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
+                                >
+                                    {SEGMENT_KEYS.map(k => <option key={k} value={k}>{k}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Run At (Optional)</label>
+                                <input 
+                                    type="datetime-local" 
+                                    value={runAt} 
+                                    onChange={e => setRunAt(e.target.value)} 
+                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
+                                />
+                                <p className="text-[10px] text-gray-400 mt-1 font-medium">Leave empty to run immediately.</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Template</label>
+                            {loadingTemplates ? (
+                                <div className="p-4 bg-gray-50 rounded-xl text-gray-400 text-sm italic">Loading Elastic Templates...</div>
+                            ) : (
+                                <select 
+                                    value={templateName} 
+                                    onChange={e => {
+                                        setTemplateName(e.target.value);
+                                        if(!eventKey) setEventKey(e.target.value); // Auto-fill event key
+                                    }} 
+                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
+                                >
+                                    <option value="">-- Select Template --</option>
+                                    {templates.map((t: any, idx: number) => (
+                                        <option key={idx} value={t.name || t}>{t.name || t}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Event Key (Tracking)</label>
+                            <input 
+                                type="text" 
+                                value={eventKey} 
+                                onChange={e => setEventKey(e.target.value)} 
+                                placeholder="e.g. newsletter_jan_24"
+                                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <input 
+                                type="checkbox" 
+                                id="dryRun"
+                                checked={dryRun}
+                                onChange={e => setDryRun(e.target.checked)}
+                                className="w-5 h-5 accent-brand-500 rounded"
+                            />
+                            <label htmlFor="dryRun" className="text-sm font-bold text-gray-700 cursor-pointer">Dry Run (No emails sent, only DB log)</label>
+                        </div>
+
+                        <div className="flex justify-end pt-4">
+                            <button 
+                                onClick={handlePreview} 
+                                disabled={calculating || !templateName}
+                                className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all disabled:opacity-50 shadow-xl"
+                            >
+                                {calculating ? <Loader2 className="w-4 h-4 animate-spin"/> : <Search className="w-4 h-4"/>}
+                                Preview Audience
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {step === 2 && previewData && (
+                    <div className="space-y-8">
+                        <div className="p-6 bg-brand-50 border border-brand-100 rounded-2xl flex items-center gap-6">
+                            <div className="p-3 bg-white rounded-xl shadow-sm">
+                                <Users className="w-8 h-8 text-brand-500" />
+                            </div>
+                            <div>
+                                <h4 className="text-2xl font-black text-brand-900">{previewData.count} Recipients</h4>
+                                <p className="text-sm font-medium text-brand-700">Target audience size based on '{segmentKey}'</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h5 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Sample Recipients</h5>
+                            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2 max-h-40 overflow-y-auto font-mono text-xs text-gray-600">
+                                {previewData.sample.map((u: any, i: number) => (
+                                    <div key={i}>{u.email} ({u.id})</div>
+                                ))}
+                                {previewData.sample.length === 0 && <div>No users found in sample.</div>}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 pt-4">
+                            <button 
+                                onClick={() => setStep(1)}
+                                className="flex-1 py-4 border border-gray-200 text-gray-600 rounded-2xl font-black text-sm hover:bg-gray-50"
+                            >
+                                Back
+                            </button>
+                            <button 
+                                onClick={handleCreate}
+                                disabled={submitting}
+                                className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-xl disabled:opacity-50"
+                            >
+                                {submitting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4"/>}
+                                {runAt ? 'Schedule Campaign' : 'Launch Now'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- MARKETING VIEW COMPONENTS ---
+
+const MarketingInsights: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<'campaigns' | 'crm' | 'analytics'>('campaigns');
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    
+    // Data States
+    const [jobs, setJobs] = useState<MarketingJob[]>([]);
+    const [loadingJobs, setLoadingJobs] = useState(false);
+    
+    const fetchJobs = async () => {
+        setLoadingJobs(true);
+        const { data } = await supabase
+            .from('marketing_jobs')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (data) setJobs(data as MarketingJob[]);
+        setLoadingJobs(false);
+    };
+
+    useEffect(() => {
+        if (activeTab === 'campaigns') fetchJobs();
+    }, [activeTab]);
+
+    const handleRetry = async (jobId: string) => {
+        if (!confirm("Retry all failed recipients for this job?")) return;
+        try {
+            const { error } = await supabase.functions.invoke('marketing-retry', {
+                body: { job_id: jobId }
+            });
+            if (error) throw error;
+            alert("Retry queued.");
+            fetchJobs();
+        } catch (e: any) {
+            alert("Error: " + e.message);
+        }
+    };
+
+    return (
+        <div className="animate-in fade-in slide-in-from-bottom-2">
+            <AdminTabs />
+            
+            {/* Sub-Navigation */}
+            <div className="flex justify-center mb-10">
+                <div className="inline-flex bg-gray-100 p-1.5 rounded-2xl">
+                    {(['campaigns', 'crm', 'analytics'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${
+                                activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* CONTENT AREA */}
+            {activeTab === 'campaigns' && (
+                <div>
+                    <div className="flex justify-between items-center mb-8">
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Campaign Manager</h2>
+                        <button 
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="bg-gray-900 text-white px-6 py-3 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all shadow-lg"
+                        >
+                            <Plus className="w-4 h-4" /> New Campaign
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50/50 border-b border-gray-100">
+                                <tr>
+                                    <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Name & Template</th>
+                                    <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Segment</th>
+                                    <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</th>
+                                    <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {loadingJobs ? (
+                                    <tr><td colSpan={5} className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-500"/></td></tr>
+                                ) : jobs.map(job => (
+                                    <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
+                                        <td className="px-8 py-6">
+                                            <div className="font-bold text-gray-900">{job.template_name}</div>
+                                            <div className="text-xs text-gray-400 font-mono mt-1">{new Date(job.created_at).toLocaleString()}</div>
+                                            {job.dry_run && <span className="inline-block mt-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 text-[9px] font-bold rounded">DRY RUN</span>}
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100">
+                                                {job.segment_key}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                job.status === 'done' ? 'bg-green-100 text-green-700' :
+                                                job.status === 'running' ? 'bg-brand-100 text-brand-700 animate-pulse' :
+                                                job.status === 'scheduled' ? 'bg-gray-100 text-gray-600' :
+                                                'bg-red-100 text-red-700'
+                                            }`}>
+                                                {job.status.replace(/_/g, ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            {job.stats && (
+                                                <div className="text-xs font-medium">
+                                                    <div className="flex gap-3 mb-1">
+                                                        <span className="text-green-600">Sent: {job.stats.sent || 0}</span>
+                                                        <span className="text-red-500">Fail: {job.stats.failed || 0}</span>
+                                                    </div>
+                                                    <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className="h-full bg-brand-500" 
+                                                            style={{ width: `${Math.min(100, ((job.stats.sent || 0) / (job.stats.total || 1)) * 100)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            {(job.status === 'failed' || job.status === 'done_with_errors') && (
+                                                <button 
+                                                    onClick={() => handleRetry(job.id)}
+                                                    className="p-2 text-brand-500 hover:bg-brand-50 rounded-xl transition-colors" 
+                                                    title="Retry failed recipients"
+                                                >
+                                                    <RefreshCw className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {jobs.length === 0 && !loadingJobs && (
+                            <div className="p-12 text-center text-gray-400 font-medium italic">No campaigns found.</div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'crm' && <CRMView />}
+            
+            {activeTab === 'analytics' && <AnalyticsView />}
+
+            {isCreateModalOpen && (
+                <CreateCampaignModal 
+                    onClose={() => setIsCreateModalOpen(false)} 
+                    onCreated={() => {
+                        fetchJobs();
+                        setActiveTab('campaigns');
+                    }} 
+                />
+            )}
+        </div>
+    );
+};
+
+// --- CRM Sub-Component ---
+const CRMView: React.FC = () => {
+    const [email, setEmail] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [timeline, setTimeline] = useState<any[]>([]);
+
+    const handleSearch = async () => {
+        if (!email) return;
+        setLoading(true);
+        try {
+            // Fetch Messages (Outbound)
+            const { data: messages } = await supabase
+                .from('email_messages')
+                .select('*')
+                .eq('to_email', email);
+
+            // Fetch Events (Inbound/Tracking)
+            const { data: events } = await supabase
+                .from('email_events')
+                .select('*')
+                .eq('to_email', email);
+
+            // Merge & Sort
+            const combined = [
+                ...(messages || []).map(m => ({ ...m, type: 'outbound', date: new Date(m.sent_at) })),
+                ...(events || []).map(e => ({ ...e, type: 'inbound', date: new Date(e.occurred_at) }))
+            ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+            setTimeline(combined);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div>
+            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mb-10">
+                <div className="flex gap-4">
+                    <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center border border-gray-100 focus-within:ring-2 ring-brand-500 transition-all">
+                        <Search className="w-5 h-5 text-gray-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Search user email..." 
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                            className="w-full bg-transparent p-4 outline-none font-bold text-gray-900"
+                        />
+                    </div>
+                    <button 
+                        onClick={handleSearch}
+                        disabled={loading}
+                        className="px-8 bg-gray-900 text-white rounded-xl font-black text-sm hover:bg-brand-500 transition-all"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : "Search Timeline"}
+                    </button>
+                </div>
+            </div>
+
+            <div className="space-y-6 max-w-3xl mx-auto">
+                {timeline.map((item, idx) => (
+                    <div key={idx} className="flex gap-6">
+                        <div className="flex flex-col items-center">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-sm z-10 ${
+                                item.type === 'outbound' ? 'bg-blue-50 text-blue-600' : 
+                                item.event_type === 'open' ? 'bg-green-50 text-green-600' :
+                                item.event_type === 'bounce' ? 'bg-red-50 text-red-600' :
+                                'bg-gray-50 text-gray-500'
+                            }`}>
+                                {item.type === 'outbound' ? <Send className="w-4 h-4" /> : 
+                                 item.event_type === 'open' ? <Eye className="w-4 h-4" /> :
+                                 item.event_type === 'click' ? <MousePointer2 className="w-4 h-4" /> :
+                                 <Activity className="w-4 h-4" />}
+                            </div>
+                            {idx < timeline.length - 1 && <div className="w-0.5 bg-gray-100 flex-1 my-2"></div>}
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex-1">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                    {item.date.toLocaleString()}
+                                </span>
+                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                                    item.type === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                    {item.type === 'outbound' ? 'Sent Message' : `Event: ${item.event_type}`}
+                                </span>
+                            </div>
+                            <h4 className="font-bold text-gray-900 mb-1">
+                                {item.template_name || item.event_key || 'Unknown Event'}
+                            </h4>
+                            {item.status === 'failed' && (
+                                <p className="text-xs text-red-500 font-bold mt-2">Delivery Failed</p>
+                            )}
+                        </div>
+                    </div>
+                ))}
+                {timeline.length === 0 && !loading && email && (
+                    <div className="text-center text-gray-400 italic py-12">No history found.</div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- Analytics Sub-Component ---
+const AnalyticsView: React.FC = () => {
+    // Placeholder for Analytics MVP
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <Send className="w-12 h-12 text-brand-200 mb-4" />
+                <h3 className="text-3xl font-black text-gray-900">--</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Total Sent</p>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <Eye className="w-12 h-12 text-green-200 mb-4" />
+                <h3 className="text-3xl font-black text-gray-900">-- %</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Open Rate</p>
+            </div>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <AlertCircle className="w-12 h-12 text-red-200 mb-4" />
+                <h3 className="text-3xl font-black text-gray-900">-- %</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Bounce Rate</p>
+            </div>
+            <div className="col-span-full text-center text-gray-400 text-sm italic mt-8">
+                Analytics Module is coming in next release.
+            </div>
+        </div>
+    );
+};
+
+// --- USERS VIEW & SYSTEM HEALTH VIEWS REMAIN UNCHANGED (Just re-exporting existing components in same file) ---
+// ... (The rest of AdminDashboard.tsx remains largely the same, I just replaced MarketingInsights)
 
 const UsersManagement: React.FC = () => {
     const { loading, users, licenses, refreshData } = useAdminData();
@@ -466,8 +998,6 @@ const UsersManagement: React.FC = () => {
     );
 };
 
-// --- SYSTEM HEALTH VIEW ---
-
 const SystemHealthView: React.FC = () => {
     const [checks, setChecks] = useState<SystemCheckResult[]>([]);
     const [loading, setLoading] = useState(true);
@@ -580,157 +1110,6 @@ const SystemHealthView: React.FC = () => {
                         </div>
                     </div>
                 ))}
-            </div>
-        </div>
-    );
-};
-
-const MarketingInsights: React.FC = () => {
-    const { loading, users, licenses } = useAdminData();
-    const [growthData, setGrowthData] = useState<any[]>([]);
-    const [emailLogs, setEmailLogs] = useState<any[]>([]);
-    
-    useEffect(() => {
-        setGrowthData([
-            { name: '01. Nov', signups: 5, active: 2, churn: 0 },
-            { name: '05. Nov', signups: 15, active: 8, churn: 1 },
-            { name: '10. Nov', signups: 35, active: 20, churn: 1 },
-            { name: '15. Nov', signups: 65, active: 45, churn: 2 },
-            { name: '20. Nov', signups: 110, active: 85, churn: 4 },
-        ]);
-
-        const fetchEmails = async () => {
-             const { data: emailData } = await supabase
-                .from('email_events')
-                .select('id, user_id, event_key, template_name, created_at')
-                .order('created_at', { ascending: false });
-
-             const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, email, full_name');
-
-             // Fix: explicit Map types
-             const profileById = new Map<string, any>((profiles || []).map((p: any) => [p.id, p]));
-
-             setEmailLogs(
-                (emailData || []).map((e: any) => ({
-                  id: e.id,
-                  date: new Date(e.created_at).toLocaleString(),
-                  recipient: profileById.get(e.user_id)?.email || 'unknown',
-                  subject: e.template_name,
-                  eventKey: e.event_key
-                }))
-             );
-        };
-        fetchEmails();
-    }, [users, licenses]);
-
-    const stats = useMemo(() => {
-        const paying = licenses.filter(l => l.status === 'active' && l.planTier !== 'Free');
-        const activated = users.filter(u => !!u.lastLoginAt).length;
-        return { 
-            total: users.length, 
-            paying: paying.length, 
-            activated,
-            conversion: users.length > 0 ? Math.round((activated / users.length) * 100) : 0
-        };
-    }, [users, licenses]);
-
-    if (loading) return <div className="p-20 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-brand-500" /></div>;
-
-    return (
-        <div className="animate-in fade-in slide-in-from-bottom-2">
-            <AdminTabs />
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute -bottom-4 -right-4 text-brand-500/5 transition-transform group-hover:scale-110"><Users className="w-24 h-24" /></div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Signups</p>
-                    <h3 className="text-4xl font-black text-gray-900">{stats.total}</h3>
-                </div>
-                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute -bottom-4 -right-4 text-green-500/5 transition-transform group-hover:scale-110"><CreditCard className="w-24 h-24" /></div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Paying Customers</p>
-                    <h3 className="text-4xl font-black text-green-600">{stats.paying}</h3>
-                </div>
-                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute -bottom-4 -right-4 text-brand-500/5 transition-transform group-hover:scale-110"><Zap className="w-24 h-24" /></div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Activation Rate</p>
-                    <h3 className="text-4xl font-black text-brand-500">{stats.conversion}%</h3>
-                </div>
-                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute -bottom-4 -right-4 text-red-500/5 transition-transform group-hover:scale-110"><UserMinus className="w-24 h-24" /></div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Software Logins</p>
-                    <h3 className="text-4xl font-black text-gray-700">{stats.activated}</h3>
-                </div>
-            </div>
-
-            {/* Growth Chart Timeline */}
-            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl mb-12 relative overflow-hidden">
-                <div className="flex justify-between items-center mb-10 relative z-10">
-                    <div>
-                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Growth Timeline</h3>
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Registrierungen vs. Software-Nutzung</p>
-                    </div>
-                </div>
-                <div className="h-[400px] w-full relative z-10">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorSignups" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0093D0" stopOpacity={0.1}/>
-                                    <stop offset="95%" stopColor="#0093D0" stopOpacity={0}/>
-                                </linearGradient>
-                                <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
-                                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 'bold', fill: '#9ca3af'}} />
-                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 'bold', fill: '#9ca3af'}} />
-                            <Tooltip contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} />
-                            <Legend iconType="circle" />
-                            <Area type="monotone" dataKey="signups" name="Gesamt Registrierungen" stroke="#0093D0" strokeWidth={4} fillOpacity={1} fill="url(#colorSignups)" />
-                            <Area type="monotone" dataKey="active" name="Software Logins" stroke="#10B981" strokeWidth={4} fillOpacity={1} fill="url(#colorActive)" />
-                            <Area type="monotone" dataKey="churn" name="Kündigungen" stroke="#EF4444" strokeWidth={2} fillOpacity={0} />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-
-            {/* Elastic Email Log UI */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden">
-                <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
-                    <div>
-                        <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                            <Mail className="text-brand-500 w-6 h-6" /> Elastic Email History
-                        </h3>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Kommunikations-Log (Nur Betreffzeile & Empfänger)</p>
-                    </div>
-                </div>
-                <table className="w-full text-left">
-                    <thead className="bg-white border-b border-gray-100">
-                        <tr>
-                            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Zeitpunkt</th>
-                            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Empfänger</th>
-                            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Betreffzeile</th>
-                            <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {emailLogs.map(log => (
-                            <tr key={log.id} className="hover:bg-gray-50/50 transition-colors group">
-                                <td className="px-8 py-5 text-[11px] font-bold text-gray-400 font-mono">{log.date}</td>
-                                <td className="px-8 py-5 text-sm font-black text-gray-900">{log.recipient}</td>
-                                <td className="px-8 py-5 text-sm font-bold text-gray-600 italic">"{log.subject}"</td>
-                                <td className="px-8 py-5 text-right">
-                                    <span className="text-[10px] font-black uppercase px-3 py-1 bg-green-100 text-green-700 rounded-full">Gesendet</span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
             </div>
         </div>
     );
