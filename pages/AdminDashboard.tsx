@@ -287,7 +287,11 @@ const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () => void
                 // Edge function usually returns body in 'data'. 
                 // If the Elastic payload is in data.data, we use that.
                 // Fallback to data.templates if structure varies.
-                const tplList = data?.data || data?.templates || [];
+                const tplList =
+                    data?.data?.data ||
+                    data?.data ||
+                    data?.templates ||
+                    [];
                 setTemplates(Array.isArray(tplList) ? tplList : []);
             } catch (err: any) {
                 console.error("Failed to load templates", err);
