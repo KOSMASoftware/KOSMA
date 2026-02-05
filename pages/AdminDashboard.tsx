@@ -246,13 +246,20 @@ const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onC
 
 // --- MARKETING WIZARD COMPONENT ---
 
+interface PreviewData {
+    count_total: number;
+    count_excluded_unsub: number;
+    count_excluded_bounce: number;
+    sample: any[];
+}
+
 const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () => void }> = ({ onClose, onCreated }) => {
     const [step, setStep] = useState<1 | 2>(1);
     const [templates, setTemplates] = useState<any[]>([]);
     const [loadingTemplates, setLoadingTemplates] = useState(false);
     const [calculating, setCalculating] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [previewData, setPreviewData] = useState<{ count: number, sample: any[] } | null>(null);
+    const [previewData, setPreviewData] = useState<PreviewData | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // Form State
@@ -275,8 +282,13 @@ const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () => void
             try {
                 const { data, error } = await supabase.functions.invoke('marketing-templates');
                 if (error) throw error;
-                // Assuming data.templates is the array
-                setTemplates(data?.templates || []);
+                
+                // Response structure: { success: true, data: { success: true, data: [...] } }
+                // Edge function usually returns body in 'data'. 
+                // If the Elastic payload is in data.data, we use that.
+                // Fallback to data.templates if structure varies.
+                const tplList = data?.data || data?.templates || [];
+                setTemplates(Array.isArray(tplList) ? tplList : []);
             } catch (err: any) {
                 console.error("Failed to load templates", err);
                 // Fallback / Silent fail for UI
@@ -297,8 +309,11 @@ const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () => void
             if (error) throw error;
             if (data?.error) throw new Error(data.error);
             
+            // Backend returns: count_total, count_excluded_unsub, count_excluded_bounce, sample
             setPreviewData({
-                count: data.count || 0,
+                count_total: data.count_total || 0,
+                count_excluded_unsub: data.count_excluded_unsub || 0,
+                count_excluded_bounce: data.count_excluded_bounce || 0,
                 sample: data.sample || []
             });
             setStep(2);
@@ -440,8 +455,13 @@ const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () => void
                                 <Users className="w-8 h-8 text-brand-500" />
                             </div>
                             <div>
-                                <h4 className="text-2xl font-black text-brand-900">{previewData.count} Recipients</h4>
+                                <h4 className="text-2xl font-black text-brand-900">{previewData.count_total} Recipients</h4>
                                 <p className="text-sm font-medium text-brand-700">Target audience size based on '{segmentKey}'</p>
+                                {(previewData.count_excluded_unsub > 0 || previewData.count_excluded_bounce > 0) && (
+                                    <p className="text-[10px] mt-2 font-bold text-brand-600/60 uppercase">
+                                        Excluded: {previewData.count_excluded_unsub} Unsub · {previewData.count_excluded_bounce} Bounced
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -564,57 +584,66 @@ const MarketingInsights: React.FC = () => {
                             <tbody className="divide-y divide-gray-100">
                                 {loadingJobs ? (
                                     <tr><td colSpan={5} className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-500"/></td></tr>
-                                ) : jobs.map(job => (
-                                    <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-8 py-6">
-                                            <div className="font-bold text-gray-900">{job.template_name}</div>
-                                            <div className="text-xs text-gray-400 font-mono mt-1">{new Date(job.created_at).toLocaleString()}</div>
-                                            {job.dry_run && <span className="inline-block mt-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 text-[9px] font-bold rounded">DRY RUN</span>}
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100">
-                                                {job.segment_key}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                                job.status === 'done' ? 'bg-green-100 text-green-700' :
-                                                job.status === 'running' ? 'bg-brand-100 text-brand-700 animate-pulse' :
-                                                job.status === 'scheduled' ? 'bg-gray-100 text-gray-600' :
-                                                'bg-red-100 text-red-700'
-                                            }`}>
-                                                {job.status.replace(/_/g, ' ')}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            {job.stats && (
+                                ) : jobs.map(job => {
+                                    // Parse stats structure: { counts: { sent, failed, ... } }
+                                    const stats = (job.stats as any)?.counts || {};
+                                    const sent = stats.sent || 0;
+                                    const failed = stats.failed || 0;
+                                    // For progress bar, we can estimate total from counts or use stats.total if available.
+                                    // Assuming total_count might be stored, or sum of sent+failed+queued+skipped
+                                    const total = stats.total || (sent + failed + (stats.queued || 0) + (stats.skipped || 0)) || 1;
+
+                                    return (
+                                        <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <td className="px-8 py-6">
+                                                <div className="font-bold text-gray-900">{job.template_name}</div>
+                                                <div className="text-xs text-gray-400 font-mono mt-1">{new Date(job.created_at).toLocaleString()}</div>
+                                                {job.dry_run && <span className="inline-block mt-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 text-[9px] font-bold rounded">DRY RUN</span>}
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100">
+                                                    {job.segment_key}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                    job.status === 'done' ? 'bg-green-100 text-green-700' :
+                                                    job.status === 'running' ? 'bg-brand-100 text-brand-700 animate-pulse' :
+                                                    job.status === 'scheduled' ? 'bg-gray-100 text-gray-600' :
+                                                    job.status === 'done_with_errors' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {job.status.replace(/_/g, ' ')}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-6">
                                                 <div className="text-xs font-medium">
                                                     <div className="flex gap-3 mb-1">
-                                                        <span className="text-green-600">Sent: {job.stats.sent || 0}</span>
-                                                        <span className="text-red-500">Fail: {job.stats.failed || 0}</span>
+                                                        <span className="text-green-600">Sent: {sent}</span>
+                                                        <span className={failed > 0 ? "text-red-500 font-bold" : "text-gray-400"}>Fail: {failed}</span>
                                                     </div>
                                                     <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                                         <div 
-                                                            className="h-full bg-brand-500" 
-                                                            style={{ width: `${Math.min(100, ((job.stats.sent || 0) / (job.stats.total || 1)) * 100)}%` }}
+                                                            className={`h-full ${job.status === 'done_with_errors' ? 'bg-amber-500' : 'bg-brand-500'}`}
+                                                            style={{ width: `${Math.min(100, (sent / total) * 100)}%` }}
                                                         />
                                                     </div>
                                                 </div>
-                                            )}
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            {(job.status === 'failed' || job.status === 'done_with_errors') && (
-                                                <button 
-                                                    onClick={() => handleRetry(job.id)}
-                                                    className="p-2 text-brand-500 hover:bg-brand-50 rounded-xl transition-colors" 
-                                                    title="Retry failed recipients"
-                                                >
-                                                    <RefreshCw className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                {(job.status === 'failed' || job.status === 'done_with_errors') && (
+                                                    <button 
+                                                        onClick={() => handleRetry(job.id)}
+                                                        className="p-2 text-brand-500 hover:bg-brand-50 rounded-xl transition-colors" 
+                                                        title="Retry failed recipients"
+                                                    >
+                                                        <RefreshCw className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                         {jobs.length === 0 && !loadingJobs && (
