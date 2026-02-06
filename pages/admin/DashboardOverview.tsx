@@ -10,6 +10,9 @@ interface OverviewStats {
     no_plan: number;
     emails_7d_sent: number;
     emails_7d_total: number;
+    budget_licenses: number;
+    cost_control_licenses: number;
+    production_licenses: number;
 }
 
 export const DashboardOverview: React.FC = () => {
@@ -74,7 +77,10 @@ export const DashboardOverview: React.FC = () => {
         trial_active: 0,
         no_plan: 0,
         emails_7d_sent: 0,
-        emails_7d_total: 0
+        emails_7d_total: 0,
+        budget_licenses: 0,
+        cost_control_licenses: 0,
+        production_licenses: 0
     };
 
     return (
@@ -82,7 +88,7 @@ export const DashboardOverview: React.FC = () => {
             <AdminTabs />
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                {/* Row 1 */}
+                {/* Row 1: High Level */}
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-shadow">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Users</p>
                     <h3 className="text-5xl font-black text-gray-900 tracking-tighter">{s.total_users}</h3>
@@ -90,7 +96,7 @@ export const DashboardOverview: React.FC = () => {
 
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-shadow">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Subscriptions</p>
-                    <h3 className="text-5xl font-black text-green-600 tracking-tighter">{s.active_subscriptions}</h3>
+                    <h3 className="text-5xl font-black text-gray-900 tracking-tighter">{s.active_subscriptions}</h3>
                 </div>
 
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-shadow">
@@ -98,7 +104,23 @@ export const DashboardOverview: React.FC = () => {
                     <h3 className="text-5xl font-black text-blue-600 tracking-tighter">{s.trial_active}</h3>
                 </div>
 
-                {/* Row 2 */}
+                {/* Row 2: License Tiers */}
+                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-shadow">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan: Budget</p>
+                    <h3 className="text-5xl font-black text-amber-500 tracking-tighter">{s.budget_licenses}</h3>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-shadow">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan: Cost Control</p>
+                    <h3 className="text-5xl font-black text-purple-600 tracking-tighter">{s.cost_control_licenses}</h3>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-shadow">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan: Production</p>
+                    <h3 className="text-5xl font-black text-green-600 tracking-tighter">{s.production_licenses}</h3>
+                </div>
+
+                {/* Row 3: Misc & Health */}
                 <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-shadow">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No Plan (Free)</p>
                     <h3 className="text-5xl font-black text-gray-400 tracking-tighter">{s.no_plan}</h3>
