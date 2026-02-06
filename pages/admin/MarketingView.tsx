@@ -17,6 +17,7 @@ export const MarketingView: React.FC = () => {
     const [jobs, setJobs] = useState<MarketingJob[]>([]);
     const [loadingJobs, setLoadingJobs] = useState(false);
     
+    // Initial fetch or manual refresh
     const fetchJobs = async () => {
         setLoadingJobs(true);
         const { data } = await supabase
@@ -27,7 +28,38 @@ export const MarketingView: React.FC = () => {
         setLoadingJobs(false);
     };
 
-    useEffect(() => { if (activeTab === 'campaigns') fetchJobs(); }, [activeTab]);
+    // 1. Initial Load when entering tab
+    useEffect(() => { 
+        if (activeTab === 'campaigns') fetchJobs(); 
+    }, [activeTab]);
+
+    // 2. Smart Polling Logic
+    // Only poll if tab is active AND there are jobs in 'scheduled' or 'running' state
+    useEffect(() => {
+        if (activeTab !== 'campaigns') return;
+
+        const hasActiveJobs = jobs.some(j => ['scheduled', 'running'].includes(j.status));
+        let intervalId: any;
+
+        if (hasActiveJobs) {
+            intervalId = setInterval(async () => {
+                // Silent fetch (no loading spinner)
+                const { data } = await supabase
+                    .from('marketing_jobs')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (data) {
+                    // Update state, which will trigger this effect again to re-evaluate 'hasActiveJobs'
+                    setJobs(data as MarketingJob[]);
+                }
+            }, 5000);
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [activeTab, jobs]); // Dependency on 'jobs' ensures we re-evaluate polling need on every update
 
     const handleRetry = async (jobId: string) => {
         if (!confirm("Retry all failed recipients for this job?")) return;
@@ -95,10 +127,13 @@ export const MarketingView: React.FC = () => {
                                 {loadingJobs ? (
                                     <tr><td colSpan={5} className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-500"/></td></tr>
                                 ) : jobs.map(job => {
-                                    const stats = (job.stats as any)?.counts || {};
-                                    const sent = stats.sent || 0;
-                                    const failed = stats.failed || 0;
-                                    const total = stats.total || (sent + failed + (stats.queued || 0)) || 1;
+                                    // Robust Stats Normalization
+                                    const raw = job.stats as any;
+                                    const counts = raw?.counts ?? raw ?? {};
+                                    const sent = counts.sent || 0;
+                                    const failed = counts.failed || 0;
+                                    const queued = counts.queued || 0;
+                                    const total = counts.total || (sent + failed + queued) || 1;
 
                                     return (
                                         <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
