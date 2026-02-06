@@ -3,22 +3,23 @@ import { supabase } from '../../../lib/supabaseClient';
 import { Users, Loader2, RefreshCw } from 'lucide-react';
 
 const SEGMENTS = [
-    'all_users', 
-    'trial_active', 
-    'monthly_active', 
-    'yearly_active', 
-    'monthly_3_periods',
-    'monthly_to_yearly_offer', 
-    'cancelled_or_expired', 
-    'inactivity_short', 
+    'never_logged_in',
+    'never_purchased',
+    'trial_active',
+    'trial_ending_3d',
+    'inactivity_short',
     'inactivity_long',
-    'reactivation_offer', 
-    'cancellation_confirmation', 
+    'monthly_3_periods',
+    'yearly_active',
+    'cancelled_or_expired',
+    'deletion_warning_30d',
+    'deletion_warning_7d',
     'monthly_tips',
-    'deletion_warning_30d', 
-    'deletion_warning_7d', 
-    'deletion_due', 
-    'never_logged_in'
+    'opened',
+    'clicked',
+    'never_opened',
+    'unsubscribed',
+    'bounce'
 ];
 
 interface PreviewData {

@@ -17,11 +17,9 @@ export const AnalyticsView: React.FC = () => {
                     .eq('status', 'sent');
 
                 // 2. Events (opens, clicks, bounces)
-                // Note: This is a rough aggregate. For precise unique rates, we'd need distinct counts.
-                const { data: eventCounts } = await supabase.rpc('get_marketing_stats'); 
-                // Fallback if RPC doesn't exist (using multiple queries for safety in this prototype)
-                
                 // We'll use direct counts for simplicity in this prototype phase
+                // Removed RPC call here to prevent errors
+                
                 const { count: openCount } = await supabase
                     .from('email_events')
                     .select('*', { count: 'exact', head: true })
