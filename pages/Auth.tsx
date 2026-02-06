@@ -32,7 +32,7 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
 );
 
 export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }> = ({ mode }) => {
-  const { login, signup, resetPassword, refreshProfile } = useAuth();
+  const { login, signup, resetPassword, refreshProfile, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -77,6 +77,14 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
     }
   }, [mode]);
 
+  // AUTOMATIC NAVIGATION (Single Source of Truth)
+  // Replaces the manual check in handleAction to prevent race conditions.
+  useEffect(() => {
+    if (user && mode === 'login') {
+      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+    }
+  }, [user, mode, navigate]);
+
   const handleAction = async () => {
     if (loading) return;
     setError('');
@@ -105,9 +113,11 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         }
         
         setStep('success');
+        setLoading(false);
       } else if (isResetRequest) {
         await resetPassword(email);
         setStep('success');
+        setLoading(false);
       } else if (mode === 'login') {
         // Timeout Wrapper für Login
         const { data, error: loginError } = await Promise.race([
@@ -118,33 +128,25 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
         ]);
         
         if (loginError) {
-          setError(loginError.message || "Invalid credentials.");
-          setLoading(false);
-          return;
+          throw new Error(loginError.message || "Invalid credentials.");
         }
 
-        if (data?.user) {
-          // Wir warten kurz auf das Profil-Update im Context
-          await refreshProfile();
-          
-          // Direkte Abfrage der DB zur Sicherheit beim Navigieren
-          const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).maybeSingle();
-          const isAdmin = (data.user.email?.toLowerCase().trim() === 'mail@joachimknaf.de') || (profile?.role === 'admin');
-          
-          navigate(isAdmin ? '/admin' : '/dashboard');
-        }
+        // On success, we rely on the useEffect above to navigate.
+        // We keep loading=true to prevent UI flickering.
+        
       } else if (mode === 'signup') {
         if (step === 'initial') {
           if (!email.includes('@')) throw new Error("Please enter a valid email address.");
           setStep('details');
+          setLoading(false);
         } else {
           await signup(email, `${firstName} ${lastName}`, password);
           setStep('success');
+          setLoading(false);
         }
       }
     } catch (err: any) {
       setError(err.message || "An error occurred.");
-    } finally {
       setLoading(false);
     }
   };
