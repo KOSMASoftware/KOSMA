@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -10,7 +9,7 @@ import { DownloadPage } from './pages/Download';
 import { SupportPage } from './pages/Support'; // Changed from ContactPage
 import { AuthPage } from './pages/Auth';
 import { CustomerDashboard } from './pages/CustomerDashboard';
-import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { LearningPage } from './pages/Learning';
 import { KnowledgeBasePage } from './pages/KnowledgeBase';
 import { BillingReturn } from './pages/BillingReturn';
