@@ -74,6 +74,9 @@ export const UsersManagement: React.FC = () => {
 
     const filteredUsers = useMemo(() => {
         return users.filter(u => {
+            // 1. Hide Admins
+            if (u.role === 'admin') return false;
+
             const lic = licenses.find(l => l.userId === u.id);
             
             // Search
@@ -84,29 +87,36 @@ export const UsersManagement: React.FC = () => {
             // Tier
             const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
 
-            // Status Logic (Reverted to old UTC date logic)
+            // Status Logic with enhanced 'Active' check
             const matchesStatus = statusFilter === 'all' || (() => {
-                if (lic?.status !== statusFilter) return false;
-
-                if (statusFilter === 'active' || statusFilter === 'trial') {
+                if (statusFilter === 'active') {
+                    // Must be active AND have a Stripe Sub ID
+                    if (lic?.status !== 'active') return false;
+                    if (!lic?.stripeSubscriptionId?.startsWith('sub_')) return false;
+                    
+                    // Also check date validity
                     if (!lic?.validUntil) return false;
-
                     const validUntilDate = new Date(lic.validUntil);
                     const now = new Date();
-                    // Midnight UTC check
-                    const todayUTC = new Date(Date.UTC(
-                        now.getUTCFullYear(),
-                        now.getUTCMonth(),
-                        now.getUTCDate()
-                    ));
+                    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                    return validUntilDate.getTime() >= todayUTC.getTime();
+                }
 
+                if (lic?.status !== statusFilter) return false;
+
+                // For 'trial', check dates
+                if (statusFilter === 'trial') {
+                    if (!lic?.validUntil) return false;
+                    const validUntilDate = new Date(lic.validUntil);
+                    const now = new Date();
+                    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
                     return validUntilDate.getTime() >= todayUTC.getTime();
                 }
 
                 return true;
             })();
 
-            // Engagement Logic (Reverted to simple boolean check)
+            // Engagement Logic
             const isEngaged = !!u.lastLoginAt;
             const matchesEngagement = engagementFilter === 'all' ||
                 (engagementFilter === 'engaged' && isEngaged) ||

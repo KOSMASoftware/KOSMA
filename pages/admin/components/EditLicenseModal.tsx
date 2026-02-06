@@ -6,11 +6,32 @@ import { AlertTriangle, RefreshCw, Check } from 'lucide-react';
 export const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onClose: () => void, onUpdate: () => void }> = ({ user, license, onClose, onUpdate }) => {
     const [tier, setTier] = useState<PlanTier>(license?.planTier || PlanTier.FREE);
     const [status, setStatus] = useState<SubscriptionStatus>(license?.status || SubscriptionStatus.NONE);
-    const [overrideDate, setOverrideDate] = useState(license?.adminValidUntilOverride ? new Date(license.adminValidUntilOverride).toISOString().split('T')[0] : '');
+    // Initialize date based on priority: Stripe -> Trial -> Admin Override
+    const initialDate = license?.currentPeriodEnd || license?.trialEndsAt || license?.adminValidUntilOverride || '';
+    const [overrideDate, setOverrideDate] = useState(initialDate ? new Date(initialDate).toISOString().split('T')[0] : '');
     const [updating, setUpdating] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    const isStripe = !!license?.stripeSubscriptionId;
+    const isTrial = status === 'trial';
+
+    let dateLabel = "Admin override valid until (UTC)";
+    let dateHint = "Sets licenses.admin_valid_until_override.";
+
+    if (isStripe) {
+        dateLabel = "Extend Stripe billing until (UTC)";
+        dateHint = "This updates Stripe (next invoice shifts). No local override date is stored.";
+    } else if (isTrial) {
+        dateLabel = "Trial ends at (UTC)";
+        dateHint = "Sets licenses.trial_ends_at.";
+    }
+
     const handleSave = async () => {
+        if (isStripe && !overrideDate) {
+            setErrorMsg("Date required for Stripe extension");
+            return;
+        }
+
         setUpdating(true);
         setErrorMsg(null);
         try {
@@ -52,17 +73,17 @@ export const EditLicenseModal: React.FC<{ user: User, license: License | undefin
                     <div>
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Status - Händisch</label>
                         <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
-                            <option value="active">Bezahlt</option>
-                            <option value="trial">Trial (Production)</option>
+                            <option value="active">Bezahlt / Aktiv</option>
+                            <option value="trial">Trial</option>
                             <option value="past_due">Zahlung abgelehnt</option>
                             <option value="canceled">Gekündigt</option>
                             <option value="none">Kein Abo (Free)</option>
                         </select>
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Hard-Expiration Date (Override)</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">{dateLabel}</label>
                         <input type="date" value={overrideDate} onChange={e => setOverrideDate(e.target.value)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none" />
-                        <p className="text-[10px] text-gray-400 mt-2 font-medium">Dies überschreibt Stripe-Daten im Dashboard.</p>
+                        <p className="text-[10px] text-gray-400 mt-2 font-medium">{dateHint}</p>
                     </div>
                 </div>
                 <div className="flex gap-4 mt-12">
