@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { MarketingJob } from '../../types';
-import { Loader2, Plus, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, List, Users } from 'lucide-react';
 import { AdminTabs } from './components/AdminTabs';
 import { CreateCampaignModal } from './components/CreateCampaignModal';
 import { CRMView } from './components/CRMView';
 import { AnalyticsView } from './components/AnalyticsView';
+import { AutomationsList } from './components/AutomationsList';
+import { SegmentsMonitor } from './components/SegmentsMonitor';
+import { JobRecipientsModal } from './components/JobRecipientsModal';
 
 export const MarketingView: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'campaigns' | 'crm' | 'analytics'>('campaigns');
+    const [activeTab, setActiveTab] = useState<'automations' | 'segments' | 'campaigns' | 'crm'>('automations');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [jobs, setJobs] = useState<MarketingJob[]>([]);
     const [loadingJobs, setLoadingJobs] = useState(false);
     
@@ -37,14 +41,38 @@ export const MarketingView: React.FC = () => {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
+            
+            {/* Global Analytics Header */}
+            <div className="mb-12">
+                <AnalyticsView />
+            </div>
+
+            {/* Tab Navigation */}
             <div className="flex justify-center mb-10">
-                <div className="inline-flex bg-gray-100 p-1.5 rounded-2xl">
-                    {(['campaigns', 'crm', 'analytics'] as const).map(tab => (
-                        <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>{tab}</button>
+                <div className="inline-flex bg-gray-100 p-1.5 rounded-2xl shadow-inner">
+                    {(['automations', 'segments', 'campaigns', 'crm'] as const).map(tab => (
+                        <button 
+                            key={tab} 
+                            onClick={() => setActiveTab(tab)} 
+                            className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${
+                                activeTab === tab 
+                                ? 'bg-white text-gray-900 shadow-md transform scale-105' 
+                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200/50'
+                            }`}
+                        >
+                            {tab}
+                        </button>
                     ))}
                 </div>
             </div>
 
+            {/* 1. Automations Tab */}
+            {activeTab === 'automations' && <AutomationsList />}
+
+            {/* 2. Segments Tab */}
+            {activeTab === 'segments' && <SegmentsMonitor />}
+
+            {/* 3. Campaigns Tab */}
             {activeTab === 'campaigns' && (
                 <div>
                     <div className="flex justify-between items-center mb-8">
@@ -92,9 +120,16 @@ export const MarketingView: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                {(job.status === 'failed' || job.status === 'done_with_errors') && (
-                                                    <button onClick={() => handleRetry(job.id)} className="p-2 text-brand-500 hover:bg-brand-50 rounded-xl transition-colors"><RefreshCw className="w-4 h-4" /></button>
-                                                )}
+                                                <div className="flex justify-end gap-2">
+                                                    <button onClick={() => setSelectedJobId(job.id)} className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-colors" title="View Recipients">
+                                                        <List className="w-4 h-4" />
+                                                    </button>
+                                                    {(job.status === 'failed' || job.status === 'done_with_errors') && (
+                                                        <button onClick={() => handleRetry(job.id)} className="p-2 text-brand-500 hover:bg-brand-50 rounded-xl transition-colors" title="Retry Failed">
+                                                            <RefreshCw className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -105,9 +140,12 @@ export const MarketingView: React.FC = () => {
                 </div>
             )}
 
+            {/* 4. CRM Tab */}
             {activeTab === 'crm' && <CRMView />}
-            {activeTab === 'analytics' && <AnalyticsView />}
+
+            {/* Modals */}
             {isCreateModalOpen && <CreateCampaignModal onClose={() => setIsCreateModalOpen(false)} onCreated={() => { fetchJobs(); setActiveTab('campaigns'); }} />}
+            {selectedJobId && <JobRecipientsModal jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />}
         </div>
     );
 };
