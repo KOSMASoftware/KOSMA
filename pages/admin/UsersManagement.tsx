@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Loader2, Search, Edit, Trash2 } from 'lucide-react';
+import { Loader2, Search, Edit, Trash2, RefreshCw, ShieldAlert } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { PlanTier, SubscriptionStatus, License, User } from '../../types';
 import { useAdminData } from './hooks/useAdminData';
@@ -84,44 +84,38 @@ export const UsersManagement: React.FC = () => {
             // Tier
             const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
 
-            // Status Logic (with Date check)
-            const now = new Date();
-            const validUntil = lic?.validUntil ? new Date(lic.validUntil) : null;
-            const isValid = validUntil && validUntil >= now;
-            
-            let statusMatch = true;
-            if (statusFilter !== 'all') {
-                if (statusFilter === 'active') {
-                    // Active means status is active AND not expired
-                    statusMatch = lic?.status === 'active' && !!isValid;
-                } else if (statusFilter === 'trial') {
-                    // Trial means status is trial AND not expired
-                    statusMatch = lic?.status === 'trial' && !!isValid;
-                } else if (statusFilter === 'expired') {
-                    // Expired if date is in past or status is canceled/past_due/none
-                    statusMatch = !isValid || ['canceled', 'past_due', 'none'].includes(lic?.status || '');
-                } else {
-                    // Specific status string match
-                    statusMatch = lic?.status === statusFilter;
-                }
-            }
+            // Status Logic (Reverted to old UTC date logic)
+            const matchesStatus = statusFilter === 'all' || (() => {
+                if (lic?.status !== statusFilter) return false;
 
-            // Engagement Logic
-            let engagementMatch = true;
-            if (engagementFilter !== 'all') {
-                const lastLogin = u.lastLoginAt ? new Date(u.lastLoginAt) : null;
-                const daysSinceLogin = lastLogin ? Math.floor((now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60 * 24)) : 9999;
-                
-                if (engagementFilter === 'active_30d') engagementMatch = daysSinceLogin <= 30;
-                else if (engagementFilter === 'inactive_30d') engagementMatch = daysSinceLogin > 30;
-                else if (engagementFilter === 'inactive_90d') engagementMatch = daysSinceLogin > 90;
-                else if (engagementFilter === 'never') engagementMatch = !u.lastLoginAt;
-            }
+                if (statusFilter === 'active' || statusFilter === 'trial') {
+                    if (!lic?.validUntil) return false;
+
+                    const validUntilDate = new Date(lic.validUntil);
+                    const now = new Date();
+                    // Midnight UTC check
+                    const todayUTC = new Date(Date.UTC(
+                        now.getUTCFullYear(),
+                        now.getUTCMonth(),
+                        now.getUTCDate()
+                    ));
+
+                    return validUntilDate.getTime() >= todayUTC.getTime();
+                }
+
+                return true;
+            })();
+
+            // Engagement Logic (Reverted to simple boolean check)
+            const isEngaged = !!u.lastLoginAt;
+            const matchesEngagement = engagementFilter === 'all' ||
+                (engagementFilter === 'engaged' && isEngaged) ||
+                (engagementFilter === 'inactive' && !isEngaged);
 
             // Company
             const matchesCompany = companyFilter === 'all' || u.billingAddress?.companyName === companyFilter;
 
-            return matchesSearch && matchesTier && statusMatch && engagementMatch && matchesCompany;
+            return matchesSearch && matchesTier && matchesStatus && matchesEngagement && matchesCompany;
         });
     }, [users, licenses, search, tierFilter, statusFilter, engagementFilter, companyFilter]);
 
@@ -165,10 +159,10 @@ export const UsersManagement: React.FC = () => {
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Status</label>
                         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm outline-none border border-transparent focus:border-brand-500 transition-all">
                             <option value="all">Alle Status</option>
-                            <option value="active">Active (Paid)</option>
-                            <option value="trial">Trial (Active)</option>
-                            <option value="expired">Expired / Cancelled</option>
-                            <option value="past_due">Past Due (Payment Failed)</option>
+                            <option value="active">Bezahlt</option>
+                            <option value="trial">Trial</option>
+                            <option value="past_due">Zahlung offen</option>
+                            <option value="canceled">Gekündigt</option>
                         </select>
                     </div>
 
@@ -176,11 +170,9 @@ export const UsersManagement: React.FC = () => {
                     <div>
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Engagement</label>
                         <select value={engagementFilter} onChange={e => setEngagementFilter(e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm outline-none border border-transparent focus:border-brand-500 transition-all">
-                            <option value="all">Alle Nutzer</option>
-                            <option value="active_30d">Aktiv (letzte 30 Tage)</option>
-                            <option value="inactive_30d">Inaktiv ({'>'} 30 Tage)</option>
-                            <option value="inactive_90d">Inaktiv ({'>'} 90 Tage)</option>
-                            <option value="never">Nie eingeloggt</option>
+                            <option value="all">Alle</option>
+                            <option value="engaged">Eingeloggt (Aktiv)</option>
+                            <option value="inactive">Nie eingeloggt</option>
                         </select>
                     </div>
 
@@ -208,6 +200,8 @@ export const UsersManagement: React.FC = () => {
                     <tbody className="divide-y divide-gray-100">
                         {filteredUsers.map(user => {
                             const lic = licenses.find(l => l.userId === user.id);
+                            const hasStripe = !!user.stripeCustomerId;
+                            
                             return (
                                 <tr key={user.id} className="hover:bg-gray-50/50 group transition-colors">
                                     <td className="px-8 py-6">
@@ -219,7 +213,17 @@ export const UsersManagement: React.FC = () => {
                                     <td className="px-8 py-6 text-right">
                                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
                                             <button onClick={() => setEditingUser(user)} className="p-3 text-brand-500 hover:bg-brand-50 rounded-2xl transition-colors"><Edit className="w-5 h-5"/></button>
-                                            <button onClick={() => handleDelete(user)} disabled={deletingId === user.id} className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"><Trash2 className="w-5 h-5"/></button>
+                                            <button
+                                                onClick={() => handleDelete(user)}
+                                                disabled={deletingId === user.id || hasStripe}
+                                                className={`p-3 rounded-2xl transition-colors ${
+                                                  hasStripe ? 'text-gray-200 cursor-not-allowed' : 'text-red-500 hover:bg-red-50'
+                                                }`}
+                                                title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
+                                              >
+                                                {deletingId === user.id ? <RefreshCw className="w-5 h-5 animate-spin"/> :
+                                              (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5"/>)}
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
