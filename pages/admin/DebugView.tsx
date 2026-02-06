@@ -5,19 +5,89 @@ import { AdminTabs } from './components/AdminTabs';
 
 export const DebugView: React.FC = () => {
     const [events, setEvents] = useState<any[]>([]);
+    const [customerEmails, setCustomerEmails] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
+
+    // 1. Helper: Payload robust parsen
+    const parsePayload = (payload: any) => {
+        if (typeof payload === 'string') {
+            try {
+                return JSON.parse(payload);
+            } catch (e) {
+                return {}; 
+            }
+        }
+        return payload;
+    };
+
+    // 2. Helper: Customer ID extrahieren
+    const getCustomerId = (payload: any): string | null => {
+        const p = parsePayload(payload);
+        const obj = p?.data?.object;
+        if (!obj) return null;
+
+        if (typeof obj.customer === 'string') return obj.customer;
+        if (typeof obj.customer_id === 'string') return obj.customer_id;
+        if (obj.customer_details && typeof obj.customer_details.customer === 'string') {
+            return obj.customer_details.customer;
+        }
+        return null;
+    };
 
     const refresh = async () => {
         setLoading(true);
-        const { data } = await supabase.from('stripe_events').select('*').order('created_at', { ascending: false }).limit(20);
-        if (data) setEvents(data);
-        setLoading(false);
+        try {
+            // 1. Events laden
+            const { data: eventData } = await supabase
+                .from('stripe_events')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(20);
+            
+            if (eventData) {
+                setEvents(eventData);
+
+                // 2. Customer IDs sammeln
+                const customerIds = Array.from(new Set(
+                    eventData.map(ev => getCustomerId(ev.payload)).filter(Boolean)
+                )) as string[];
+
+                // 3. Batch Lookup für Emails
+                if (customerIds.length > 0) {
+                    const { data: profiles } = await supabase
+                        .from('profiles')
+                        .select('email, stripe_customer_id')
+                        .in('stripe_customer_id', customerIds);
+                    
+                    if (profiles) {
+                        const emailMap = Object.fromEntries(
+                            profiles.map(p => [p.stripe_customer_id, p.email])
+                        );
+                        setCustomerEmails(emailMap);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Debug fetch error:", e);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { refresh(); }, []);
 
-    const getEmailOrCustomer = (payload: any) => {
-        const obj = payload?.data?.object;
+    // 4. Anzeige-Logik
+    const getDisplayInfo = (rawPayload: any) => {
+        const p = parsePayload(rawPayload);
+        const cid = getCustomerId(p);
+
+        // A) Treffer in DB-Map?
+        if (cid && customerEmails[cid]) {
+            return customerEmails[cid];
+        }
+
+        // B) Fallback: Felder im Payload suchen
+        const obj = p?.data?.object;
         if (!obj) return '—';
         
         return obj.customer_email || 
@@ -25,7 +95,7 @@ export const DebugView: React.FC = () => {
                obj.email || 
                obj.customer_details?.email || 
                obj.billing_details?.email || 
-               obj.customer || 
+               cid || // Fallback auf ID (cus_...)
                '—';
     };
 
@@ -44,18 +114,27 @@ export const DebugView: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {events.map(ev => (
-                            <tr key={ev.id} className="hover:bg-gray-50/50">
-                                <td className="px-8 py-5 font-mono text-xs text-brand-600 font-black">{ev.type}</td>
-                                <td className="px-8 py-5 text-xs font-bold text-gray-700">{getEmailOrCustomer(ev.payload)}</td>
-                                <td className="px-8 py-5 text-xs font-bold text-gray-600">{new Date(ev.created_at).toLocaleString()}</td>
-                                <td className="px-8 py-5 text-right">
-                                    <button onClick={() => navigator.clipboard.writeText(JSON.stringify(ev.payload))} className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-lg hover:bg-gray-200">
-                                        <ClipboardCopy className="w-3 h-3 inline mr-1"/> JSON
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {events.map(ev => {
+                            const displayInfo = getDisplayInfo(ev.payload);
+                            const isResolvedEmail = displayInfo.includes('@');
+
+                            return (
+                                <tr key={ev.id} className="hover:bg-gray-50/50">
+                                    <td className="px-8 py-5 font-mono text-xs text-brand-600 font-black">{ev.type}</td>
+                                    <td className="px-8 py-5 text-xs font-bold text-gray-700">
+                                        <span className={isResolvedEmail ? "text-gray-900" : "text-gray-400 font-mono"}>
+                                            {displayInfo}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-5 text-xs font-bold text-gray-600">{new Date(ev.created_at).toLocaleString()}</td>
+                                    <td className="px-8 py-5 text-right">
+                                        <button onClick={() => navigator.clipboard.writeText(JSON.stringify(parsePayload(ev.payload)))} className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-lg hover:bg-gray-200">
+                                            <ClipboardCopy className="w-3 h-3 inline mr-1"/> JSON
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
