@@ -128,7 +128,7 @@ export const SegmentsMonitor: React.FC = () => {
 
                         {/* Sample Table */}
                         <div className="flex-1 overflow-hidden flex flex-col">
-                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Random Sample (Max 10)</h4>
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Users in Segment</h4>
                             <div className="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden flex-1">
                                 <div className="overflow-y-auto h-full">
                                     <table className="w-full text-left">
@@ -141,7 +141,7 @@ export const SegmentsMonitor: React.FC = () => {
                                         <tbody className="text-xs font-medium text-gray-600 divide-y divide-gray-100">
                                             {data.sample.length > 0 ? data.sample.map((u, i) => (
                                                 <tr key={i} className="hover:bg-white transition-colors">
-                                                    <td className="px-6 py-3 font-mono">{u.id}</td>
+                                                    <td className="px-6 py-3 font-mono">{u.user_id || u.id}</td>
                                                     <td className="px-6 py-3">{u.email}</td>
                                                 </tr>
                                             )) : (
