@@ -2,25 +2,26 @@ import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { Users, Loader2, RefreshCw } from 'lucide-react';
 
-const SEGMENTS = [
-    'never_logged_in',
-    'never_purchased',
-    'trial_active',
-    'trial_ending_3d',
-    'inactivity_short',
-    'inactivity_long',
-    'monthly_3_periods',
-    'yearly_active',
-    'cancelled_or_expired',
-    'deletion_warning_30d',
-    'deletion_warning_7d',
-    'monthly_tips',
-    'opened',
-    'clicked',
-    'never_opened',
-    'unsubscribed',
-    'bounce'
+const SEGMENT_GROUPS = [
+    {
+        title: 'Kundenstatus',
+        keys: ['all_users', 'paying_monthly', 'paying_yearly', 'trial_active', 'no_plan']
+    },
+    {
+        title: 'Risiko',
+        keys: ['past_due', 'cancelled_or_expired']
+    },
+    {
+        title: 'Aktivität',
+        keys: ['never_logged_in']
+    },
+    {
+        title: 'Kommunikation',
+        keys: ['unsubscribed', 'bounce']
+    }
 ];
+
+const INITIAL_SEGMENT = 'all_users';
 
 interface PreviewData {
     count_total: number;
@@ -28,7 +29,7 @@ interface PreviewData {
 }
 
 export const SegmentsMonitor: React.FC = () => {
-    const [selectedSegment, setSelectedSegment] = useState<string>(SEGMENTS[0]);
+    const [selectedSegment, setSelectedSegment] = useState<string>(INITIAL_SEGMENT);
     const [data, setData] = useState<PreviewData | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -63,21 +64,30 @@ export const SegmentsMonitor: React.FC = () => {
             {/* Sidebar List */}
             <div className="w-full lg:w-1/3 bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                 <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-gray-900">Available Segments</h3>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-gray-900">Segment Groups</h3>
                 </div>
-                <div className="overflow-y-auto flex-1 p-2 space-y-1">
-                    {SEGMENTS.map(seg => (
-                        <button
-                            key={seg}
-                            onClick={() => setSelectedSegment(seg)}
-                            className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all ${
-                                selectedSegment === seg 
-                                    ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-100' 
-                                    : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                        >
-                            {seg}
-                        </button>
+                <div className="overflow-y-auto flex-1 p-4 space-y-6">
+                    {SEGMENT_GROUPS.map((group, groupIdx) => (
+                        <div key={groupIdx}>
+                            <h4 className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
+                                {group.title}
+                            </h4>
+                            <div className="space-y-1">
+                                {group.keys.map(seg => (
+                                    <button
+                                        key={seg}
+                                        onClick={() => setSelectedSegment(seg)}
+                                        className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                            selectedSegment === seg 
+                                                ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-100' 
+                                                : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {seg}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             </div>
