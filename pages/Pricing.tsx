@@ -120,48 +120,48 @@ export const Pricing: React.FC = () => {
 
   return (
     <MarketingLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
         <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 tracking-tight">
           Simple, transparent pricing
         </h1>
-        <p className="text-xl text-gray-500 mb-16 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto leading-relaxed font-medium">
           Choose the plan that fits your production needs. Professional tools for modern film production.
         </p>
         
         {/* TOGGLE */}
-        <div className="flex justify-center mb-16" id="pricing">
+        <div className="flex justify-center mb-12" id="pricing">
           <div className="inline-flex bg-white rounded-full p-1.5 shadow-sm border border-gray-200">
-            <button onClick={() => setBillingInterval('yearly')} className={`px-8 py-3 rounded-full text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
-            <button onClick={() => setBillingInterval('monthly')} className={`px-8 py-3 rounded-full text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
+            <button onClick={() => setBillingInterval('yearly')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
+            <button onClick={() => setBillingInterval('monthly')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-gray-900 text-white shadow-md' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
           </div>
         </div>
 
         {/* PRICING CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 items-start">
           {plans.map((plan, idx) => (
             <Card 
               key={idx} 
               color={plan.color}
               interactive
               enableLedEffect={true}
-              className="h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300"
+              className="h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300 p-6 rounded-2xl"
             >
-              <h3 className={`text-2xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h3>
+              <h3 className={`text-xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h3>
               
               <div className="flex justify-center mb-6">
-                <plan.Icon className={`w-12 h-12 ${plan.textClass} opacity-90`} />
+                <plan.Icon className={`w-10 h-10 ${plan.textClass} opacity-90`} />
               </div>
 
               <p className="text-xs text-gray-500 h-10 mb-6 leading-relaxed px-2 font-medium">{plan.subtitle}</p>
               
               <div className="mb-2">
-                 <span className={`text-4xl font-black ${plan.textClass}`}>{plan.price} €</span>
-                 <span className="text-sm text-gray-400 font-bold ml-1">{billingInterval === 'yearly' ? '/year' : '/month'}</span>
+                 <span className={`text-3xl font-black ${plan.textClass}`}>{plan.price} €</span>
+                 <span className="text-xs text-gray-400 font-bold ml-1">{billingInterval === 'yearly' ? '/year' : '/month'}</span>
               </div>
 
-              <div className="h-6 mb-8">
+              <div className="h-6 mb-6">
                 {plan.save && (
-                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full">
                         Save {plan.save}€ / yr
                     </span>
                 )}
@@ -169,16 +169,16 @@ export const Pricing: React.FC = () => {
 
               <button 
                 onClick={() => handleSelectPlan(plan.name)} 
-                className={`w-full py-4 rounded-2xl border-2 font-black text-sm transition-all mb-8 shadow-sm ${plan.btnClass}`}
+                className={`w-full py-3 rounded-xl border-2 font-black text-xs transition-all mb-6 shadow-sm ${plan.btnClass}`}
               >
                   {plan.btnText}
               </button>
 
               <div className="border-t border-gray-100 pt-6 flex-1">
-                <ul className="space-y-3 text-left text-sm font-medium text-gray-600">
+                <ul className="space-y-3 text-left text-xs font-medium text-gray-600">
                     {plan.features.map((feat, fIdx) => (
-                    <li key={fIdx} className="flex gap-3 items-start">
-                        <Check className={`w-4 h-4 ${plan.textClass} shrink-0 mt-0.5`} />
+                    <li key={fIdx} className="flex gap-2 items-start">
+                        <Check className={`w-3.5 h-3.5 ${plan.textClass} shrink-0 mt-0.5`} />
                         <span className="leading-tight">{feat}</span>
                     </li>
                     ))}
@@ -188,55 +188,55 @@ export const Pricing: React.FC = () => {
           ))}
         </div>
 
-        {/* TECHNICAL FACTS - New Section matching Download Page Design */}
+        {/* TECHNICAL FACTS - Compact Design */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
              {/* Box 1 */}
-             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
-                    <Monitor className="w-6 h-6" />
+             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex gap-4 items-start hover:border-slate-300 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <Monitor className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Cross-Platform</h3>
-                    <p className="text-slate-500 leading-relaxed text-sm">
+                    <h3 className="font-bold text-slate-900 text-sm mb-1">Cross-Platform</h3>
+                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
                         It runs on Mac and Windows equally.
                     </p>
                 </div>
              </div>
 
              {/* Box 2 */}
-             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
-                    <HardDrive className="w-6 h-6" />
+             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex gap-4 items-start hover:border-slate-300 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <HardDrive className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Local & Secure</h3>
-                    <p className="text-slate-500 leading-relaxed text-sm">
+                    <h3 className="font-bold text-slate-900 text-sm mb-1">Local & Secure</h3>
+                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
                         KOSMA stores your data locally on your machine and on the KOSMA server for you to share with other project members.
                     </p>
                 </div>
              </div>
 
              {/* Box 3 */}
-             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
-                    <WifiOff className="w-6 h-6" />
+             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex gap-4 items-start hover:border-slate-300 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <WifiOff className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Offline Ready</h3>
-                    <p className="text-slate-500 leading-relaxed text-sm">
+                    <h3 className="font-bold text-slate-900 text-sm mb-1">Offline Ready</h3>
+                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
                         No internet, no problem – KOSMA runs offline as desktop app, not in a browser.
                     </p>
                 </div>
              </div>
 
              {/* Box 4 */}
-             <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex gap-6 items-start hover:border-slate-300 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
-                    <Laptop className="w-6 h-6" />
+             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex gap-4 items-start hover:border-slate-300 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-white text-slate-500 flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
+                    <Laptop className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-semibold text-slate-900 text-lg mb-2">Flexible Licensing</h3>
-                    <p className="text-slate-500 leading-relaxed text-sm">
+                    <h3 className="font-bold text-slate-900 text-sm mb-1">Flexible Licensing</h3>
+                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
                         One KOSMA license runs on a maximum of two computers.
                     </p>
                 </div>

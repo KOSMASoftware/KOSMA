@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MorphingText } from '../components/MorphingText';
@@ -318,14 +317,14 @@ const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorNam
 
 const TrustSection = () => {
   return (
-    <section className="py-24 relative z-10">
+    <section className="py-16 relative z-10">
        <div className="max-w-7xl mx-auto px-6">
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 tracking-tight leading-tight">
                Trusted by production teams who need budget certainty.
              </h2>
-             <p className="text-lg text-gray-500 font-medium leading-relaxed">
+             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed">
                From budgeting to cash flow and cost control — KOSMA keeps every project financially aligned.
              </p>
           </div>
@@ -379,7 +378,7 @@ const SignatureCard: React.FC = () => {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className={`
-          relative rounded-[2rem] border transition-all duration-300 ease-out
+          relative rounded-2xl border transition-all duration-300 ease-out
           ${isHovering ? 'border-white/60 shadow-2xl shadow-gray-200/50 scale-[1.01]' : 'border-white/20 shadow-xl shadow-gray-100/30'}
           bg-white/70 backdrop-blur-md overflow-hidden group
         `}
@@ -399,13 +398,13 @@ const SignatureCard: React.FC = () => {
         />
         
         {/* Content */}
-        <div className="relative z-10 px-8 py-8 md:px-16 md:py-8 text-center">
+        <div className="relative z-10 p-6 md:p-8 text-center">
            <div className="flex flex-col items-center">
              
              {/* Decorative Top Line - Inside Card now */}
              <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent mb-4 opacity-40"></div>
              
-             <p className="text-2xl md:text-4xl font-medium text-gray-400 leading-snug tracking-tight">
+             <p className="text-xl md:text-2xl font-medium text-gray-400 leading-snug tracking-tight">
                <span className="text-transparent bg-clip-text bg-gradient-to-br from-gray-900 via-brand-600 to-brand-400 font-black drop-shadow-sm">
                  KOSMA
                </span>
@@ -450,7 +449,7 @@ const USPBlock = () => {
   const delayStyle = (ms: number) => ({ transitionDelay: `${ms}ms` });
 
   return (
-    <div ref={ref} className="relative py-12 md:py-20 text-center px-4 max-w-6xl mx-auto">
+    <div ref={ref} className="relative py-12 text-center px-4 max-w-6xl mx-auto">
        <style>{`
          /* Dot Animation */
          @keyframes converge-tl { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(24px, 24px); } }
@@ -485,7 +484,7 @@ const USPBlock = () => {
        </div>
 
        {/* Headline - Reduced Margin (mb-6) */}
-       <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-6 leading-[0.95]">
+       <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter mb-6 leading-tight">
          <span className={`block ${transitionClass}`} style={delayStyle(0)}>
            Four Modules.
          </span>
@@ -612,18 +611,18 @@ const FeatureScrollytelling = () => {
 
   return (
     // Outer Container
-    <section id="features" className="relative w-full py-16 md:py-24">
+    <section id="features" className="relative w-full py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* NEW USP BLOCK REPLACES OLD INTRO */}
         <USPBlock />
 
         {/* Phase Headline */}
-        <div className="text-center mb-10 max-w-4xl mx-auto mt-32">
+        <div className="text-center mb-10 max-w-4xl mx-auto mt-24">
            <div className="inline-block p-3 rounded-full bg-gray-50 border border-gray-100 mb-6">
               <TrendingUp className="w-6 h-6 text-gray-400" />
            </div>
-           <h3 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight leading-tight">
+           <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight">
              Maximum oversight, control and safety in all phases of production
            </h3>
         </div>
@@ -651,7 +650,7 @@ const FeatureScrollytelling = () => {
         {/* CONDITIONAL RENDERING */}
         {isMobile ? (
             /* MOBILE STACKED VIEW */
-            <div className="flex flex-col gap-24 pb-24 animate-in fade-in">
+            <div className="flex flex-col gap-12 pb-24 animate-in fade-in">
                {activeModule.features.map((feature, idx) => (
                  <div key={`${activeModuleId}-mob-${idx}`} className="flex flex-col gap-8">
                     <div className="px-2">
@@ -662,7 +661,7 @@ const FeatureScrollytelling = () => {
                           Step {idx + 1} / {activeModule.features.length}
                        </div>
                        <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
-                       <p className="text-lg font-bold text-gray-400 mb-6">{feature.desc}</p>
+                       <p className="text-base font-bold text-gray-400 mb-6">{feature.desc}</p>
 
                        {/* Unified Cards for Mobile */}
                        <FeatureProcess feature={feature} colorName={activeModule.colorName} />
@@ -688,7 +687,7 @@ const FeatureScrollytelling = () => {
                {/* The Sticky Stage */}
                <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
                   {/* Grid - items-stretch to align height of Text and Image column */}
-                  <div className="w-full max-w-7xl grid grid-cols-2 gap-16 xl:gap-24 items-stretch">
+                  <div className="w-full max-w-7xl grid grid-cols-2 gap-8 xl:gap-12 items-stretch">
                      
                      {/* LEFT: Text Stage - Fixed Height 520px, overflow hidden, pt-8 */}
                      <div className="relative h-[520px] pt-8 flex gap-8">
@@ -737,7 +736,7 @@ const FeatureScrollytelling = () => {
                                 <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 leading-tight">
                                     {feature.title}
                                 </h3>
-                                <p className="text-lg font-bold text-gray-400 mb-10">
+                                <p className="text-base font-bold text-gray-400 mb-10">
                                     {feature.desc}
                                 </p>
 
@@ -945,7 +944,7 @@ export const Landing: React.FC = () => {
                     <div className="pointer-events-auto inline-block">
                         
                         {/* NEW ROW 1: Logo + "Simply..." Subheadline */}
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-6 text-lg md:text-xl font-bold text-gray-200 tracking-wide">
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-6 text-base md:text-lg font-bold text-gray-200 tracking-wide">
                             <div className="flex items-center gap-3">
                                 <KosmaTextLogo />
                                 <span className="hidden md:inline text-brand-500">—</span>
@@ -967,7 +966,7 @@ export const Landing: React.FC = () => {
 
                         {/* NEW ROW 2: Main Headline */}
                         <h1
-                            className="m-0 font-black tracking-[-0.04em] leading-[0.95] text-[clamp(38px,6vw,86px)] mb-10 text-white"
+                            className="m-0 font-black tracking-tight leading-none text-3xl md:text-4xl mb-10 text-white"
                             style={{ textShadow: '0 0 24px rgba(255,255,255,0.65)' }}
                         >
                             Bring AI to your film budget
