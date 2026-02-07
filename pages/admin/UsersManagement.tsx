@@ -214,70 +214,71 @@ export const UsersManagement: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50/50 border-b border-gray-100">
-                        <tr>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer</th>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan</th>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Aktionen</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {filteredUsers.map(user => {
-                            const lic = licenses.find(l => l.userId === user.id);
-                            const hasStripe = !!user.stripeCustomerId;
-                            
-                            return (
-                                <tr key={user.id} className="hover:bg-gray-50/50 group transition-colors">
-                                    <td className="px-6 py-3">
-                                        <div className="font-bold text-sm text-gray-900">{user.name}</div>
-                                        <div className="text-xs text-gray-400 font-mono mt-0.5">{user.email}</div>
-                                    </td>
-                                    <td className="px-6 py-3 align-middle">
-                                        <div className="flex flex-col gap-1 items-start">
-                                            <div className="text-xs font-bold text-gray-700">{lic?.planTier || 'Free'}</div>
-                                            {getRemainingTimeBadge(lic)}
-                                            <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                                                Gültig bis: {lic?.validUntil ? new Date(lic.validUntil).toLocaleDateString('de-DE') : '—'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-3 text-center align-middle">
-                                        {getPaymentBadge(lic)}
-                                    </td>
-                                    <td className="px-6 py-3 text-right align-middle">
-                                        {/* FIX: Buttons always visible (no hover logic), secondary style */}
-                                        <div className="flex justify-end gap-2">
-                                            <Button 
-                                                variant="secondary" 
-                                                className="h-8 w-8 p-0 rounded-lg" 
-                                                onClick={() => setEditingUser(user)}
-                                                title="Lizenz bearbeiten"
-                                            >
-                                                <Edit className="w-4 h-4 text-gray-500"/>
-                                            </Button>
-                                            
-                                            <Button
-                                                variant="secondary"
-                                                onClick={() => handleDelete(user)}
-                                                disabled={deletingId === user.id || hasStripe}
-                                                className={`h-8 w-8 p-0 rounded-lg ${
-                                                  hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-white border-gray-100' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-100'
-                                                }`}
-                                                title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
-                                            >
-                                                {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
-                                              (hasStripe ? <ShieldAlert className="w-4 h-4" /> : <Trash2 className="w-4 h-4"/>)}
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl">
+                <div className="overflow-x-auto rounded-2xl">
+                    <table className="min-w-[900px] w-full text-left border-collapse">
+                        <thead className="bg-gray-50/50 border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right sticky right-0 bg-gray-50 z-20 w-[110px] shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {filteredUsers.map(user => {
+                                const lic = licenses.find(l => l.userId === user.id);
+                                const hasStripe = !!user.stripeCustomerId;
+                                
+                                return (
+                                    <tr key={user.id} className="hover:bg-gray-50/50 group transition-colors">
+                                        <td className="px-6 py-3">
+                                            <div className="font-bold text-sm text-gray-900">{user.name}</div>
+                                            <div className="text-xs text-gray-400 font-mono mt-0.5">{user.email}</div>
+                                        </td>
+                                        <td className="px-6 py-3 align-middle">
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <div className="text-xs font-bold text-gray-700">{lic?.planTier || 'Free'}</div>
+                                                {getRemainingTimeBadge(lic)}
+                                                <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                                    Gültig bis: {lic?.validUntil ? new Date(lic.validUntil).toLocaleDateString('de-DE') : '—'}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-3 text-center align-middle">
+                                            {getPaymentBadge(lic)}
+                                        </td>
+                                        <td className="px-6 py-3 text-right align-middle sticky right-0 bg-white group-hover:bg-gray-50 transition-colors z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">
+                                            <div className="flex justify-end gap-2">
+                                                <Button 
+                                                    variant="secondary" 
+                                                    className="h-8 w-8 p-0 rounded-lg" 
+                                                    onClick={() => setEditingUser(user)}
+                                                    title="Lizenz bearbeiten"
+                                                >
+                                                    <Edit className="w-4 h-4 text-gray-500"/>
+                                                </Button>
+                                                
+                                                <Button
+                                                    variant="secondary"
+                                                    onClick={() => handleDelete(user)}
+                                                    disabled={deletingId === user.id || hasStripe}
+                                                    className={`h-8 w-8 p-0 rounded-lg ${
+                                                      hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-white border-gray-100' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-100'
+                                                    }`}
+                                                    title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
+                                                >
+                                                    {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
+                                                  (hasStripe ? <ShieldAlert className="w-4 h-4" /> : <Trash2 className="w-4 h-4"/>)}
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
                 {filteredUsers.length === 0 && (
                     <div className="p-12 text-center text-gray-400 text-sm font-medium italic">
                         Keine Nutzer gefunden.
