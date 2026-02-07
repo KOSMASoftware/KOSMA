@@ -113,8 +113,8 @@ export const MarketingView: React.FC = () => {
                         <button onClick={() => setIsCreateModalOpen(true)} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all shadow-lg"><Plus className="w-4 h-4" /> New Campaign</button>
                     </div>
 
-                    {/* UPDATED: Container with horizontal scroll instead of overflow-hidden */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-x-auto">
+                    {/* Container with horizontal scroll */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-x-auto relative">
                         <table className="min-w-[900px] w-full text-left border-collapse">
                             <thead className="bg-gray-50/50 border-b border-gray-100">
                                 <tr>
@@ -122,8 +122,8 @@ export const MarketingView: React.FC = () => {
                                     <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Segment</th>
                                     <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                                     <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</th>
-                                    {/* UPDATED: Sticky Header for Actions */}
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right w-[110px] sticky right-0 bg-gray-50 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)] z-10">Actions</th>
+                                    {/* Sticky Header for Actions - Right 0 */}
+                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right w-[120px] sticky right-0 bg-gray-50 z-20 shadow-[-10px_0_20px_-15px_rgba(0,0,0,0.1)]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -157,16 +157,24 @@ export const MarketingView: React.FC = () => {
                                                     <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${job.status === 'done_with_errors' ? 'bg-amber-500' : 'bg-brand-500'}`} style={{ width: `${Math.min(100, (sent / total) * 100)}%` }} /></div>
                                                 </div>
                                             </td>
-                                            {/* UPDATED: Sticky Cell for Actions */}
-                                            <td className="px-6 py-3 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50 transition-colors shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)] z-10">
+                                            {/* Sticky Cell for Actions - White background + Shadow */}
+                                            <td className="px-6 py-3 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50 transition-colors z-20 shadow-[-10px_0_20px_-15px_rgba(0,0,0,0.1)]">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button variant="secondary" className="h-8 w-8 p-0 rounded-lg hover:text-brand-600" onClick={() => setSelectedJobId(job.id)} title="View Recipients">
-                                                        <List className="w-4 h-4" />
-                                                    </Button>
+                                                    <button 
+                                                        className="h-8 w-8 p-0 rounded-lg bg-gray-900 text-white border border-gray-900 hover:bg-gray-800 hover:text-white flex items-center justify-center transition-colors shadow-sm" 
+                                                        onClick={() => setSelectedJobId(job.id)} 
+                                                        title="View Recipients"
+                                                    >
+                                                        <List className="w-5 h-5" />
+                                                    </button>
                                                     {(job.status === 'failed' || job.status === 'done_with_errors') && (
-                                                        <Button variant="secondary" className="h-8 w-8 p-0 rounded-lg text-brand-700 border-brand-200 hover:bg-brand-50" onClick={() => handleRetry(job.id)} title="Retry Failed">
-                                                            <RefreshCw className="w-4 h-4" />
-                                                        </Button>
+                                                        <button 
+                                                            className="h-8 w-8 p-0 rounded-lg bg-amber-500 text-white border border-amber-600 hover:bg-amber-600 hover:text-white flex items-center justify-center transition-colors shadow-sm" 
+                                                            onClick={() => handleRetry(job.id)} 
+                                                            title="Retry Failed"
+                                                        >
+                                                            <RefreshCw className="w-5 h-5" />
+                                                        </button>
                                                     )}
                                                 </div>
                                             </td>

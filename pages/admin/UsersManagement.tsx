@@ -248,7 +248,8 @@ export const UsersManagement: React.FC = () => {
                                         {getPaymentBadge(lic)}
                                     </td>
                                     <td className="px-6 py-3 text-right align-middle">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                        {/* FIX: Buttons always visible on mobile (opacity-100), hidden on desktop (md:opacity-0) until hover */}
+                                        <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
                                             <Button 
                                                 variant="ghost" 
                                                 className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50" 
