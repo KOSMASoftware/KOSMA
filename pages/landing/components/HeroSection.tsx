@@ -62,7 +62,8 @@ export const HeroSection = () => {
 
   const scrollToFeatures = (e: React.MouseEvent) => {
     e.preventDefault();
-    const el = document.getElementById('features');
+    // Updated ID target to jump directly to the phases/scrollytelling part
+    const el = document.getElementById('detailed-features');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }

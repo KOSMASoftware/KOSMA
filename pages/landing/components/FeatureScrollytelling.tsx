@@ -133,8 +133,8 @@ export const FeatureScrollytelling = () => {
         {/* NEW USP BLOCK REPLACES OLD INTRO */}
         <USPBlock />
 
-        {/* Phase Headline */}
-        <div className="text-center mb-10 max-w-4xl mx-auto mt-24">
+        {/* Phase Headline - ID Added here for precise scrolling */}
+        <div id="detailed-features" className="text-center mb-10 max-w-4xl mx-auto mt-24 scroll-mt-32">
            <div className="inline-block p-3 rounded-full bg-gray-50 border border-gray-100 mb-6">
               <TrendingUp className="w-6 h-6 text-gray-400" />
            </div>
