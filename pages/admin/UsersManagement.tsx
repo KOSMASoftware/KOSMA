@@ -248,23 +248,23 @@ export const UsersManagement: React.FC = () => {
                                         {getPaymentBadge(lic)}
                                     </td>
                                     <td className="px-6 py-3 text-right align-middle">
-                                        {/* FIX: Buttons always visible on mobile (opacity-100), hidden on desktop (md:opacity-0) until hover */}
-                                        <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
+                                        {/* FIX: Buttons always visible (no hover logic), secondary style */}
+                                        <div className="flex justify-end gap-2">
                                             <Button 
-                                                variant="ghost" 
-                                                className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50" 
+                                                variant="secondary" 
+                                                className="h-8 w-8 p-0 rounded-lg" 
                                                 onClick={() => setEditingUser(user)}
                                                 title="Lizenz bearbeiten"
                                             >
-                                                <Edit className="w-4 h-4"/>
+                                                <Edit className="w-4 h-4 text-gray-500"/>
                                             </Button>
                                             
                                             <Button
-                                                variant="ghost"
+                                                variant="secondary"
                                                 onClick={() => handleDelete(user)}
                                                 disabled={deletingId === user.id || hasStripe}
                                                 className={`h-8 w-8 p-0 rounded-lg ${
-                                                  hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-transparent' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                                                  hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-white border-gray-100' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-100'
                                                 }`}
                                                 title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
                                             >

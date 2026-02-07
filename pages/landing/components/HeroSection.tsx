@@ -200,8 +200,8 @@ export const HeroSection = () => {
                           background="#F59E0B"
                           shimmerColor="rgba(255, 255, 255, 0.35)"
                           borderRadius="1rem"
-                          className="backdrop-blur-md border border-white/10"
-                          shimmerDuration="4s"
+                          className="backdrop-blur-md border border-white/10 shadow-[0_0_30px_rgba(245,158,11,0.45)] hover:shadow-[0_0_50px_rgba(245,158,11,0.65)] transition-shadow"
+                          shimmerDuration="2.5s"
                       >
                           <span className="text-white font-bold text-sm px-6 py-1">Explore Features</span>
                       </ShimmerButton>
