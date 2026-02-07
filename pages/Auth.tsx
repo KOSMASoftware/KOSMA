@@ -4,6 +4,9 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { FormField } from '../components/ui/FormField';
 
 // Wrapper that uses MarketingLayout but maintains the inner centering
 const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?: string }> = ({ children, title, subtitle }) => (
@@ -160,7 +163,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
                ? 'You can now login with your new password.'
                : 'Instructions have been sent.'}
           </p>
-          <Link to="/login" className="text-[#0093D0] font-bold hover:underline">Back to Login</Link>
+          <Link to="/login" className="text-brand-500 font-bold hover:underline">Back to Login</Link>
         </div>
       </AuthLayout>
     );
@@ -171,7 +174,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
       title={isResetRequest ? 'Reset Password' : mode === 'signup' ? 'Sign Up' : mode === 'update-password' ? 'Update' : 'Login'}
       subtitle={isResetRequest ? 'We will send you a reset link' : mode === 'login' ? 'Welcome to KOSMA' : ''}
     >
-      <div className="space-y-10">
+      <div className="space-y-8">
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm flex gap-3 animate-in fade-in zoom-in-95">
             {isConfigError ? <ShieldAlert className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
@@ -179,61 +182,66 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
           </div>
         )}
 
-        <div className="space-y-8">
+        <div className="space-y-4">
           {mode !== 'update-password' && step === 'initial' && (
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block">EMAIL</label>
-              <input 
+            <FormField label="Email">
+              <Input 
                 type="email" 
                 placeholder="user@example.com" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAction()}
-                className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-1 focus:ring-[#0093D0] transition-all text-gray-800 placeholder:text-gray-300 bg-white"
               />
-            </div>
+            </FormField>
           )}
           
           {!isResetRequest && (mode === 'login' || mode === 'update-password' || step === 'details') && (
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block">PASSWORD</label>
-              <input 
+            <FormField label="Password">
+              <Input 
                 type="password" 
                 placeholder="......" 
                 value={password} 
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAction()}
-                className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-1 focus:ring-[#0093D0] transition-all text-gray-800 placeholder:text-gray-300 bg-white"
               />
-            </div>
+            </FormField>
           )}
 
           {mode === 'signup' && step === 'details' && (
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block">FIRST NAME</label>
-                <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-1 focus:ring-[#0093D0] bg-white" />
-              </div>
-              <div className="space-y-2.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] block">LAST NAME</label>
-                <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:ring-1 focus:ring-[#0093D0] bg-white" />
-              </div>
+              <FormField label="First Name">
+                <Input 
+                  type="text" 
+                  placeholder="First Name" 
+                  value={firstName} 
+                  onChange={e => setFirstName(e.target.value)} 
+                />
+              </FormField>
+              <FormField label="Last Name">
+                <Input 
+                  type="text" 
+                  placeholder="Last Name" 
+                  value={lastName} 
+                  onChange={e => setLastName(e.target.value)} 
+                />
+              </FormField>
             </div>
           )}
         </div>
 
-        <button 
+        <Button 
           onClick={handleAction} 
           disabled={loading}
-          className="w-full py-5 bg-[#0093D0] text-white rounded-xl font-bold text-base flex items-center justify-center transition-all hover:bg-[#007fb5] disabled:opacity-50 active:scale-[0.98] shadow-sm"
+          className="w-full"
+          isLoading={loading}
         >
-          {loading ? 'Processing...' : isResetRequest ? 'Send Reset Link' : (mode === 'login' ? 'Log In' : mode === 'signup' ? (step === 'initial' ? 'Continue' : 'Create Account') : 'Update')}
-        </button>
+          {isResetRequest ? 'Send Reset Link' : (mode === 'login' ? 'Log In' : mode === 'signup' ? (step === 'initial' ? 'Continue' : 'Create Account') : 'Update')}
+        </Button>
 
         <div className="text-center space-y-4 pt-2">
           {mode === 'login' && (
             <p className="text-xs font-medium text-gray-500">
-              Don't have a KOSMA account? <Link to="/signup" className="text-[#0093D0] hover:underline font-bold">Sign up now</Link>
+              Don't have a KOSMA account? <Link to="/signup" className="text-brand-500 hover:underline font-bold">Sign up now</Link>
             </p>
           )}
           <Link to="/login?reset=true" className="text-xs font-medium text-gray-400 hover:text-gray-600 block">Forgot password?</Link>

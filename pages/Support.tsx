@@ -1,8 +1,11 @@
-
 import React, { useState } from 'react';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
-import { Mail, MessageSquare, Send, CheckCircle, Loader2, ChevronDown, ChevronUp, Search, CircleHelp } from 'lucide-react';
+import { Send, CheckCircle, ChevronDown, ChevronUp, Search, CircleHelp } from 'lucide-react';
 import { FAQ_DATA } from '../data/faq-data';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { TextArea } from '../components/ui/TextArea';
+import { FormField } from '../components/ui/FormField';
 
 export const SupportPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -113,56 +116,52 @@ export const SupportPage: React.FC = () => {
                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h3>
                      <p className="text-gray-600 mb-8">Thank you for contacting us. We will get back to you shortly.</p>
-                     <button onClick={() => { setSuccess(false); setFormData({name:'', email:'', message:''}); }} className="font-bold text-brand-500 hover:text-brand-700">Send another message</button>
+                     <Button variant="ghost" onClick={() => { setSuccess(false); setFormData({name:'', email:'', message:''}); }}>
+                        Send another message
+                     </Button>
                  </div>
              ) : (
                  <div className="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50">
                      <form onSubmit={handleSubmit} className="space-y-6">
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div>
-                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 pl-2">Name</label>
-                                 <input 
+                             <FormField label="Name">
+                                 <Input 
                                     required
                                     type="text" 
                                     placeholder="Your Name"
                                     value={formData.name}
                                     onChange={e => setFormData({...formData, name: e.target.value})}
-                                    className="w-full p-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-gray-900 font-medium placeholder:text-gray-400 outline-none transition-all"
                                  />
-                             </div>
-                             <div>
-                                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 pl-2">Email</label>
-                                 <input 
+                             </FormField>
+                             <FormField label="Email">
+                                 <Input 
                                     required
                                     type="email" 
                                     placeholder="hello@example.com"
                                     value={formData.email}
                                     onChange={e => setFormData({...formData, email: e.target.value})}
-                                    className="w-full p-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-gray-900 font-medium placeholder:text-gray-400 outline-none transition-all"
                                  />
-                             </div>
+                             </FormField>
                          </div>
-                         <div>
-                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 pl-2">Message</label>
-                             <textarea 
+                         <FormField label="Message">
+                             <TextArea 
                                 required
                                 rows={6}
                                 placeholder="Describe your issue..."
                                 value={formData.message}
                                 onChange={e => setFormData({...formData, message: e.target.value})}
-                                className="w-full p-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-gray-900 font-medium placeholder:text-gray-400 outline-none resize-none transition-all"
                              />
-                         </div>
+                         </FormField>
                          
                          <div className="pt-4">
-                            <button 
+                            <Button 
                                 type="submit" 
-                                disabled={loading}
-                                className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 hover:-translate-y-1"
+                                isLoading={loading}
+                                className="w-full"
+                                icon={<Send className="w-4 h-4" />}
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 Send Message
-                            </button>
+                            </Button>
                          </div>
 
                          <p className="text-center text-xs text-gray-400 mt-6">
