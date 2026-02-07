@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ChevronRight, 
@@ -13,6 +12,7 @@ import { KB_DATA, findArticleById, KnowledgeArticle, KnowledgeCategory } from '.
 import { SmartLink } from '../components/SmartLink';
 import { Card } from '../components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
+import { Input } from '../components/ui/Input';
 
 // --- ICONS MAPPING ---
 const CATEGORY_ICONS: Record<string, any> = {
@@ -160,17 +160,18 @@ const KBLanding = () => {
       <div className="text-center mb-16">
         <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Knowledge Base</h1>
         
-        {/* Search Bar */}
+        {/* Search Bar - Standardized to Input Primitive */}
         <div className="relative max-w-2xl mx-auto group z-20">
-           <div className="absolute inset-0 bg-gray-200/50 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-           <div className="relative bg-white p-2 rounded-2xl border border-gray-200 shadow-sm flex items-center focus-within:ring-2 focus-within:ring-brand-500 transition-all">
-              <Search className="w-5 h-5 text-gray-400 ml-4" />
-              <input 
-                 type="text" 
+           <div className="absolute inset-0 bg-gray-200/50 rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+           <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <Input 
+                 placeholder="Search definitions, fields, concepts..." 
                  value={search}
                  onChange={e => setSearch(e.target.value)}
-                 placeholder="Search definitions, fields, concepts..." 
-                 className="w-full p-3 outline-none text-lg bg-transparent font-medium placeholder:text-gray-400 text-gray-900"
+                 className="pl-10 h-12 text-base shadow-sm border-gray-200"
               />
            </div>
            

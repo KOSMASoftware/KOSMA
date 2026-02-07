@@ -13,20 +13,20 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
   <MarketingLayout>
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative min-h-[calc(100vh-200px)]">
       
-      <div className="w-full max-w-[440px] z-10 py-12 relative">
-        <div className="text-center mb-12">
-          <h1 className="text-[64px] font-bold text-[#111827] mb-2 leading-none tracking-tight">
+      <div className="w-full max-w-[400px] z-10 py-12 relative">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-black text-[#111827] mb-2 leading-none tracking-tight">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-gray-400 text-base font-medium tracking-tight mt-4">
+            <p className="text-gray-400 text-sm font-medium tracking-tight mt-2">
               {subtitle}
             </p>
           )}
         </div>
         
-        {/* Added background to card for better readability over dots */}
-        <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-white">
+        {/* Compact Card Style: p-6 rounded-2xl */}
+        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-xl shadow-gray-200/50 border border-white">
             {children}
         </div>
       </div>
@@ -174,7 +174,7 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
       title={isResetRequest ? 'Reset Password' : mode === 'signup' ? 'Sign Up' : mode === 'update-password' ? 'Update' : 'Login'}
       subtitle={isResetRequest ? 'We will send you a reset link' : mode === 'login' ? 'Welcome to KOSMA' : ''}
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm flex gap-3 animate-in fade-in zoom-in-95">
             {isConfigError ? <ShieldAlert className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}

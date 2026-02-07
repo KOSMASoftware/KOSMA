@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { Search, Loader2, Send, Eye, MousePointer, Activity } from 'lucide-react';
+import { Input } from '../../../components/ui/Input';
+import { Button } from '../../../components/ui/Button';
+import { FormField } from '../../../components/ui/FormField';
 
 export const CRMView: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -29,22 +32,21 @@ export const CRMView: React.FC = () => {
 
     return (
         <div>
-            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mb-10">
-                <div className="flex gap-4">
-                    <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center border border-gray-100 focus-within:ring-2 ring-brand-500 transition-all">
-                        <Search className="w-5 h-5 text-gray-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Search user email..." 
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                            className="w-full bg-transparent p-4 outline-none font-bold text-gray-900"
-                        />
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-10">
+                <div className="flex gap-4 items-end">
+                    <div className="flex-1">
+                        <FormField label="Search User">
+                            <Input 
+                                placeholder="user@example.com" 
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                            />
+                        </FormField>
                     </div>
-                    <button onClick={handleSearch} disabled={loading} className="px-8 bg-gray-900 text-white rounded-xl font-black text-sm hover:bg-brand-500 transition-all">
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : "Search Timeline"}
-                    </button>
+                    <Button onClick={handleSearch} isLoading={loading} icon={<Search className="w-4 h-4" />}>
+                        Search Timeline
+                    </Button>
                 </div>
             </div>
 
@@ -77,6 +79,9 @@ export const CRMView: React.FC = () => {
                         </div>
                     </div>
                 ))}
+                {timeline.length === 0 && !loading && (
+                    <div className="text-center text-gray-400 text-sm italic py-10">No events found for this email.</div>
+                )}
             </div>
         </div>
     );

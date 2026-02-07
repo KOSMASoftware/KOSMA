@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -281,7 +280,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {plans.map((plan) => {
                     const isCurrent = plan.name === currentTier && billingInterval === currentCycle;
                     
@@ -383,9 +382,9 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
             
             <DashboardTabs />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Status Card */}
-                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between relative overflow-hidden group">
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between relative overflow-hidden group">
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-50 rounded-full blur-3xl group-hover:bg-brand-100 transition-colors duration-500"></div>
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-6">
@@ -420,7 +419,7 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
                 </div>
 
                 {/* History Card */}
-                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col">
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-black text-gray-900 tracking-tight">Recent Invoices</h3>
                         <FileText className="w-5 h-5 text-gray-300" />
@@ -514,7 +513,7 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                 </div>
             )}
 
-            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-gray-200/50 mb-16 relative overflow-hidden group">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-2xl shadow-gray-200/50 mb-16 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gray-50/50 rounded-full blur-3xl -mr-32 -mt-32"></div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
                     <div>
@@ -544,7 +543,7 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                         </div>
                     </div>
                     
-                    <div className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-3xl border border-gray-100 md:min-w-[280px]">
+                    <div className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-100 md:min-w-[280px]">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Renewal Details</p>
                         <div className="space-y-3">
                             <div className="flex justify-between items-center text-sm">
@@ -656,8 +655,8 @@ const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: 
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50">
                     <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
                         <Building className="w-6 h-6 text-brand-500" /> Billing Info
                     </h3>
@@ -678,7 +677,7 @@ const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: 
                     </button>
                 </div>
 
-                <div className="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50">
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50">
                     <h3 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-3">
                         <CreditCard className="w-6 h-6 text-brand-500" /> Payment Methods
                     </h3>
