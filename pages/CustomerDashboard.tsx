@@ -258,19 +258,19 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
     ];
 
     return (
-        <div className="mt-16 border-t border-gray-100 pt-12">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+        <div className="mt-12 border-t border-gray-100 pt-10">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
                 <div>
-                    <h3 className="text-2xl font-bold text-gray-900 tracking-tight">Expand Your Tools</h3>
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Expand Your Tools</h3>
                     <p className="text-gray-500 mt-1">
                         {isManagedViaPortal 
                             ? "Manage your active subscription in the Stripe Customer Portal or plan a downgrade." 
                             : "Choose the tier that matches your production workflow."}
                     </p>
                 </div>
-                <div className="inline-flex bg-gray-100 rounded-2xl p-1.5 shadow-inner">
-                    <button onClick={() => setBillingInterval('yearly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
-                    <button onClick={() => setBillingInterval('monthly')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
+                <div className="inline-flex bg-gray-100 rounded-xl p-1 shadow-inner">
+                    <button onClick={() => setBillingInterval('yearly')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${billingInterval === 'yearly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Yearly</button>
+                    <button onClick={() => setBillingInterval('monthly')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${billingInterval === 'monthly' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Monthly</button>
                 </div>
             </div>
 
@@ -297,25 +297,25 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                             color={plan.color}
                             interactive
                             enableLedEffect={true}
-                            className="group h-full"
+                            className="group h-full p-6 rounded-2xl"
                         >
                             {isCurrent && (
                                 <div className="absolute top-0 right-0 bg-gray-900 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl tracking-widest uppercase z-10">
                                     Active
                                 </div>
                             )}
-                            <h4 className={`text-2xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h4>
-                            <div className="flex justify-center mb-8 transform group-hover:scale-110 transition-transform duration-300"><plan.Icon className={`w-14 h-14 ${plan.textClass} opacity-80`} /></div>
-                            <div className="mb-8 text-center">
-                                <span className={`text-5xl font-black ${plan.textClass}`}>{plan.price} €</span>
+                            <h4 className={`text-xl md:text-2xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h4>
+                            <div className="flex justify-center mb-6 transform group-hover:scale-110 transition-transform duration-300"><plan.Icon className={`w-14 h-14 ${plan.textClass} opacity-80`} /></div>
+                            <div className="mb-6 text-center">
+                                <span className={`text-4xl font-black ${plan.textClass}`}>{plan.price} €</span>
                                 <span className="text-sm text-gray-400 block mt-1 font-bold">{billingInterval === 'yearly' ? 'per year' : 'per month'}</span>
                             </div>
 
-                            <div className="flex flex-col gap-3 mb-8">
+                            <div className="flex flex-col gap-3 mb-6">
                                 {isCurrent ? (
                                     <button
                                         disabled
-                                        className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-300 text-sm font-bold cursor-not-allowed"
+                                        className="w-full py-2.5 rounded-lg border-2 border-gray-100 text-gray-300 text-sm font-bold cursor-not-allowed"
                                     >
                                         Currently Active
                                     </button>
@@ -323,7 +323,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                                     <button
                                         onClick={() => handleDowngrade(plan.name, billingInterval)}
                                         disabled={loadingPortal}
-                                        className={`w-full py-4 rounded-2xl border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white flex items-center justify-center gap-2`}
+                                        className={`w-full py-2.5 rounded-lg border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white flex items-center justify-center gap-2`}
                                     >
                                         {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : "Downgrade"}
                                     </button>
@@ -331,7 +331,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                                     <button
                                         onClick={handlePortalRedirect}
                                         disabled={loadingPortal}
-                                        className="w-full py-4 rounded-2xl border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 transition-all"
+                                        className="w-full py-2.5 rounded-lg border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 transition-all"
                                     >
                                         {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
                                         Upgrade
@@ -339,15 +339,15 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                                 ) : (
                                     <button
                                         onClick={() => handlePurchase(plan.name, billingInterval)}
-                                        className={`w-full py-4 rounded-2xl border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white`}
+                                        className={`w-full py-2.5 rounded-lg border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white`}
                                     >
                                         Get Started
                                     </button>
                                 )}
                             </div>
                             
-                            <div className="border-t border-gray-100 pt-8 flex-1">
-                                <ul className="space-y-4 text-left text-sm text-gray-600 font-medium">
+                            <div className="border-t border-gray-100 pt-6 flex-1">
+                                <ul className="space-y-3 text-left text-sm text-gray-600 font-medium">
                                     {plan.features.map((f, i) => (
                                         <li key={i} className="flex gap-3 items-start"><Check className={`w-5 h-5 ${plan.textClass} shrink-0`} /> <span>{f}</span></li>
                                     ))}
@@ -375,7 +375,7 @@ const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoic
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
                 <div>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Welcome, {user.name}</h1>
+                    <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Welcome, {user.name}</h1>
                     <p className="text-gray-500 mt-1 font-medium italic">Production Dashboard</p>
                 </div>
             </div>
@@ -504,22 +504,22 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
             <DashboardTabs />
 
             {isPolling && (
-                <div className="bg-brand-50 border border-brand-100 text-brand-800 p-8 rounded-3xl mb-12 flex items-center gap-6 animate-pulse">
-                    <RefreshCw className="w-10 h-10 text-brand-500 animate-spin" />
+                <div className="bg-brand-50 border border-brand-100 text-brand-800 p-6 rounded-2xl mb-12 flex items-center gap-4 animate-pulse">
+                    <RefreshCw className="w-6 h-6 text-brand-500 animate-spin" />
                     <div>
-                        <h3 className="font-black text-xl tracking-tight">Syncing Status...</h3>
+                        <h3 className="font-black text-base tracking-tight">Syncing Status...</h3>
                         <p className="text-sm font-medium opacity-70">We are synchronizing your account with Stripe. This takes a few seconds.</p>
                     </div>
                 </div>
             )}
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-2xl shadow-gray-200/50 mb-16 relative overflow-hidden group">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-2xl shadow-gray-200/50 mb-12 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gray-50/50 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <span className="text-xs font-black text-brand-500 uppercase tracking-[0.2em]">Active Plan</span>
                         <div className="flex items-baseline gap-3 mt-2">
-                            <h2 className="text-5xl font-black text-gray-900 tracking-tighter">{activeLicense?.planTier || 'Free'}</h2>
+                            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter">{activeLicense?.planTier || 'Free'}</h2>
                             <span className="text-gray-400 font-bold">/{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
                         </div>
                         <div className="mt-6 flex flex-wrap gap-3">

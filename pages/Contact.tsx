@@ -27,20 +27,20 @@ export const ContactPage: React.FC = () => {
 
   return (
     <MarketingLayout>
-      <div className="min-h-[calc(100vh-72px)] py-20 px-6">
+      <div className="min-h-[calc(100vh-72px)] py-16 px-6">
          <div className="max-w-2xl mx-auto">
-             <div className="text-center mb-16">
-                 <div className="w-16 h-16 bg-brand-50 text-brand-500 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                     <Mail className="w-8 h-8" />
+             <div className="text-center mb-10">
+                 <div className="w-12 h-12 bg-brand-50 text-brand-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                     <Mail className="w-6 h-6" />
                  </div>
-                 <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Contact Support</h1>
-                 <p className="text-xl text-gray-500">
+                 <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-6">Contact Support</h1>
+                 <p className="text-base md:text-lg text-gray-500">
                     We're here to help. Send us a message and we'll respond as soon as possible.
                  </p>
              </div>
 
              {success ? (
-                 <div className="bg-green-50 border border-green-100 rounded-[2rem] p-12 text-center animate-in fade-in zoom-in-95">
+                 <div className="bg-green-50 border border-green-100 rounded-2xl p-8 text-center animate-in fade-in zoom-in-95">
                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h3>
                      <p className="text-gray-600 mb-8">Thank you for contacting us. We will get back to you shortly.</p>
@@ -49,7 +49,7 @@ export const ContactPage: React.FC = () => {
                      </Button>
                  </div>
              ) : (
-                 <form onSubmit={handleSubmit} className="space-y-6 bg-gray-50 p-8 md:p-12 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                 <form onSubmit={handleSubmit} className="space-y-4 bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
                      <FormField label="Name">
                          <Input 
                             required

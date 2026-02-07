@@ -38,17 +38,17 @@ export const SupportPage: React.FC = () => {
       <div className="min-h-[calc(100vh-72px)] pb-20">
          
          {/* HERO SECTION - Light Theme */}
-         <div className="text-center pt-20 pb-16 px-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="w-16 h-16 bg-brand-50 rounded-3xl flex items-center justify-center mx-auto mb-8 text-brand-500 shadow-sm border border-brand-100">
-                 <CircleHelp className="w-8 h-8" />
+         <div className="text-center pt-16 pb-12 px-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-brand-500 shadow-sm border border-brand-100">
+                 <CircleHelp className="w-6 h-6" />
             </div>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-gray-900 mb-6">Support Center</h1>
-            <p className="text-xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 mb-4">Support Center</h1>
+            <p className="text-base md:text-lg text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
                 How can we help you? Browse our FAQs or get in touch with our team directly.
             </p>
 
             {/* FAQ Search - Standardized to System Input */}
-            <div className="max-w-xl mx-auto mt-12 relative group z-20">
+            <div className="max-w-xl mx-auto mt-8 relative group z-20">
                 <div className="absolute inset-0 bg-brand-500/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -58,7 +58,7 @@ export const SupportPage: React.FC = () => {
                         placeholder="Search questions..." 
                         value={faqSearch}
                         onChange={e => setFaqSearch(e.target.value)}
-                        className="pl-10" // Make room for icon
+                        className="pl-10 h-10" // Make room for icon
                     />
                 </div>
             </div>
@@ -66,7 +66,7 @@ export const SupportPage: React.FC = () => {
 
          {/* FAQ SECTION */}
          <div className="max-w-3xl mx-auto px-6 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-             <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
                 {filteredFaq.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                         {filteredFaq.map((item) => {
@@ -75,7 +75,7 @@ export const SupportPage: React.FC = () => {
                                 <div key={item.id} className="bg-white hover:bg-gray-50/50 transition-colors">
                                     <button 
                                         onClick={() => setOpenFaqId(isOpen ? null : item.id)}
-                                        className="w-full text-left px-8 py-6 flex justify-between items-center gap-4 group"
+                                        className="w-full text-left px-6 py-4 flex justify-between items-center gap-4 group"
                                     >
                                         <div className="flex flex-col items-start gap-1">
                                             {item.category && (
@@ -91,7 +91,7 @@ export const SupportPage: React.FC = () => {
                                     </button>
                                     
                                     {isOpen && (
-                                        <div className="px-8 pb-8 text-gray-600 leading-relaxed font-medium animate-in slide-in-from-top-2 whitespace-pre-wrap">
+                                        <div className="px-6 pb-6 text-gray-600 leading-relaxed font-medium animate-in slide-in-from-top-2 whitespace-pre-wrap">
                                             {item.answer}
                                         </div>
                                     )}
@@ -100,7 +100,7 @@ export const SupportPage: React.FC = () => {
                         })}
                     </div>
                 ) : (
-                    <div className="p-12 text-center text-gray-400 italic">No answers found for "{faqSearch}".</div>
+                    <div className="p-8 text-center text-gray-400 italic">No answers found for "{faqSearch}".</div>
                 )}
              </div>
          </div>
@@ -113,7 +113,7 @@ export const SupportPage: React.FC = () => {
              </div>
 
              {success ? (
-                 <div className="bg-green-50 border border-green-100 rounded-[2rem] p-12 text-center animate-in fade-in zoom-in-95 max-w-2xl mx-auto">
+                 <div className="bg-green-50 border border-green-100 rounded-2xl p-8 text-center animate-in fade-in zoom-in-95 max-w-2xl mx-auto">
                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-6" />
                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Sent!</h3>
                      <p className="text-gray-600 mb-8">Thank you for contacting us. We will get back to you shortly.</p>
@@ -122,7 +122,7 @@ export const SupportPage: React.FC = () => {
                      </Button>
                  </div>
              ) : (
-                 <div className="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50">
+                 <div className="max-w-2xl mx-auto bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50">
                      <form onSubmit={handleSubmit} className="space-y-6">
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <FormField label="Name">

@@ -158,7 +158,7 @@ const KBLanding = () => {
       
       {/* Header */}
       <div className="text-center mb-16">
-        <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">Knowledge Base</h1>
+        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-4">Knowledge Base</h1>
         
         {/* Search Bar - Standardized to Input Primitive */}
         <div className="relative max-w-2xl mx-auto group z-20">
@@ -171,7 +171,7 @@ const KBLanding = () => {
                  placeholder="Search definitions, fields, concepts..." 
                  value={search}
                  onChange={e => setSearch(e.target.value)}
-                 className="pl-10 h-12 text-base shadow-sm border-gray-200"
+                 className="pl-10 h-10 text-sm shadow-sm border-gray-200"
               />
            </div>
            
@@ -203,7 +203,7 @@ const KBLanding = () => {
             <Link 
               key={cat.slug} 
               to={`/help/${cat.slug}`}
-              className="group bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-start"
+              className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-start"
             >
               <div 
                 className="w-12 h-12 rounded-xl flex items-center justify-center mb-6 transition-colors"
@@ -302,7 +302,7 @@ const KBCategory = ({ slug }: { slug: string }) => {
       </div>
 
       {/* Directory Grid (Masonry-ish) */}
-      <div className="columns-1 md:columns-2 gap-8 space-y-8">
+      <div className="columns-1 md:columns-2 gap-6 space-y-6">
          {categorizedArticles.map((group, idx) => (
             <div key={idx} className="break-inside-avoid bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 pb-2 border-b border-gray-100">
@@ -343,7 +343,7 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
   const navigate = useNavigate();
 
   if (!match) {
-     return <div className="p-20 text-center text-gray-400">Article not found.</div>;
+     return <div className="p-8 text-center text-gray-400">Article not found.</div>;
   }
 
   const { article, category } = match;
@@ -367,7 +367,7 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest mb-6">
              <FileText className="w-3 h-3" /> Definition
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter mb-8 leading-tight">
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter mb-6 leading-tight">
              {article.title}
           </h1>
           <div className="text-lg md:text-xl font-medium text-gray-600 leading-relaxed bg-brand-50/30 p-6 rounded-2xl border border-brand-100/50">
