@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 
@@ -6,7 +5,7 @@ export const ImprintPage: React.FC = () => {
   return (
     <MarketingLayout>
       <div className="max-w-4xl mx-auto px-6 py-20 md:py-32">
-        <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-2">Imprint</h1>
+        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-2">Imprint</h1>
         <p className="text-xl text-brand-500 font-bold mb-12">Legal Information</p>
         
         <div className="text-gray-600 leading-relaxed space-y-12">

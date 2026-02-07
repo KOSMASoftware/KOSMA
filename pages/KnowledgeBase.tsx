@@ -295,7 +295,7 @@ const KBCategory = ({ slug }: { slug: string }) => {
               <Icon className="w-8 h-8" style={{ color: config.color }} />
            </div>
            <div>
-              <h1 className="text-4xl font-black text-gray-900 tracking-tight">{config.title}</h1>
+              <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">{config.title}</h1>
               <p className="text-gray-500 font-medium mt-1">{config.description}</p>
            </div>
         </div>

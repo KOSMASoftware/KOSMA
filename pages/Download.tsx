@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { Apple, Monitor, HardDrive, WifiOff, BookOpen, GraduationCap, ArrowRight, MessageCircle, Download, Loader2, RefreshCw } from 'lucide-react';
@@ -64,7 +63,7 @@ export const DownloadPage: React.FC = () => {
                  <Download className="w-10 h-10" />
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter mb-6 leading-tight">
+            <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-6 leading-tight">
                 Get KOSMA
             </h1>
             <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto mb-16 leading-relaxed">
