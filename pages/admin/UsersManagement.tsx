@@ -222,7 +222,7 @@ export const UsersManagement: React.FC = () => {
                                 <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer</th>
                                 <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan</th>
                                 <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right sticky right-0 bg-gray-50 z-20 w-[110px] shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">Aktionen</th>
+                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right sticky right-0 bg-gray-50/50 z-10 w-[110px] shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">Aktionen</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
