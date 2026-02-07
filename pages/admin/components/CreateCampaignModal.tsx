@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import { AlertTriangle, X, Loader2, Search, Users, Send } from 'lucide-react';
+import { AlertTriangle, X, Search, Users, Send } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import { Input } from '../../../components/ui/Input';
+import { Select } from '../../../components/ui/Select';
+import { FormField } from '../../../components/ui/FormField';
 
 interface PreviewData {
     count_total: number;
@@ -109,121 +113,101 @@ export const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () 
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-2xl shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-3xl font-black text-gray-900 tracking-tight">Campaign Wizard</h3>
-                    <button onClick={onClose}><X className="w-6 h-6 text-gray-400 hover:text-gray-900"/></button>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Campaign Wizard</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors"><X className="w-5 h-5"/></button>
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex gap-3">
-                        <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-bold flex gap-3">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
                         <p>{error}</p>
                     </div>
                 )}
 
                 {step === 1 && (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Segment</label>
-                                <select 
-                                    value={segmentKey} 
-                                    onChange={e => setSegmentKey(e.target.value)} 
-                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
-                                >
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField label="Segment">
+                                <Select value={segmentKey} onChange={e => setSegmentKey(e.target.value)}>
                                     {SEGMENT_KEYS.map(k => <option key={k} value={k}>{k}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Run At (Optional)</label>
-                                <input 
+                                </Select>
+                            </FormField>
+                            
+                            <FormField label="Run At (Optional)" hint="Leave empty to run immediately.">
+                                <Input 
                                     type="datetime-local" 
                                     value={runAt} 
                                     onChange={e => setRunAt(e.target.value)} 
-                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
                                 />
-                                <p className="text-[10px] text-gray-400 mt-1 font-medium">Leave empty to run immediately.</p>
-                            </div>
+                            </FormField>
                         </div>
 
-                        <div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Template</label>
+                        <FormField label="Template">
                             {loadingTemplates ? (
-                                <div className="p-4 bg-gray-50 rounded-xl text-gray-400 text-sm italic">Loading Elastic Templates...</div>
+                                <div className="h-10 flex items-center px-3 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 text-sm italic">Loading Templates...</div>
                             ) : (
-                                <>
-                                    <select 
-                                        value={templateName} 
-                                        onChange={e => {
-                                            setTemplateName(e.target.value);
-                                            if(!eventKey) setEventKey(e.target.value);
-                                        }} 
-                                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
-                                    >
-                                        <option value="">-- Select Template --</option>
-                                        {templates.map((t: any, idx: number) => {
-                                            const label = t?.Name || t?.name || t?.template_name || String(t);
-                                            return (
-                                                <option key={idx} value={label}>
-                                                    {label}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                    {!loadingTemplates && templates.length === 0 && (
-                                        <div className="p-4 text-xs text-gray-400">Keine Templates gefunden.</div>
-                                    )}
-                                </>
+                                <Select 
+                                    value={templateName} 
+                                    onChange={e => {
+                                        setTemplateName(e.target.value);
+                                        if(!eventKey) setEventKey(e.target.value);
+                                    }} 
+                                >
+                                    <option value="">-- Select Template --</option>
+                                    {templates.map((t: any, idx: number) => {
+                                        const label = t?.Name || t?.name || t?.template_name || String(t);
+                                        return <option key={idx} value={label}>{label}</option>;
+                                    })}
+                                </Select>
                             )}
-                        </div>
+                        </FormField>
 
-                        <div>
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Event Key (Tracking)</label>
-                            <input 
+                        <FormField label="Event Key (Tracking)" hint="Used for analytics aggregation.">
+                            <Input 
                                 type="text" 
                                 value={eventKey} 
                                 onChange={e => setEventKey(e.target.value)} 
                                 placeholder="e.g. newsletter_jan_24"
-                                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-bold text-sm outline-none"
                             />
-                        </div>
+                        </FormField>
 
-                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 mt-2">
                             <input 
                                 type="checkbox" 
                                 id="dryRun"
                                 checked={dryRun}
                                 onChange={e => setDryRun(e.target.checked)}
-                                className="w-5 h-5 accent-brand-500 rounded"
+                                className="w-4 h-4 accent-brand-500 rounded"
                             />
-                            <label htmlFor="dryRun" className="text-sm font-bold text-gray-700 cursor-pointer">Dry Run (No emails sent, only DB log)</label>
+                            <label htmlFor="dryRun" className="text-sm font-bold text-gray-700 cursor-pointer select-none">Dry Run (Database log only, no emails)</label>
                         </div>
 
                         <div className="flex justify-end pt-4">
-                            <button 
+                            <Button 
                                 onClick={handlePreview} 
-                                disabled={calculating || !templateName}
-                                className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all disabled:opacity-50 shadow-xl"
+                                disabled={!templateName} 
+                                isLoading={calculating}
+                                icon={<Search className="w-4 h-4" />}
                             >
-                                {calculating ? <Loader2 className="w-4 h-4 animate-spin"/> : <Search className="w-4 h-4"/>}
                                 Preview Audience
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 )}
 
                 {step === 2 && previewData && (
-                    <div className="space-y-8">
-                        <div className="p-6 bg-brand-50 border border-brand-100 rounded-2xl flex items-center gap-6">
-                            <div className="p-3 bg-white rounded-xl shadow-sm">
-                                <Users className="w-8 h-8 text-brand-500" />
+                    <div className="space-y-6">
+                        <div className="p-4 bg-brand-50 border border-brand-100 rounded-xl flex items-center gap-4">
+                            <div className="p-2 bg-white rounded-lg shadow-sm text-brand-500">
+                                <Users className="w-6 h-6" />
                             </div>
                             <div>
-                                <h4 className="text-2xl font-black text-brand-900">{previewData.count_total} Recipients</h4>
-                                <p className="text-sm font-medium text-brand-700">Target audience size based on '{segmentKey}'</p>
+                                <h4 className="text-lg font-black text-brand-900">{previewData.count_total} Recipients</h4>
+                                <p className="text-xs font-medium text-brand-700">Target audience size based on '{segmentKey}'</p>
                                 {(previewData.count_excluded_unsub > 0 || previewData.count_excluded_bounce > 0) && (
-                                    <p className="text-[10px] mt-2 font-bold text-brand-600/60 uppercase">
+                                    <p className="text-[10px] mt-1 font-bold text-brand-600/60 uppercase">
                                         Excluded: {previewData.count_excluded_unsub} Unsub · {previewData.count_excluded_bounce} Bounced
                                     </p>
                                 )}
@@ -231,8 +215,8 @@ export const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () 
                         </div>
 
                         <div>
-                            <h5 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Sample Recipients</h5>
-                            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2 max-h-40 overflow-y-auto font-mono text-xs text-gray-600">
+                            <h5 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Sample Recipients</h5>
+                            <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 space-y-1 max-h-32 overflow-y-auto font-mono text-xs text-gray-600">
                                 {previewData.sample.map((u: any, i: number) => (
                                     <div key={i}>{u.email} ({u.id})</div>
                                 ))}
@@ -240,21 +224,16 @@ export const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () 
                             </div>
                         </div>
 
-                        <div className="flex gap-4 pt-4">
-                            <button 
-                                onClick={() => setStep(1)}
-                                className="flex-1 py-4 border border-gray-200 text-gray-600 rounded-2xl font-black text-sm hover:bg-gray-50"
+                        <div className="flex gap-3 pt-2">
+                            <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">Back</Button>
+                            <Button 
+                                onClick={handleCreate} 
+                                isLoading={submitting} 
+                                className="flex-[2] bg-green-600 hover:bg-green-700"
+                                icon={<Send className="w-4 h-4" />}
                             >
-                                Back
-                            </button>
-                            <button 
-                                onClick={handleCreate}
-                                disabled={submitting}
-                                className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-xl disabled:opacity-50"
-                            >
-                                {submitting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4"/>}
                                 {runAt ? 'Schedule Campaign' : 'Launch Now'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 )}

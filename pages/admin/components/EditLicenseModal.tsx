@@ -1,26 +1,32 @@
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { User, License, PlanTier, SubscriptionStatus } from '../../../types';
-import { AlertTriangle, RefreshCw, Check } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import { Input } from '../../../components/ui/Input';
+import { Select } from '../../../components/ui/Select';
+import { FormField } from '../../../components/ui/FormField';
 
 export const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onClose: () => void, onUpdate: () => void }> = ({ user, license, onClose, onUpdate }) => {
     const [tier, setTier] = useState<PlanTier>(license?.planTier || PlanTier.FREE);
     const [status, setStatus] = useState<SubscriptionStatus>(license?.status || SubscriptionStatus.NONE);
+    
     // Initialize date based on priority: Stripe -> Trial -> Admin Override
     const initialDate = license?.currentPeriodEnd || license?.trialEndsAt || license?.adminValidUntilOverride || '';
     const [overrideDate, setOverrideDate] = useState(initialDate ? new Date(initialDate).toISOString().split('T')[0] : '');
+    
     const [updating, setUpdating] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const isStripe = !!license?.stripeSubscriptionId;
     const isTrial = status === 'trial';
 
-    let dateLabel = "Admin override valid until (UTC)";
+    let dateLabel = "Admin override (UTC)";
     let dateHint = "Sets licenses.admin_valid_until_override.";
 
     if (isStripe) {
-        dateLabel = "Extend Stripe billing until (UTC)";
-        dateHint = "This updates Stripe (next invoice shifts). No local override date is stored.";
+        dateLabel = "Extend Stripe billing (UTC)";
+        dateHint = "Updates Stripe (next invoice shifts). No local override.";
     } else if (isTrial) {
         dateLabel = "Trial ends at (UTC)";
         dateHint = "Sets licenses.trial_ends_at.";
@@ -52,45 +58,48 @@ export const EditLicenseModal: React.FC<{ user: User, license: License | undefin
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl animate-in zoom-in-95">
-                <h3 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">Lizenz-Steuerung</h3>
-                <p className="text-sm text-gray-400 font-bold mb-8 uppercase tracking-widest">{user.email}</p>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                <div className="mb-6">
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight">License Control</h3>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1 truncate">{user.email}</p>
+                </div>
                 
                 {errorMsg && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex gap-3">
-                        <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-bold flex gap-3">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
                         <p>{errorMsg}</p>
                     </div>
                 )}
 
-                <div className="space-y-8">
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Plan (Tier) - Händisch</label>
-                        <select value={tier} onChange={e => setTier(e.target.value as PlanTier)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
+                <div className="space-y-4">
+                    <FormField label="Plan (Tier)">
+                        <Select value={tier} onChange={e => setTier(e.target.value as PlanTier)}>
                             {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Status - Händisch</label>
-                        <select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
-                            <option value="active">Bezahlt / Aktiv</option>
+                        </Select>
+                    </FormField>
+
+                    <FormField label="Status">
+                        <Select value={status} onChange={e => setStatus(e.target.value as SubscriptionStatus)}>
+                            <option value="active">Active / Paid</option>
                             <option value="trial">Trial</option>
-                            <option value="past_due">Zahlung abgelehnt</option>
-                            <option value="canceled">Gekündigt</option>
-                            <option value="none">Kein Abo (Free)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">{dateLabel}</label>
-                        <input type="date" value={overrideDate} onChange={e => setOverrideDate(e.target.value)} className="w-full p-5 border border-gray-100 rounded-2xl bg-gray-50 font-black outline-none" />
-                        <p className="text-[10px] text-gray-400 mt-2 font-medium">{dateHint}</p>
-                    </div>
+                            <option value="past_due">Past Due</option>
+                            <option value="canceled">Canceled</option>
+                            <option value="none">None (Free)</option>
+                        </Select>
+                    </FormField>
+
+                    <FormField label={dateLabel} hint={dateHint}>
+                        <Input type="date" value={overrideDate} onChange={e => setOverrideDate(e.target.value)} />
+                    </FormField>
                 </div>
-                <div className="flex gap-4 mt-12">
-                    <button onClick={onClose} className="flex-1 py-5 text-sm font-black text-gray-400 hover:text-gray-900 transition-colors">Abbrechen</button>
-                    <button onClick={handleSave} disabled={updating} className="flex-2 py-5 bg-gray-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-brand-500 transition-all shadow-xl shadow-gray-900/10">
-                        {updating ? <RefreshCw className="w-5 h-5 animate-spin"/> : <Check className="w-5 h-5" />} Speichern
-                    </button>
+
+                <div className="flex gap-3 mt-8">
+                    <Button variant="secondary" onClick={onClose} className="flex-1">
+                        Cancel
+                    </Button>
+                    <Button variant="primary" onClick={handleSave} isLoading={updating} icon={<Check className="w-4 h-4" />} className="flex-1">
+                        Save Changes
+                    </Button>
                 </div>
             </div>
         </div>
