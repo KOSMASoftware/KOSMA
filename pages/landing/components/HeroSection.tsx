@@ -64,7 +64,7 @@ export const HeroSection = () => {
     e.preventDefault();
     const el = document.getElementById('features');
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 

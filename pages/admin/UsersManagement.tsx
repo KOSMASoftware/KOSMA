@@ -252,11 +252,11 @@ export const UsersManagement: React.FC = () => {
                                             <div className="flex justify-end gap-2">
                                                 <Button 
                                                     variant="secondary" 
-                                                    className="h-8 w-8 p-0 rounded-lg" 
+                                                    className="h-8 w-8 p-0 rounded-lg bg-gray-900 text-white border border-gray-900 hover:bg-gray-800 hover:text-white" 
                                                     onClick={() => setEditingUser(user)}
                                                     title="Lizenz bearbeiten"
                                                 >
-                                                    <Edit className="w-4 h-4 text-gray-500"/>
+                                                    <Edit className="w-5 h-5"/>
                                                 </Button>
                                                 
                                                 <Button
@@ -264,12 +264,12 @@ export const UsersManagement: React.FC = () => {
                                                     onClick={() => handleDelete(user)}
                                                     disabled={deletingId === user.id || hasStripe}
                                                     className={`h-8 w-8 p-0 rounded-lg ${
-                                                      hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-white border-gray-100' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-100'
+                                                      hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-white border-gray-100' : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:text-red-800'
                                                     }`}
                                                     title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
                                                 >
                                                     {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
-                                                  (hasStripe ? <ShieldAlert className="w-4 h-4" /> : <Trash2 className="w-4 h-4"/>)}
+                                                  (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5"/>)}
                                                 </Button>
                                             </div>
                                         </td>
