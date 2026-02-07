@@ -250,23 +250,25 @@ export const UsersManagement: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-3 text-right align-middle sticky right-0 bg-white group-hover:bg-gray-50 transition-colors z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">
                                             <div className="flex justify-end gap-2">
+                                                {/* Edit Button: Blue Theme */}
                                                 <Button 
-                                                    variant="secondary" 
-                                                    className="h-8 w-8 p-0 rounded-md border-gray-200 hover:border-brand-200 hover:bg-brand-50 text-gray-500 hover:text-brand-600 transition-all"
+                                                    variant="ghost" 
+                                                    className="h-8 w-8 px-0 rounded-md border border-brand-200 bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all"
                                                     onClick={() => setEditingUser(user)}
                                                     title="Lizenz bearbeiten"
                                                 >
                                                     <Pencil className="w-4 h-4" />
                                                 </Button>
                                                 
+                                                {/* Delete Button: Red Theme (Active) / Gray (Disabled) */}
                                                 <Button
-                                                    variant="secondary"
+                                                    variant="ghost"
                                                     onClick={() => handleDelete(user)}
                                                     disabled={deletingId === user.id || hasStripe}
-                                                    className={`h-8 w-8 p-0 rounded-md border-gray-200 transition-all ${
+                                                    className={`h-8 w-8 px-0 rounded-md transition-all ${
                                                       hasStripe 
-                                                        ? 'text-gray-300 opacity-60 cursor-not-allowed bg-gray-50' 
-                                                        : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200'
+                                                        ? 'border border-gray-100 bg-gray-50 text-gray-300 opacity-60 cursor-not-allowed' 
+                                                        : 'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
                                                     }`}
                                                     title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
                                                 >
