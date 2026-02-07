@@ -113,7 +113,7 @@ export const MarketingView: React.FC = () => {
                         <button onClick={() => setIsCreateModalOpen(true)} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all shadow-lg"><Plus className="w-4 h-4" /> New Campaign</button>
                     </div>
 
-                    {/* Table Wrapper: overflow-x-auto enables scrolling instead of clipping */}
+                    {/* UPDATED: Container with horizontal scroll instead of overflow-hidden */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-x-auto">
                         <table className="min-w-[900px] w-full text-left border-collapse">
                             <thead className="bg-gray-50/50 border-b border-gray-100">
@@ -122,7 +122,7 @@ export const MarketingView: React.FC = () => {
                                     <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Segment</th>
                                     <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                                     <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</th>
-                                    {/* Sticky Actions Header */}
+                                    {/* UPDATED: Sticky Header for Actions */}
                                     <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right w-[110px] sticky right-0 bg-gray-50 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)] z-10">Actions</th>
                                 </tr>
                             </thead>
@@ -157,7 +157,7 @@ export const MarketingView: React.FC = () => {
                                                     <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${job.status === 'done_with_errors' ? 'bg-amber-500' : 'bg-brand-500'}`} style={{ width: `${Math.min(100, (sent / total) * 100)}%` }} /></div>
                                                 </div>
                                             </td>
-                                            {/* Sticky Actions Cell */}
+                                            {/* UPDATED: Sticky Cell for Actions */}
                                             <td className="px-6 py-3 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50 transition-colors shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)] z-10">
                                                 <div className="flex justify-end gap-2">
                                                     <Button variant="secondary" className="h-8 w-8 p-0 rounded-lg hover:text-brand-600" onClick={() => setSelectedJobId(job.id)} title="View Recipients">
