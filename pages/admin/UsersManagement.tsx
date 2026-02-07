@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Loader2, Search, Edit, Trash2, ShieldAlert } from 'lucide-react';
+import { Loader2, Search, Pencil, Trash, Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { PlanTier, SubscriptionStatus, License, User } from '../../types';
 import { useAdminData } from './hooks/useAdminData';
@@ -251,23 +251,27 @@ export const UsersManagement: React.FC = () => {
                                         <td className="px-6 py-3 text-right align-middle sticky right-0 bg-white group-hover:bg-gray-50 transition-colors z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">
                                             <div className="flex justify-end gap-2">
                                                 <Button 
-                                                    variant="primary" 
-                                                    className="h-8 w-8 p-0 rounded-lg"
+                                                    variant="secondary" 
+                                                    className="h-8 w-8 p-0 rounded-md border-gray-200 hover:border-brand-200 hover:bg-brand-50 text-gray-500 hover:text-brand-600 transition-all"
                                                     onClick={() => setEditingUser(user)}
                                                     title="Lizenz bearbeiten"
                                                 >
-                                                    <Edit className="w-5 h-5" />
+                                                    <Pencil className="w-4 h-4" />
                                                 </Button>
                                                 
                                                 <Button
-                                                    variant={hasStripe ? "secondary" : "danger"}
+                                                    variant="secondary"
                                                     onClick={() => handleDelete(user)}
                                                     disabled={deletingId === user.id || hasStripe}
-                                                    className="h-8 w-8 p-0 rounded-lg"
+                                                    className={`h-8 w-8 p-0 rounded-md border-gray-200 transition-all ${
+                                                      hasStripe 
+                                                        ? 'text-gray-300 opacity-60 cursor-not-allowed bg-gray-50' 
+                                                        : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200'
+                                                    }`}
                                                     title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
                                                 >
                                                     {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
-                                                  (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5" />)}
+                                                  (hasStripe ? <Lock className="w-4 h-4" /> : <Trash className="w-4 h-4" />)}
                                                 </Button>
                                             </div>
                                         </td>
