@@ -239,6 +239,9 @@ export const UsersManagement: React.FC = () => {
                                         <div className="flex flex-col gap-1 items-start">
                                             <div className="text-xs font-bold text-gray-700">{lic?.planTier || 'Free'}</div>
                                             {getRemainingTimeBadge(lic)}
+                                            <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                                Gültig bis: {lic?.validUntil ? new Date(lic.validUntil).toLocaleDateString('de-DE') : '—'}
+                                            </span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-3 text-center align-middle">

@@ -157,11 +157,11 @@ export const MarketingView: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-3 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50" onClick={() => setSelectedJobId(job.id)} title="View Recipients">
+                                                    <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-gray-600 hover:text-brand-600 hover:bg-brand-50 border border-gray-100" onClick={() => setSelectedJobId(job.id)} title="View Recipients">
                                                         <List className="w-4 h-4" />
                                                     </Button>
                                                     {(job.status === 'failed' || job.status === 'done_with_errors') && (
-                                                        <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-brand-500 hover:bg-brand-50" onClick={() => handleRetry(job.id)} title="Retry Failed">
+                                                        <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-brand-600 hover:bg-brand-50" onClick={() => handleRetry(job.id)} title="Retry Failed">
                                                             <RefreshCw className="w-4 h-4" />
                                                         </Button>
                                                     )}
