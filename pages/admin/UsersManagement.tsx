@@ -252,7 +252,7 @@ export const UsersManagement: React.FC = () => {
                                             <div className="flex justify-end gap-2">
                                                 <Button 
                                                     variant="secondary" 
-                                                    className="h-8 w-8 p-0 rounded-lg bg-gray-900 text-white border border-gray-900 hover:bg-gray-800 hover:text-white" 
+                                                    className="h-8 w-8 p-0 rounded-lg bg-gray-900 border border-gray-900 hover:bg-gray-800" 
                                                     onClick={() => setEditingUser(user)}
                                                     title="Lizenz bearbeiten"
                                                 >
@@ -264,11 +264,11 @@ export const UsersManagement: React.FC = () => {
                                                     onClick={() => handleDelete(user)}
                                                     disabled={deletingId === user.id || hasStripe}
                                                     className={`h-8 w-8 p-0 rounded-lg ${
-                                                      hasStripe ? 'text-gray-200 cursor-not-allowed bg-white border border-gray-100' : 'bg-red-600 text-white border border-red-700 hover:bg-red-700 hover:text-white'
+                                                      hasStripe ? 'cursor-not-allowed bg-white border border-gray-100' : 'bg-red-600 border border-red-700 hover:bg-red-700'
                                                     }`}
                                                     title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
                                                 >
-                                                    {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
+                                                    {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin text-white"/> :
                                                   (hasStripe ? <ShieldAlert className="w-5 h-5" color="#9CA3AF" /> : <Trash2 className="w-5 h-5" color="#ffffff" />)}
                                                 </Button>
                                             </div>
