@@ -1,10 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Loader2, Search, Edit, Trash2, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Loader2, Search, Edit, Trash2, RefreshCw, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { PlanTier, SubscriptionStatus, License, User } from '../../types';
 import { useAdminData } from './hooks/useAdminData';
 import { AdminTabs } from './components/AdminTabs';
 import { EditLicenseModal } from './components/EditLicenseModal';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { FormField } from '../../components/ui/FormField';
 
 // --- HELPERS (Local to this view) ---
 
@@ -33,28 +37,28 @@ const getRemainingTimeBadge = (lic: License | undefined) => {
 };
 
 const getPaymentBadge = (lic: License | undefined) => {
-    if (!lic) return <span className="px-3 py-1 bg-gray-100 text-gray-400 text-[10px] font-black uppercase rounded-full">Keine Info</span>;
+    if (!lic) return <span className="px-2 py-0.5 bg-gray-100 text-gray-400 text-[10px] font-bold uppercase rounded border border-gray-200">Keine Info</span>;
 
     if (lic.status === SubscriptionStatus.TRIAL) {
-        return <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-black uppercase rounded-full">Trial</span>;
+        return <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold uppercase rounded border border-blue-100">Trial</span>;
     }
 
     const hasStripeSub = !!lic.stripeSubscriptionId?.startsWith('sub_');
 
     if (!hasStripeSub) {
       if (lic.status === SubscriptionStatus.CANCELED) {
-        return <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase rounded-full">Gekündigt</span>;
+        return <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase rounded border border-amber-100">Gekündigt</span>;
       }
-      return <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase rounded-full">Keine Stripe-Info</span>;
+      return <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded border border-gray-200">Keine Stripe-Info</span>;
     }
 
     if (lic.status === SubscriptionStatus.PAST_DUE) {
-      return <span className="px-3 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase rounded-full">Zahlung offen</span>;
+      return <span className="px-2 py-0.5 bg-red-50 text-red-700 text-[10px] font-bold uppercase rounded border border-red-100">Zahlung offen</span>;
     }
     if (lic.status === SubscriptionStatus.ACTIVE) {
-      return <span className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-black uppercase rounded-full">Bezahlt</span>;
+      return <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold uppercase rounded border border-green-100">Bezahlt</span>;
     }
-    return <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] font-black uppercase rounded-full">Keine Stripe-Info</span>;
+    return <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded border border-gray-200">Keine Stripe-Info</span>;
 };
 
 export const UsersManagement: React.FC = () => {
@@ -146,65 +150,78 @@ export const UsersManagement: React.FC = () => {
             <AdminTabs />
             {editingUser && <EditLicenseModal user={editingUser} license={licenses.find(l => l.userId === editingUser.id)} onClose={() => setEditingUser(null)} onUpdate={refreshData} />}
             
-            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm mb-10 space-y-6">
-                {/* Search Bar */}
-                <div className="flex items-center gap-5 border-b border-gray-50 pb-6">
-                    <Search className="w-6 h-6 text-gray-300" />
-                    <input type="text" placeholder="Schnellsuche (Name, Email, Firma)..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1 outline-none text-lg font-bold placeholder:text-gray-300" />
-                </div>
-
-                {/* Filters Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Plan Filter */}
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Plan</label>
-                        <select value={tierFilter} onChange={e => setTierFilter(e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm outline-none border border-transparent focus:border-brand-500 transition-all">
-                            <option value="all">Alle Pläne</option>
-                            {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
+            {/* Filter Bar */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {/* Search - Takes up more space */}
+                    <div className="md:col-span-4">
+                        <FormField label="Search">
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Search className="h-4 w-4 text-gray-400" />
+                                </div>
+                                <Input 
+                                    placeholder="Name, Email, Firma..." 
+                                    value={search} 
+                                    onChange={e => setSearch(e.target.value)} 
+                                    className="pl-9"
+                                />
+                            </div>
+                        </FormField>
                     </div>
 
-                    {/* Status Filter */}
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Status</label>
-                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm outline-none border border-transparent focus:border-brand-500 transition-all">
-                            <option value="all">Alle Status</option>
-                            <option value="active">Bezahlt</option>
-                            <option value="trial">Trial</option>
-                            <option value="past_due">Zahlung offen</option>
-                            <option value="canceled">Gekündigt</option>
-                        </select>
+                    {/* Filters - Compact */}
+                    <div className="md:col-span-2">
+                        <FormField label="Plan">
+                            <Select value={tierFilter} onChange={e => setTierFilter(e.target.value)}>
+                                <option value="all">Alle</option>
+                                {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
+                            </Select>
+                        </FormField>
                     </div>
 
-                    {/* Engagement Filter */}
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Engagement</label>
-                        <select value={engagementFilter} onChange={e => setEngagementFilter(e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm outline-none border border-transparent focus:border-brand-500 transition-all">
-                            <option value="all">Alle</option>
-                            <option value="engaged">Eingeloggt (Aktiv)</option>
-                            <option value="inactive">Nie eingeloggt</option>
-                        </select>
+                    <div className="md:col-span-2">
+                        <FormField label="Status">
+                            <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                                <option value="all">Alle</option>
+                                <option value="active">Bezahlt</option>
+                                <option value="trial">Trial</option>
+                                <option value="past_due">Offen</option>
+                                <option value="canceled">Gekündigt</option>
+                            </Select>
+                        </FormField>
                     </div>
 
-                    {/* Company Filter */}
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Firma</label>
-                        <select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)} className="w-full p-3 bg-gray-50 rounded-xl font-bold text-sm outline-none border border-transparent focus:border-brand-500 transition-all">
-                            <option value="all">Alle Firmen</option>
-                            {companies.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                    <div className="md:col-span-2">
+                        <FormField label="Engagement">
+                            <Select value={engagementFilter} onChange={e => setEngagementFilter(e.target.value)}>
+                                <option value="all">Alle</option>
+                                <option value="engaged">Aktiv</option>
+                                <option value="inactive">Inaktiv</option>
+                            </Select>
+                        </FormField>
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <FormField label="Firma">
+                            <Select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}>
+                                <option value="all">Alle</option>
+                                {companies.map(c => <option key={c} value={c}>{c}</option>)}
+                            </Select>
+                        </FormField>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden">
+            {/* Table */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50/50 border-b border-gray-100">
                         <tr>
-                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                            <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Aktionen</th>
+                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer</th>
+                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan</th>
+                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Aktionen</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -214,26 +231,42 @@ export const UsersManagement: React.FC = () => {
                             
                             return (
                                 <tr key={user.id} className="hover:bg-gray-50/50 group transition-colors">
-                                    <td className="px-8 py-6">
-                                        <div className="font-black text-gray-900">{user.name}</div>
-                                        <div className="text-sm text-gray-400 font-bold">{user.email}</div>
+                                    <td className="px-6 py-3">
+                                        <div className="font-bold text-sm text-gray-900">{user.name}</div>
+                                        <div className="text-xs text-gray-400 font-mono mt-0.5">{user.email}</div>
                                     </td>
-                                    <td className="px-8 py-6"><div className="flex flex-col gap-2 items-start"><div className="text-sm font-black">{lic?.planTier || 'Free'}</div>{getRemainingTimeBadge(lic)}</div></td>
-                                    <td className="px-8 py-6 text-center">{getPaymentBadge(lic)}</td>
-                                    <td className="px-8 py-6 text-right">
-                                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button onClick={() => setEditingUser(user)} className="p-3 text-brand-500 hover:bg-brand-50 rounded-2xl transition-colors"><Edit className="w-5 h-5"/></button>
-                                            <button
+                                    <td className="px-6 py-3 align-middle">
+                                        <div className="flex flex-col gap-1 items-start">
+                                            <div className="text-xs font-bold text-gray-700">{lic?.planTier || 'Free'}</div>
+                                            {getRemainingTimeBadge(lic)}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-3 text-center align-middle">
+                                        {getPaymentBadge(lic)}
+                                    </td>
+                                    <td className="px-6 py-3 text-right align-middle">
+                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                            <Button 
+                                                variant="ghost" 
+                                                className="h-8 w-8 p-0 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50" 
+                                                onClick={() => setEditingUser(user)}
+                                                title="Lizenz bearbeiten"
+                                            >
+                                                <Edit className="w-4 h-4"/>
+                                            </Button>
+                                            
+                                            <Button
+                                                variant="ghost"
                                                 onClick={() => handleDelete(user)}
                                                 disabled={deletingId === user.id || hasStripe}
-                                                className={`p-3 rounded-2xl transition-colors ${
-                                                  hasStripe ? 'text-gray-200 cursor-not-allowed' : 'text-red-500 hover:bg-red-50'
+                                                className={`h-8 w-8 p-0 rounded-lg ${
+                                                  hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-transparent' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
                                                 }`}
                                                 title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
-                                              >
-                                                {deletingId === user.id ? <RefreshCw className="w-5 h-5 animate-spin"/> :
-                                              (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5"/>)}
-                                            </button>
+                                            >
+                                                {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
+                                              (hasStripe ? <ShieldAlert className="w-4 h-4" /> : <Trash2 className="w-4 h-4"/>)}
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
@@ -241,6 +274,11 @@ export const UsersManagement: React.FC = () => {
                         })}
                     </tbody>
                 </table>
+                {filteredUsers.length === 0 && (
+                    <div className="p-12 text-center text-gray-400 text-sm font-medium italic">
+                        Keine Nutzer gefunden.
+                    </div>
+                )}
             </div>
         </div>
     );

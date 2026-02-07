@@ -47,17 +47,18 @@ export const SupportPage: React.FC = () => {
                 How can we help you? Browse our FAQs or get in touch with our team directly.
             </p>
 
-            {/* FAQ Search */}
+            {/* FAQ Search - Standardized to System Input */}
             <div className="max-w-xl mx-auto mt-12 relative group z-20">
-                <div className="absolute inset-0 bg-brand-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center overflow-hidden p-2 focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
-                    <Search className="w-5 h-5 text-gray-400 ml-4" />
-                    <input 
-                        type="text" 
+                <div className="absolute inset-0 bg-brand-500/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <Input 
                         placeholder="Search questions..." 
                         value={faqSearch}
                         onChange={e => setFaqSearch(e.target.value)}
-                        className="w-full p-3 outline-none text-gray-900 font-medium placeholder:text-gray-400 text-lg bg-transparent"
+                        className="pl-10" // Make room for icon
                     />
                 </div>
             </div>
