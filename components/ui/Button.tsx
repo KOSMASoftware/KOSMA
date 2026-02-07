@@ -22,7 +22,7 @@ export const Button: React.FC<ButtonProps> = ({
     primary: "bg-gray-900 text-white hover:bg-brand-600 shadow-sm border border-transparent",
     secondary: "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900",
     ghost: "bg-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100",
-    danger: "bg-white text-red-600 border border-red-100 hover:bg-red-50"
+    danger: "bg-red-600 text-white border border-red-700 hover:bg-red-700"
   };
 
   return (
