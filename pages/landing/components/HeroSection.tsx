@@ -185,12 +185,9 @@ export const HeroSection = () => {
                       </p>
                   </div>
 
-                  {/* NEW ROW 2: Main Headline */}
-                  <h1
-                      className="m-0 font-black tracking-tight leading-none text-3xl md:text-4xl mb-10 text-white"
-                      style={{ textShadow: '0 0 24px rgba(255,255,255,0.65)' }}
-                  >
-                      Bring AI to your film budget
+                  {/* RESTORED MAIN HEADLINE */}
+                  <h1 className="text-5xl md:text-7xl font-black text-white mb-10 tracking-tight leading-[1.1] drop-shadow-2xl">
+                    Bring AI to your Film Budget
                   </h1>
 
                   <div className="mt-8 flex flex-wrap gap-6 justify-center items-center">
