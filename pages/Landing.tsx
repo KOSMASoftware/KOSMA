@@ -986,8 +986,8 @@ export const Landing: React.FC = () => {
 
                             <ShimmerButton
                                 onClick={scrollToFeatures}
-                                background="rgba(255, 255, 255, 0.1)" // Changed from black/0.8 to white/0.1 for visibility on dark bg
-                                shimmerColor="rgba(255, 255, 255, 0.4)"
+                                background="#F59E0B"
+                                shimmerColor="rgba(255, 255, 255, 0.35)"
                                 borderRadius="1rem"
                                 className="backdrop-blur-md border border-white/10"
                                 shimmerDuration="4s"
