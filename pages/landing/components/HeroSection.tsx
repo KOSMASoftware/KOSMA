@@ -145,8 +145,11 @@ export const HeroSection = () => {
           }}
       />
 
-      <div className="absolute inset-0 cursor-crosshair" onClick={randomize} />
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
+      <canvas 
+        ref={canvasRef} 
+        onClick={randomize}
+        className="absolute inset-0 w-full h-full block cursor-crosshair" 
+      />
 
       <div className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none">
           <div className="max-w-5xl w-full flex flex-col items-center">
