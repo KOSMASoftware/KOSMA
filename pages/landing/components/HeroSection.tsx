@@ -145,10 +145,16 @@ export const HeroSection = () => {
           }}
       />
 
+      {/* CANVAS: Pointer events removed to prevent blocking */}
       <canvas 
         ref={canvasRef} 
+        className="absolute inset-0 w-full h-full block z-0 pointer-events-none" 
+      />
+
+      {/* INTERACTION LAYER: Handles randomizing background */}
+      <div
+        className="absolute inset-0 z-[1] cursor-crosshair"
         onClick={randomize}
-        className="absolute inset-0 w-full h-full block cursor-crosshair" 
       />
 
       <div className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none">

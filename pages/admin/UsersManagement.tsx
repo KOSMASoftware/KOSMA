@@ -256,7 +256,7 @@ export const UsersManagement: React.FC = () => {
                                                     onClick={() => setEditingUser(user)}
                                                     title="Lizenz bearbeiten"
                                                 >
-                                                    <Edit className="w-5 h-5 text-white"/>
+                                                    <Edit className="w-5 h-5" color="#ffffff" />
                                                 </Button>
                                                 
                                                 <Button
@@ -269,7 +269,7 @@ export const UsersManagement: React.FC = () => {
                                                     title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
                                                 >
                                                     {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
-                                                  (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5 text-white"/>)}
+                                                  (hasStripe ? <ShieldAlert className="w-5 h-5" color="#9CA3AF" /> : <Trash2 className="w-5 h-5" color="#ffffff" />)}
                                                 </Button>
                                             </div>
                                         </td>
