@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Loader2, Search, Edit, Trash2, RefreshCw, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { Loader2, Search, Edit, Trash2, ShieldAlert } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { PlanTier, SubscriptionStatus, License, User } from '../../types';
 import { useAdminData } from './hooks/useAdminData';
@@ -256,7 +256,7 @@ export const UsersManagement: React.FC = () => {
                                                     onClick={() => setEditingUser(user)}
                                                     title="Lizenz bearbeiten"
                                                 >
-                                                    <Edit className="w-5 h-5"/>
+                                                    <Edit className="w-5 h-5 text-white"/>
                                                 </Button>
                                                 
                                                 <Button
@@ -264,12 +264,12 @@ export const UsersManagement: React.FC = () => {
                                                     onClick={() => handleDelete(user)}
                                                     disabled={deletingId === user.id || hasStripe}
                                                     className={`h-8 w-8 p-0 rounded-lg ${
-                                                      hasStripe ? 'text-gray-200 cursor-not-allowed hover:bg-white border-gray-100' : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:text-red-800'
+                                                      hasStripe ? 'text-gray-200 cursor-not-allowed bg-white border border-gray-100' : 'bg-red-600 text-white border border-red-700 hover:bg-red-700 hover:text-white'
                                                     }`}
                                                     title={hasStripe ? "Löschen verboten: Stripe-Konto aktiv" : "Nutzer löschen"}
                                                 >
                                                     {deletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin"/> :
-                                                  (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5"/>)}
+                                                  (hasStripe ? <ShieldAlert className="w-5 h-5" /> : <Trash2 className="w-5 h-5 text-white"/>)}
                                                 </Button>
                                             </div>
                                         </td>
