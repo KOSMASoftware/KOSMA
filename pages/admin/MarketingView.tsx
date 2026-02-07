@@ -113,65 +113,67 @@ export const MarketingView: React.FC = () => {
                         <button onClick={() => setIsCreateModalOpen(true)} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all shadow-lg"><Plus className="w-4 h-4" /> New Campaign</button>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50/50 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Name & Template</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Segment</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {loadingJobs ? (
-                                    <tr><td colSpan={5} className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-500"/></td></tr>
-                                ) : jobs.map(job => {
-                                    // Robust Stats Normalization
-                                    const raw = job.stats as any;
-                                    const counts = raw?.counts ?? raw ?? {};
-                                    const sent = counts.sent || 0;
-                                    const failed = counts.failed || 0;
-                                    const queued = counts.queued || 0;
-                                    const total = counts.total || (sent + failed + queued) || 1;
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-xl">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-[900px] w-full text-left">
+                                <thead className="bg-gray-50/50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Name & Template</th>
+                                        <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Segment</th>
+                                        <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                        <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</th>
+                                        <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right w-[110px]">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {loadingJobs ? (
+                                        <tr><td colSpan={5} className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-500"/></td></tr>
+                                    ) : jobs.map(job => {
+                                        // Robust Stats Normalization
+                                        const raw = job.stats as any;
+                                        const counts = raw?.counts ?? raw ?? {};
+                                        const sent = counts.sent || 0;
+                                        const failed = counts.failed || 0;
+                                        const queued = counts.queued || 0;
+                                        const total = counts.total || (sent + failed + queued) || 1;
 
-                                    return (
-                                        <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
-                                            <td className="px-6 py-3">
-                                                <div className="font-bold text-gray-900">{job.template_name}</div>
-                                                <div className="text-xs text-gray-400 font-mono mt-1">{new Date(job.created_at).toLocaleString()}</div>
-                                                {job.dry_run && <span className="inline-block mt-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 text-[9px] font-bold rounded">DRY RUN</span>}
-                                            </td>
-                                            <td className="px-6 py-3">
-                                                <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100">{job.segment_key}</span>
-                                            </td>
-                                            <td className="px-6 py-3">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${job.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-brand-100 text-brand-700'}`}>{job.status.replace(/_/g, ' ')}</span>
-                                            </td>
-                                            <td className="px-6 py-3">
-                                                <div className="text-xs font-medium">
-                                                    <div className="flex gap-3 mb-1"><span className="text-green-600">Sent: {sent}</span><span className={failed > 0 ? "text-red-500 font-bold" : "text-gray-400"}>Fail: {failed}</span></div>
-                                                    <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${job.status === 'done_with_errors' ? 'bg-amber-500' : 'bg-brand-500'}`} style={{ width: `${Math.min(100, (sent / total) * 100)}%` }} /></div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-3 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-gray-600 hover:text-brand-600 hover:bg-brand-50 border border-gray-100" onClick={() => setSelectedJobId(job.id)} title="View Recipients">
-                                                        <List className="w-4 h-4" />
-                                                    </Button>
-                                                    {(job.status === 'failed' || job.status === 'done_with_errors') && (
-                                                        <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg text-brand-600 hover:bg-brand-50" onClick={() => handleRetry(job.id)} title="Retry Failed">
-                                                            <RefreshCw className="w-4 h-4" />
+                                        return (
+                                            <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
+                                                <td className="px-6 py-3">
+                                                    <div className="font-bold text-gray-900">{job.template_name}</div>
+                                                    <div className="text-xs text-gray-400 font-mono mt-1">{new Date(job.created_at).toLocaleString()}</div>
+                                                    {job.dry_run && <span className="inline-block mt-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 text-[9px] font-bold rounded">DRY RUN</span>}
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100">{job.segment_key}</span>
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${job.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-brand-100 text-brand-700'}`}>{job.status.replace(/_/g, ' ')}</span>
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                    <div className="text-xs font-medium">
+                                                        <div className="flex gap-3 mb-1"><span className="text-green-600">Sent: {sent}</span><span className={failed > 0 ? "text-red-500 font-bold" : "text-gray-400"}>Fail: {failed}</span></div>
+                                                        <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${job.status === 'done_with_errors' ? 'bg-amber-500' : 'bg-brand-500'}`} style={{ width: `${Math.min(100, (sent / total) * 100)}%` }} /></div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 text-right whitespace-nowrap">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="secondary" className="h-8 w-8 p-0 rounded-lg hover:text-brand-600" onClick={() => setSelectedJobId(job.id)} title="View Recipients">
+                                                            <List className="w-4 h-4" />
                                                         </Button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                        {(job.status === 'failed' || job.status === 'done_with_errors') && (
+                                                            <Button variant="secondary" className="h-8 w-8 p-0 rounded-lg text-brand-700 border-brand-200 hover:bg-brand-50" onClick={() => handleRetry(job.id)} title="Retry Failed">
+                                                                <RefreshCw className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
