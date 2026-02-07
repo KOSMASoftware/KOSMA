@@ -39,9 +39,6 @@ export const SupportPage: React.FC = () => {
          
          {/* HERO SECTION - Light Theme */}
          <div className="text-center pt-16 pb-12 px-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-brand-500 shadow-sm border border-brand-100">
-                 <CircleHelp className="w-6 h-6" />
-            </div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 mb-4">Support Center</h1>
             <p className="text-base md:text-lg text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
                 How can we help you? Browse our FAQs or get in touch with our team directly.
