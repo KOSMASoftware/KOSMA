@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Users, Calculator, BarChart3, Clapperboard, Monitor, HardDrive, WifiOff, Laptop } from 'lucide-react';
+import { Check, Monitor, HardDrive, WifiOff, Laptop } from 'lucide-react';
 import { PlanTier } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { STRIPE_LINKS } from '../config/stripe';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { Card } from '../components/ui/Card';
+import { PLANS } from '../data/plans';
 
 export const Pricing: React.FC = () => {
   const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>('yearly');
@@ -36,88 +37,6 @@ export const Pricing: React.FC = () => {
     }
   };
 
-  const plans = [
-    {
-      name: PlanTier.FREE,
-      title: "Free",
-      Icon: Users,
-      subtitle: "For everyone who wants to try it out",
-      price: 0,
-      color: "#1F2937", // Gray-800
-      textClass: "text-gray-800",
-      btnClass: "border-gray-800 text-gray-900 hover:bg-gray-50",
-      btnText: isAuthenticated ? "Current Plan" : "Get Started",
-      save: null,
-      features: [
-        "14-day full feature trial",
-        "View project data in all modules",
-        "No printing",
-        "No sharing"
-      ]
-    },
-    {
-      name: PlanTier.BUDGET,
-      title: "Budget",
-      Icon: Calculator,
-      subtitle: "For production managers focused on budget creation.",
-      price: billingInterval === 'yearly' ? 390 : 39,
-      color: "#F59E0B", // Amber-500
-      textClass: "text-amber-500",
-      btnClass: "border-amber-500 text-amber-600 bg-amber-50 hover:bg-amber-100",
-      btnText: isAuthenticated ? "Switch to Budget" : "Get Started",
-      save: billingInterval === 'yearly' ? 78 : null,
-      features: [
-        "Budgeting Module",
-        "Tutorials",
-        "Unlimited Projects",
-        "Share Projects",
-        "Email support"
-      ]
-    },
-    {
-      name: PlanTier.COST_CONTROL,
-      title: "Cost Control",
-      Icon: BarChart3,
-      subtitle: "For production managers monitoring production costs.",
-      price: billingInterval === 'yearly' ? 590 : 69,
-      color: "#9333EA", // Purple-600
-      textClass: "text-purple-600",
-      btnClass: "border-purple-600 text-purple-700 bg-purple-50 hover:bg-purple-100",
-      btnText: isAuthenticated ? "Switch to Cost Control" : "Get Started",
-      save: billingInterval === 'yearly' ? 238 : null,
-      features: [
-        "Budgeting Module",
-        "Cost Control Module",
-        "Tutorials",
-        "Unlimited Projects",
-        "Share projects",
-        "Email support"
-      ]
-    },
-    {
-      name: PlanTier.PRODUCTION,
-      title: "Production",
-      Icon: Clapperboard,
-      subtitle: "For producers seeking full project control.",
-      price: billingInterval === 'yearly' ? 690 : 89,
-      color: "#16A34A", // Green-600
-      textClass: "text-green-600",
-      btnClass: "border-green-600 text-green-700 bg-green-50 hover:bg-green-100",
-      btnText: isAuthenticated ? "Switch to Production" : "Get Started",
-      save: billingInterval === 'yearly' ? 378 : null,
-      features: [
-        "Budgeting Module",
-        "Cost Control Module",
-        "Financing Module",
-        "Cashflow Module",
-        "Tutorials",
-        "Unlimited Projects",
-        "Share projects",
-        "Email support"
-      ]
-    }
-  ];
-
   return (
     <MarketingLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -138,54 +57,62 @@ export const Pricing: React.FC = () => {
 
         {/* PRICING CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 items-start">
-          {plans.map((plan, idx) => (
-            <Card 
-              key={idx} 
-              color={plan.color}
-              interactive
-              enableLedEffect={true}
-              className="h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300 p-6 rounded-2xl"
-            >
-              <h3 className={`text-xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h3>
-              
-              <div className="flex justify-center mb-6">
-                <plan.Icon className={`w-10 h-10 ${plan.textClass} opacity-90`} />
-              </div>
+          {PLANS.map((plan, idx) => {
+            const price = billingInterval === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+            // Free plan logic overrides
+            const isFree = plan.name === PlanTier.FREE;
+            const btnText = isFree ? (isAuthenticated ? "Current Plan" : "Get Started") : (isAuthenticated ? `Switch to ${plan.title}` : "Get Started");
+            const saveText = !isFree && billingInterval === 'yearly' && plan.saveYearly ? `Save ${plan.saveYearly}€ / yr` : null;
 
-              <p className="text-xs text-gray-500 h-10 mb-6 leading-relaxed px-2 font-medium">{plan.subtitle}</p>
-              
-              <div className="mb-2">
-                 <span className={`text-3xl font-black ${plan.textClass}`}>{plan.price} €</span>
-                 <span className="text-xs text-gray-400 font-bold ml-1">{billingInterval === 'yearly' ? '/year' : '/month'}</span>
-              </div>
-
-              <div className="h-6 mb-6">
-                {plan.save && (
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full">
-                        Save {plan.save}€ / yr
-                    </span>
-                )}
-              </div>
-
-              <button 
-                onClick={() => handleSelectPlan(plan.name)} 
-                className={`w-full py-3 rounded-xl border-2 font-black text-xs transition-all mb-6 shadow-sm ${plan.btnClass}`}
+            return (
+              <Card 
+                key={idx} 
+                color={plan.color}
+                interactive
+                enableLedEffect={true}
+                className="h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300 p-6 rounded-2xl"
               >
-                  {plan.btnText}
-              </button>
+                <h3 className={`text-xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h3>
+                
+                <div className="flex justify-center mb-6">
+                  <plan.Icon className={`w-10 h-10 ${plan.textClass} opacity-90`} />
+                </div>
 
-              <div className="border-t border-gray-100 pt-6 flex-1">
-                <ul className="space-y-3 text-left text-xs font-medium text-gray-600">
-                    {plan.features.map((feat, fIdx) => (
-                    <li key={fIdx} className="flex gap-2 items-start">
-                        <Check className={`w-3.5 h-3.5 ${plan.textClass} shrink-0 mt-0.5`} />
-                        <span className="leading-tight">{feat}</span>
-                    </li>
-                    ))}
-                </ul>
-              </div>
-            </Card>
-          ))}
+                <p className="text-xs text-gray-500 h-10 mb-6 leading-relaxed px-2 font-medium">{plan.subtitle}</p>
+                
+                <div className="mb-2">
+                   <span className={`text-3xl font-black ${plan.textClass}`}>{price} €</span>
+                   <span className="text-xs text-gray-400 font-bold ml-1">{billingInterval === 'yearly' ? '/year' : '/month'}</span>
+                </div>
+
+                <div className="h-6 mb-6">
+                  {saveText && (
+                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full">
+                          {saveText}
+                      </span>
+                  )}
+                </div>
+
+                <button 
+                  onClick={() => handleSelectPlan(plan.name)} 
+                  className={`w-full py-3 rounded-xl border-2 font-black text-xs transition-all mb-6 shadow-sm ${plan.btnClass}`}
+                >
+                    {btnText}
+                </button>
+
+                <div className="border-t border-gray-100 pt-6 flex-1">
+                  <ul className="space-y-3 text-left text-xs font-medium text-gray-600">
+                      {plan.features.map((feat, fIdx) => (
+                      <li key={fIdx} className="flex gap-2 items-start">
+                          <Check className={`w-3.5 h-3.5 ${plan.textClass} shrink-0 mt-0.5`} />
+                          <span className="leading-tight">{feat}</span>
+                      </li>
+                      ))}
+                  </ul>
+                </div>
+              </Card>
+            );
+          })}
         </div>
 
         {/* TECHNICAL FACTS - Compact Design */}
