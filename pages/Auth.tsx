@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -81,12 +82,23 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
   }, [mode]);
 
   // AUTOMATIC NAVIGATION (Single Source of Truth)
-  // Replaces the manual check in handleAction to prevent race conditions.
   useEffect(() => {
     if (user && mode === 'login') {
-      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+      const redirect = searchParams.get('redirect');
+      const safe =
+        redirect &&
+        redirect.startsWith('/') &&
+        !redirect.startsWith('//') &&
+        !redirect.toLowerCase().startsWith('/http');
+
+      if (safe) {
+        navigate(redirect, { replace: true });
+        return;
+      }
+
+      navigate(user.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
     }
-  }, [user, mode, navigate]);
+  }, [user, mode, navigate, searchParams]);
 
   const handleAction = async () => {
     if (loading) return;
