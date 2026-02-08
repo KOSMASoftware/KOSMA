@@ -194,8 +194,8 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
             const dateLabel = new Date(data.effectiveAt).toLocaleDateString('en-GB');
             setNotice({
                 variant: 'success',
-                title: 'Downgrade Scheduled',
-                message: `Your plan will change to ${targetPlan} on ${dateLabel}.`
+                title: 'Change Scheduled',
+                message: `Your plan will change to ${targetPlan} (${targetCycle}) on ${dateLabel}.`
             });
         } catch (err: any) {
             console.error("Downgrade error:", err);
@@ -282,14 +282,28 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {plans.map((plan) => {
-                    const isCurrent = plan.name === currentTier && billingInterval === currentCycle;
-                    
-                    // Downgrade Rank Logic
-                    const planRank: Record<string, number> = { "Free": 0, "Budget": 1, "Cost Control": 2, "Production": 3 };
+                    // Logic Flags
+                    const isCurrentTier = plan.name === currentTier;
+                    const isCurrentExact = isCurrentTier && billingInterval === currentCycle;
+
+                    const planRank: Record<string, number> = { 
+                        [PlanTier.FREE]: 0, 
+                        [PlanTier.BUDGET]: 1, 
+                        [PlanTier.COST_CONTROL]: 2, 
+                        [PlanTier.PRODUCTION]: 3 
+                    };
                     const currentRank = planRank[currentTier] || 0;
                     const targetRank = planRank[plan.name] || 0;
-                    const isSameTier = currentTier === plan.name;
-                    const isDowngrade = targetRank < currentRank || (isSameTier && currentCycle === 'yearly' && billingInterval === 'monthly');
+                    
+                    const isTierUpgrade = targetRank > currentRank;
+                    const isTierDowngrade = targetRank < currentRank;
+                    const isCycleSwitchSameTier = isCurrentTier && billingInterval !== currentCycle;
+                    
+                    // Specific logic for cycle switching:
+                    // Yearly -> Monthly is treated as a downgrade (schedule at end of period)
+                    const isYearToMonth = isCurrentTier && currentCycle === 'yearly' && billingInterval === 'monthly';
+                    // Monthly -> Yearly is treated as an upgrade (portal handles immediate switch/proration)
+                    const isMonthToYear = isCurrentTier && currentCycle === 'monthly' && billingInterval === 'yearly';
 
                     return (
                         <Card 
@@ -299,7 +313,7 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                             enableLedEffect={true}
                             className="group h-full p-6 rounded-2xl"
                         >
-                            {isCurrent && (
+                            {isCurrentTier && (
                                 <div className="absolute top-0 right-0 bg-gray-900 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-2xl tracking-widest uppercase z-10">
                                     Active
                                 </div>
@@ -312,31 +326,61 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                             </div>
 
                             <div className="flex flex-col gap-3 mb-6">
-                                {isCurrent ? (
+                                {isCurrentExact ? (
                                     <button
                                         disabled
                                         className="w-full py-2.5 rounded-lg border-2 border-gray-100 text-gray-300 text-sm font-bold cursor-not-allowed"
                                     >
                                         Currently Active
                                     </button>
-                                ) : (isManagedViaPortal && isDowngrade) ? (
-                                    <button
-                                        onClick={() => handleDowngrade(plan.name, billingInterval)}
-                                        disabled={loadingPortal}
-                                        className={`w-full py-2.5 rounded-lg border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white flex items-center justify-center gap-2`}
-                                    >
-                                        {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : "Downgrade"}
-                                    </button>
                                 ) : isManagedViaPortal ? (
-                                    <button
-                                        onClick={handlePortalRedirect}
-                                        disabled={loadingPortal}
-                                        className="w-full py-2.5 rounded-lg border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 transition-all"
-                                    >
-                                        {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
-                                        Upgrade
-                                    </button>
+                                    <>
+                                        {/* Case: Same Tier, Switching Cycle */}
+                                        {isCycleSwitchSameTier && isYearToMonth && (
+                                            <button
+                                                onClick={() => handleDowngrade(plan.name, 'monthly')}
+                                                disabled={loadingPortal}
+                                                className={`w-full py-2.5 rounded-lg border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white flex items-center justify-center gap-2`}
+                                            >
+                                                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : "Switch to Monthly (next renewal)"}
+                                            </button>
+                                        )}
+                                        {isCycleSwitchSameTier && isMonthToYear && (
+                                            <button
+                                                onClick={handlePortalRedirect}
+                                                disabled={loadingPortal}
+                                                className="w-full py-2.5 rounded-lg border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 transition-all"
+                                            >
+                                                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
+                                                Switch to Yearly
+                                            </button>
+                                        )}
+
+                                        {/* Case: Tier Downgrade */}
+                                        {isTierDowngrade && (
+                                            <button
+                                                onClick={() => handleDowngrade(plan.name, billingInterval)}
+                                                disabled={loadingPortal}
+                                                className={`w-full py-2.5 rounded-lg border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white flex items-center justify-center gap-2`}
+                                            >
+                                                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : "Downgrade (next renewal)"}
+                                            </button>
+                                        )}
+
+                                        {/* Case: Tier Upgrade */}
+                                        {isTierUpgrade && (
+                                            <button
+                                                onClick={handlePortalRedirect}
+                                                disabled={loadingPortal}
+                                                className="w-full py-2.5 rounded-lg border-2 border-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-50 hover:border-gray-200 flex items-center justify-center gap-2 transition-all"
+                                            >
+                                                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin"/> : <Settings className="w-4 h-4"/>}
+                                                Upgrade
+                                            </button>
+                                        )}
+                                    </>
                                 ) : (
+                                    /* No Stripe Subscription (Free/Trial) */
                                     <button
                                         onClick={() => handlePurchase(plan.name, billingInterval)}
                                         className={`w-full py-2.5 rounded-lg border-2 text-sm font-bold transition-all shadow-sm border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white`}
@@ -479,6 +523,13 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
     const autoRenewLabel = hasStripeId ? (isAutoRenew ? 'Active' : 'Off') : '—';
     const autoRenewClass = isAutoRenew ? 'text-green-600' : 'text-amber-600';
 
+    // Correctly display billing cycle (avoid showing "Monthly" for none/trial)
+    const cycleLabel = activeLicense?.billingCycle === 'yearly' 
+        ? 'Yearly' 
+        : activeLicense?.billingCycle === 'monthly' 
+            ? 'Monthly' 
+            : activeLicense?.status === 'trial' ? 'Trial' : '—';
+
     useEffect(() => {
         if (searchParams.get('stripe_success') === 'true' || searchParams.get('checkout') === 'success') {
             setIsPolling(true);
@@ -520,7 +571,7 @@ const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: In
                         <span className="text-xs font-black text-brand-500 uppercase tracking-[0.2em]">Active Plan</span>
                         <div className="flex items-baseline gap-3 mt-2">
                             <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter">{activeLicense?.planTier || 'Free'}</h2>
-                            <span className="text-gray-400 font-bold">/{activeLicense?.billingCycle === 'yearly' ? 'Yearly' : 'Monthly'}</span>
+                            <span className="text-gray-400 font-bold">/{cycleLabel}</span>
                         </div>
                         <div className="mt-6 flex flex-wrap gap-3">
                             <div className={`flex items-center gap-2 border px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
