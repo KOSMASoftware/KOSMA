@@ -227,12 +227,14 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
 
     const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>('yearly');
 
+    // Define plans with distinct price properties instead of hardcoded state dependency
     const plans = [
         {
           name: PlanTier.BUDGET,
           title: "Budget",
           Icon: Calculator,
-          price: billingInterval === 'yearly' ? 390 : 39,
+          priceYearly: 390,
+          priceMonthly: 39,
           color: "#F59E0B", // Amber
           textClass: "text-amber-500",
           features: ["Budgeting Module", "Unlimited Projects", "Print to PDF"]
@@ -241,7 +243,8 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           name: PlanTier.COST_CONTROL,
           title: "Cost Control",
           Icon: BarChart3,
-          price: billingInterval === 'yearly' ? 590 : 59,
+          priceYearly: 590,
+          priceMonthly: 69,
           color: "#9333EA", // Purple
           textClass: "text-purple-600",
           features: ["Budgeting + Cost Control", "Soll/Ist Comparison", "Share projects"]
@@ -250,7 +253,8 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
           name: PlanTier.PRODUCTION,
           title: "Production",
           Icon: Clapperboard,
-          price: billingInterval === 'yearly' ? 690 : 69,
+          priceYearly: 690,
+          priceMonthly: 89,
           color: "#16A34A", // Green
           textClass: "text-green-600",
           features: ["All Modules", "Financing & Cashflow", "Multi-Project Overview"]
@@ -305,6 +309,11 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                     // Monthly -> Yearly is treated as an upgrade (portal handles immediate switch/proration)
                     const isMonthToYear = isCurrentTier && currentCycle === 'monthly' && billingInterval === 'yearly';
 
+                    // Display Logic: If active tier, show the actual current price/cycle, ignoring the toggle
+                    const displayCycle = (isCurrentTier && (currentCycle === 'monthly' || currentCycle === 'yearly')) ? currentCycle : billingInterval;
+                    const displayPrice = displayCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+                    const displayLabel = displayCycle === 'yearly' ? 'per year' : 'per month';
+
                     return (
                         <Card 
                             key={plan.name} 
@@ -321,8 +330,8 @@ const PricingSection: React.FC<{ user: User, currentTier: PlanTier, currentCycle
                             <h4 className={`text-xl md:text-2xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h4>
                             <div className="flex justify-center mb-6 transform group-hover:scale-110 transition-transform duration-300"><plan.Icon className={`w-14 h-14 ${plan.textClass} opacity-80`} /></div>
                             <div className="mb-6 text-center">
-                                <span className={`text-4xl font-black ${plan.textClass}`}>{plan.price} €</span>
-                                <span className="text-sm text-gray-400 block mt-1 font-bold">{billingInterval === 'yearly' ? 'per year' : 'per month'}</span>
+                                <span className={`text-4xl font-black ${plan.textClass}`}>{displayPrice} €</span>
+                                <span className="text-sm text-gray-400 block mt-1 font-bold">{displayLabel}</span>
                             </div>
 
                             <div className="flex flex-col gap-3 mb-6">

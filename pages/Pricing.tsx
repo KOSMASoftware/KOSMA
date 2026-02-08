@@ -79,7 +79,7 @@ export const Pricing: React.FC = () => {
       title: "Cost Control",
       Icon: BarChart3,
       subtitle: "For production managers monitoring production costs.",
-      price: billingInterval === 'yearly' ? 590 : 59,
+      price: billingInterval === 'yearly' ? 590 : 69,
       color: "#9333EA", // Purple-600
       textClass: "text-purple-600",
       btnClass: "border-purple-600 text-purple-700 bg-purple-50 hover:bg-purple-100",
@@ -99,7 +99,7 @@ export const Pricing: React.FC = () => {
       title: "Production",
       Icon: Clapperboard,
       subtitle: "For producers seeking full project control.",
-      price: billingInterval === 'yearly' ? 690 : 69,
+      price: billingInterval === 'yearly' ? 690 : 89,
       color: "#16A34A", // Green-600
       textClass: "text-green-600",
       btnClass: "border-green-600 text-green-700 bg-green-50 hover:bg-green-100",
