@@ -45,7 +45,8 @@ export const USPBlock = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
              
              {/* LEFT COLUMN: The Statement */}
-             <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 sticky top-32">
+             {/* FIXED: Removed sticky on mobile, added lg:sticky for desktop only */}
+             <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 relative lg:sticky lg:top-32">
                 {/* Huge Headline */}
                 <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter leading-[0.95]">
                   Financial Control.<br />

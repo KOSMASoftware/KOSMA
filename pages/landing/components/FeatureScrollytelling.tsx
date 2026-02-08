@@ -21,38 +21,38 @@ const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorNam
   return (
     <div className="flex flex-col gap-3">
        {/* 1. Challenge (Neutral) */}
-       <div className="flex gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:border-slate-200">
+       <div className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl bg-slate-50 border border-slate-100 transition-all hover:border-slate-200">
           <div className="shrink-0 mt-0.5">
-             <AlertCircle className="w-5 h-5 text-slate-400" />
+             <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
           </div>
           <div>
-             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">The Challenge</div>
-             <p className="text-sm text-slate-600 font-medium leading-relaxed">{feature.pain}</p>
+             <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">The Challenge</div>
+             <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">{feature.pain}</p>
           </div>
        </div>
 
        {/* 2. Solution (Themed Highlight) */}
-       <div className={`flex gap-4 p-4 rounded-xl border ${theme.bg} ${theme.border} relative overflow-hidden transition-all shadow-sm`}>
+       <div className={`flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl border ${theme.bg} ${theme.border} relative overflow-hidden transition-all shadow-sm`}>
           {/* Subtle decoration */}
           <div className={`absolute top-0 right-0 w-16 h-16 ${theme.icon} opacity-5 -mr-4 -mt-4 rounded-full blur-xl pointer-events-none`}></div>
           
           <div className="shrink-0 mt-0.5 bg-white rounded-lg p-1 shadow-sm border border-white/50 h-fit">
-             <KosmaMarkIcon className={`w-4 h-4 ${theme.icon}`} />
+             <KosmaMarkIcon className={`w-3 h-3 md:w-4 md:h-4 ${theme.icon}`} />
           </div>
           <div className="relative z-10">
-             <div className={`text-[10px] font-black uppercase tracking-widest ${theme.text} mb-1 opacity-90`}>The KOSMA Way</div>
-             <p className="text-sm text-gray-900 font-bold leading-relaxed">{feature.solution}</p>
+             <div className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${theme.text} mb-1 opacity-90`}>The KOSMA Way</div>
+             <p className="text-xs md:text-sm text-gray-900 font-bold leading-relaxed">{feature.solution}</p>
           </div>
        </div>
 
        {/* 3. Impact (High Value) */}
-       <div className="flex gap-4 p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md hover:border-gray-200">
+       <div className="flex gap-3 md:gap-4 p-3 md:p-4 rounded-xl bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md hover:border-gray-200">
           <div className="shrink-0 mt-0.5">
-             <TrendingUp className="w-5 h-5 text-gray-900" />
+             <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-gray-900" />
           </div>
           <div>
-             <div className="text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">The Result</div>
-             <p className="text-sm text-gray-600 font-medium leading-relaxed">{feature.impact}</p>
+             <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">The Result</div>
+             <p className="text-xs md:text-sm text-gray-600 font-medium leading-relaxed">{feature.impact}</p>
           </div>
        </div>
     </div>
@@ -64,6 +64,7 @@ export const FeatureScrollytelling = () => {
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const sectionRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null); // For horizontal tabs
   
   const activeModule = MODULES.find(m => m.id === activeModuleId) || MODULES[0];
 
@@ -134,26 +135,31 @@ export const FeatureScrollytelling = () => {
         <USPBlock />
 
         {/* Phase Headline - ID Added here for precise scrolling */}
-        <div id="detailed-features" className="text-center mb-10 max-w-4xl mx-auto mt-24 scroll-mt-32">
+        <div id="detailed-features" className="text-center mb-8 md:mb-10 max-w-4xl mx-auto mt-16 md:mt-24 scroll-mt-32">
            <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight">
              Maximum oversight, control and safety in all phases of production
            </h3>
         </div>
 
         {/* TABS - Sticky outside the scroll container with reduced margin */}
-        <div className="sticky top-[80px] z-30 flex justify-center mb-8 md:mb-12">
-           <div className="inline-flex flex-wrap justify-center p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm transition-all duration-300">
+        {/* MOBILE OPTIMIZATION: Horizontal scroll instead of wrap */}
+        {/* FIXED: Removed sticky on mobile, added md:sticky for desktop only */}
+        <div className="relative md:sticky md:top-[80px] z-30 flex justify-center mb-8 md:mb-12 -mx-6 px-6 md:mx-0 md:px-0">
+           <div 
+             ref={scrollContainerRef}
+             className="flex overflow-x-auto snap-x no-scrollbar md:inline-flex md:flex-wrap md:justify-center p-1.5 bg-gray-100/90 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm transition-all duration-300 max-w-full"
+           >
               {MODULES.map(module => (
                 <button
                   key={module.id}
                   onClick={() => setActiveModuleId(module.id)}
-                  className={`px-6 py-3 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${
+                  className={`shrink-0 snap-center px-4 md:px-6 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-black transition-all flex items-center gap-2 mr-2 md:mr-0 ${
                     activeModuleId === module.id
-                      ? `${module.theme.activeTab} transform scale-105 shadow-md`
+                      ? `${module.theme.activeTab} shadow-sm`
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
                   }`}
                 >
-                  <module.icon className="w-4 h-4" />
+                  <module.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   {module.label}
                 </button>
               ))}
@@ -162,37 +168,48 @@ export const FeatureScrollytelling = () => {
 
         {/* CONDITIONAL RENDERING */}
         {isMobile ? (
-            /* MOBILE STACKED VIEW */
-            <div className="flex flex-col gap-12 pb-24 animate-in fade-in">
+            /* MOBILE TIMELINE VIEW */
+            <div className="flex flex-col pb-24 animate-in fade-in relative pl-4">
+               {/* Vertical Timeline Line */}
+               <div className="absolute left-[19px] top-4 bottom-0 w-0.5 bg-gray-100 rounded-full"></div>
+
                {activeModule.features.map((feature, idx) => (
-                 <div key={`${activeModuleId}-mob-${idx}`} className="flex flex-col gap-8">
-                    <div className="px-2">
-                       <div className={`text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2 ${activeModule.theme.label}`}>
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center border ${activeModule.theme.mobileNumber}`}>
-                            {idx + 1}
-                          </span>
-                          Step {idx + 1} / {activeModule.features.length}
+                 <div key={`${activeModuleId}-mob-${idx}`} className="flex flex-col gap-6 mb-16 relative">
+                    
+                    {/* Step Header attached to Timeline */}
+                    <div className="flex items-center gap-4">
+                       {/* Number Bubble */}
+                       <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 border-white text-xs font-black shrink-0 relative z-10 shadow-sm ${activeModule.theme.mobileNumber} bg-white`}>
+                          {idx + 1}
                        </div>
-                       <h3 className="text-3xl font-black text-gray-900 mb-2">{feature.title}</h3>
-                       <p className="text-base font-bold text-gray-400 mb-6">{feature.desc}</p>
+                       <div className="flex-1 pt-1">
+                          <h3 className="text-xl font-black text-gray-900 leading-tight">{feature.title}</h3>
+                       </div>
+                    </div>
+
+                    {/* Content Body (indented) */}
+                    <div className="pl-12 flex flex-col gap-6">
+                       <p className="text-sm font-medium text-gray-500 leading-relaxed">
+                          {feature.desc}
+                       </p>
+
+                       {/* Visual - Aspect Ratio 4:3 for Mobile (Better fit) */}
+                       <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 bg-gray-100 aspect-[4/3] w-full">
+                          <ImageZoom 
+                               src={feature.image} 
+                               alt={feature.title} 
+                               className="w-full h-full object-cover"
+                          />
+                       </div>
 
                        {/* Unified Cards for Mobile */}
                        <FeatureProcess feature={feature} colorName={activeModule.colorName} />
-                    </div>
-                    
-                    {/* Visual - Aspect Ratio 9:16 for Mobile - Updated with ImageZoom */}
-                    <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-gray-100 aspect-[9/16]">
-                       <ImageZoom 
-                            src={feature.image} 
-                            alt={feature.title} 
-                            className="w-full h-full object-cover"
-                       />
                     </div>
                  </div>
                ))}
             </div>
         ) : (
-            /* DESKTOP STAGE VIEW */
+            /* DESKTOP STAGE VIEW (Unchanged) */
             <div 
                 ref={sectionRef}
                 className="hidden lg:block relative h-[350vh]"
