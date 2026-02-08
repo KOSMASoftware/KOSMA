@@ -106,7 +106,8 @@ export function PulsingDotsBackground({
   alphaRange?: [number, number];
 }) {
   return (
-    <div className={cn("relative min-h-screen w-full overflow-hidden bg-white", containerClassName)}>
+    // Removed overflow-hidden from here to allow sticky children to work
+    <div className={cn("relative min-h-screen w-full bg-white", containerClassName)}>
       <style>{`
         /* Animation Keyframes: Updated opacities for softer presence */
         /* Applied to HTML Divs now for GPU compositing performance */
@@ -177,12 +178,11 @@ export function PulsingDotsBackground({
          - z-0 or lower to stay behind content
          - pointer-events-none to click through
          - Color: text-slate-300 (lighter than previous slate-400 for subtler effect)
+         - Overflow hidden ONLY here to clip the dots, not the content
       */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden text-slate-300 dark:text-slate-600/20">
          
          {/* Cluster 1: Top Left (Rotated for variety) */}
-         {/* Mobile: Smaller, pushed further to corner to keep center safe */}
-         {/* Desktop: Larger, standard corner position */}
          <div className="absolute 
             -top-[15%] -left-[25%] w-[90%] 
             md:-top-[10%] md:-left-[10%] md:w-[60%] 
@@ -192,7 +192,6 @@ export function PulsingDotsBackground({
          </div>
 
          {/* Cluster 2: Bottom Right */}
-         {/* Mobile: Pushed down to act as footer texture */}
          <div className="absolute 
             -bottom-[10%] -right-[25%] w-[90%]
             md:-bottom-[10%] md:-right-[10%] md:w-[60%] 

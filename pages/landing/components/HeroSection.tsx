@@ -10,8 +10,26 @@ import { KosmaTextLogo } from './LandingIcons';
 export const HeroSection = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Parallax State
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Scroll Listener for Parallax Effects
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      // Calculate progress (0 to 1) based on first screen height
+      const progress = Math.min(scrollY / windowHeight, 1);
+      setScrollProgress(progress);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -62,20 +80,31 @@ export const HeroSection = () => {
 
   const scrollToFeatures = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Updated ID target to jump directly to the phases/scrollytelling part
     const el = document.getElementById('detailed-features');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
+  // Calculate Parallax Styles
+  // Opacity goes from 1 -> 0
+  // Scale goes from 1 -> 0.95 (subtle depth)
+  // Blur goes from 0 -> 10px
+  const contentStyle = {
+    opacity: 1 - scrollProgress * 1.5, // Fades out faster than scroll
+    transform: `scale(${1 - scrollProgress * 0.05}) translateY(${scrollProgress * 50}px)`,
+    filter: `blur(${scrollProgress * 10}px)`,
+    willChange: 'opacity, transform, filter'
+  };
+
   return (
     <div
-      className="relative w-full h-screen min-h-[600px] overflow-hidden text-white z-20"
+      ref={containerRef}
+      className="relative w-full h-screen min-h-[600px] overflow-hidden text-white z-0"
       style={{ background: BG }}
     >
-      {/* HEADER OVERLAY */}
-      <div className="absolute top-0 left-0 w-full z-20 flex justify-between items-center p-6 md:px-12 pointer-events-none">
+      {/* HEADER OVERLAY - Fixed to top of viewport to stay accessible during parallax */}
+      <div className="absolute top-0 left-0 w-full z-50 flex justify-between items-center p-6 md:px-12 pointer-events-none">
           <div className="pointer-events-auto">
             <Link to="/" className="hover:opacity-80 transition-opacity">
               <Logo className="h-8 w-auto text-white" />
@@ -84,7 +113,6 @@ export const HeroSection = () => {
           
           {/* Desktop Nav */}
           <div className="pointer-events-auto hidden md:flex items-center gap-6 text-sm font-bold text-white/90">
-            {/* Language Picker (Visual only) */}
             <div className="flex items-center gap-1.5 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 border-r border-white/20 pr-4">
               <Globe className="w-4 h-4" />
               <span className="text-xs uppercase">EN</span>
@@ -109,7 +137,7 @@ export const HeroSection = () => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="absolute inset-0 z-50 bg-gray-900/95 backdrop-blur-xl p-6 flex flex-col pointer-events-auto animate-in fade-in slide-in-from-top-5 duration-200">
+        <div className="fixed inset-0 z-[100] bg-gray-900/95 backdrop-blur-xl p-6 flex flex-col pointer-events-auto animate-in fade-in slide-in-from-top-5 duration-200">
            <div className="flex justify-between items-center mb-12">
                <div className="text-white">
                   <Logo className="h-8 w-auto" />
@@ -132,39 +160,25 @@ export const HeroSection = () => {
         </div>
       )}
 
-      {/* Subtle circles motif */}
-      <div
-          className="absolute inset-0 opacity-[0.22] pointer-events-none"
-          style={{
-          filter: 'blur(0.2px)',
-          background:
-              'radial-gradient(circle at 85% 50%, rgba(255,255,255,0.22) 0 14px, transparent 15px),\n' +
-              'radial-gradient(circle at 90% 35%, rgba(255,255,255,0.18) 0 14px, transparent 15px),\n' +
-              'radial-gradient(circle at 95% 55%, rgba(255,255,255,0.20) 0 14px, transparent 15px),\n' +
-              'radial-gradient(circle at 80% 70%, rgba(255,255,255,0.16) 0 14px, transparent 15px),\n' +
-              'radial-gradient(circle at 88% 82%, rgba(255,255,255,0.12) 0 14px, transparent 15px)'
-          }}
-      />
-
-      {/* CANVAS: Pointer events removed to prevent blocking */}
+      {/* CANVAS: Fixed background */}
       <canvas 
         ref={canvasRef} 
         className="absolute inset-0 w-full h-full block z-0 pointer-events-none" 
       />
 
-      {/* INTERACTION LAYER: Handles randomizing background */}
+      {/* INTERACTION LAYER */}
       <div
         className="absolute inset-0 z-[1] cursor-crosshair"
         onClick={randomize}
       />
 
-      <div className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none">
+      {/* CONTENT WRAPPER - Applied Parallax Styles Here */}
+      <div 
+        className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none"
+        style={contentStyle}
+      >
           <div className="max-w-5xl w-full flex flex-col items-center">
-              
-              {/* HERO CONTENT (No Card) */}
               <div className="pointer-events-auto inline-block">
-                  
-                  {/* NEW ROW 1: Logo + "Simply..." Subheadline */}
                   <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-6 text-base md:text-lg font-bold text-gray-200 tracking-wide">
                       <div className="flex items-center gap-3">
                           <KosmaTextLogo />
@@ -185,7 +199,6 @@ export const HeroSection = () => {
                       </p>
                   </div>
 
-                  {/* RESTORED MAIN HEADLINE */}
                   <h1 className="text-5xl md:text-7xl font-black text-white mb-10 tracking-tight leading-[1.1] drop-shadow-2xl">
                     Bring AI to your Film Budget
                   </h1>
@@ -217,7 +230,7 @@ export const HeroSection = () => {
           </div>
       </div>
 
-      <div className="absolute bottom-8 left-0 w-full z-10 text-[10px] tracking-[0.2em] uppercase text-white/40 flex justify-center gap-6 pointer-events-none px-4">
+      <div className="absolute bottom-8 left-0 w-full z-10 text-[10px] tracking-[0.2em] uppercase text-white/40 flex justify-center gap-6 pointer-events-none px-4" style={{ opacity: Math.max(0, 1 - scrollProgress * 3) }}>
           <span>Move cursor</span>
           <span>Click to randomize</span>
       </div>
