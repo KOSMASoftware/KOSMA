@@ -160,21 +160,23 @@ export const MarketingView: React.FC = () => {
                                             {/* Sticky Cell for Actions - White background + Shadow */}
                                             <td className="px-6 py-3 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50 transition-colors z-20 shadow-[-10px_0_20px_-15px_rgba(0,0,0,0.1)]">
                                                 <div className="flex justify-end gap-2">
-                                                    <button 
-                                                        className="h-8 w-8 p-0 rounded-lg bg-gray-900 text-white border border-gray-900 hover:bg-gray-800 hover:text-white flex items-center justify-center transition-colors shadow-sm" 
+                                                    <Button 
+                                                        variant="ghost"
+                                                        className="h-8 w-8 px-0 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 transition-all shadow-sm"
                                                         onClick={() => setSelectedJobId(job.id)} 
                                                         title="View Recipients"
                                                     >
-                                                        <List className="w-5 h-5" />
-                                                    </button>
+                                                        <Users className="w-4 h-4" />
+                                                    </Button>
                                                     {(job.status === 'failed' || job.status === 'done_with_errors') && (
-                                                        <button 
-                                                            className="h-8 w-8 p-0 rounded-lg bg-amber-500 text-white border border-amber-600 hover:bg-amber-600 hover:text-white flex items-center justify-center transition-colors shadow-sm" 
+                                                        <Button 
+                                                            variant="ghost"
+                                                            className="h-8 w-8 px-0 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-100 hover:border-amber-200 transition-all shadow-sm"
                                                             onClick={() => handleRetry(job.id)} 
                                                             title="Retry Failed"
                                                         >
-                                                            <RefreshCw className="w-5 h-5" />
-                                                        </button>
+                                                            <RefreshCw className="w-4 h-4" />
+                                                        </Button>
                                                     )}
                                                 </div>
                                             </td>

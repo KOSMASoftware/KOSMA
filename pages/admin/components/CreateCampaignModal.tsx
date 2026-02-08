@@ -29,11 +29,18 @@ export const CreateCampaignModal: React.FC<{ onClose: () => void, onCreated: () 
     const [runAt, setRunAt] = useState('');
     const [dryRun, setDryRun] = useState(false);
 
+    // Consolidated Segment Keys (Exact match with SegmentsMonitor & Backend)
     const SEGMENT_KEYS = [
-        'all_users', 'trial_active', 'monthly_active', 'yearly_active', 'monthly_3_periods',
-        'monthly_to_yearly_offer', 'cancelled_or_expired', 'inactivity_short', 'inactivity_long',
-        'reactivation_offer', 'cancellation_confirmation', 'monthly_tips',
-        'deletion_warning_30d', 'deletion_warning_7d', 'deletion_due', 'never_logged_in'
+        'all_users',
+        'paying_monthly',
+        'paying_yearly',
+        'trial_active',
+        'no_plan',
+        'past_due',
+        'cancelled_or_expired',
+        'never_logged_in',
+        'unsubscribed',
+        'bounce'
     ];
 
     useEffect(() => {
