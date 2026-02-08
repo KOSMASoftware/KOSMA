@@ -79,9 +79,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Lizenz gekauft',
         type: 'transactional',
         templateName: 'Supabase: Subscription acquired',
-        trigger: 'Stripe Webhook',
-        condition: 'licenses.status="active"',
-        frequency: '1x pro Subscription',
+        trigger: 'Stündlicher Stripe-Abgleich (email-automation)',
+        condition: 'Abo ist aktiv (bezahltes Stripe-Abo ist vorhanden)',
+        frequency: '1x pro Abo (dedupliziert)',
         dedupe: 'subscription_acquired:<id>'
     },
     {
@@ -89,9 +89,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Upgrade',
         type: 'transactional',
         templateName: 'Supabase: Subscription Upgraded',
-        trigger: 'Stripe Webhook',
-        condition: 'Plan change detected',
-        frequency: 'Event-based',
+        trigger: 'Stündlicher Stripe-Abgleich (email-automation)',
+        condition: 'Tarif/Abrechnungszeitraum wurde hochgestuft (Upgrade erkannt)',
+        frequency: 'Bei Änderung (dedupliziert)',
         dedupe: 'subscription_upgraded:<id>_<time>'
     },
     {
@@ -99,9 +99,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Downgrade',
         type: 'transactional',
         templateName: 'Supabase: Subscription Downgraded',
-        trigger: 'Stripe Webhook',
-        condition: 'Plan change detected',
-        frequency: 'Event-based',
+        trigger: 'Stündlicher Stripe-Abgleich (email-automation)',
+        condition: 'Tarif/Abrechnungszeitraum wurde herabgestuft (Downgrade erkannt)',
+        frequency: 'Bei Änderung (dedupliziert)',
         dedupe: 'subscription_downgraded:<id>_<time>'
     },
     {
@@ -119,9 +119,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Rechnung bezahlt',
         type: 'transactional',
         templateName: 'Supabase: KOSMA Invoice',
-        trigger: 'Stripe Webhook (invoice.paid)',
-        condition: 'Invoice paid event',
-        frequency: '1x pro Invoice',
+        trigger: 'Stündlicher Abgleich bezahlter Rechnungen (email-automation)',
+        condition: 'Rechnung ist bezahlt (Status: paid)',
+        frequency: '1x pro Rechnung (dedupliziert)',
         dedupe: 'invoice_paid:<invoice_id>'
     },
     {
@@ -171,8 +171,8 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Monats -> Jahres-Upsell',
         type: 'journey',
         templateName: 'Supabase: Monthly to Yearly Offer',
-        trigger: 'Marketing Job',
-        condition: 'active + monthly + loyal',
+        trigger: 'Automatischer Marketing-Job (täglich geprüft, monatlich dedupliziert)',
+        condition: 'Aktives Monatsabo + mindestens 3 bezahlte Rechnungen in den letzten 120 Tagen',
         frequency: '1x/Monat',
         dedupe: 'monthly_to_yearly_offer_<YYYY_MM>'
     },

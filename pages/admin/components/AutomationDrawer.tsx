@@ -97,7 +97,7 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({ automation, 
                 <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/30">
                     <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                         <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                            Recent Activity <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px]">{logs.length}</span>
+                            Letzte 50 Sendungen <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px]">{logs.length}</span>
                         </h3>
                         <div className="flex items-center gap-2">
                             <div className="relative w-48">
@@ -162,7 +162,7 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({ automation, 
                                     ))}
                                     {logs.length === 0 && !loading && (
                                         <tr>
-                                            <td colSpan={3} className="p-8 text-center text-gray-400 text-sm italic">No logs found in the last 7 days.</td>
+                                            <td colSpan={3} className="p-8 text-center text-gray-400 text-sm italic">Keine Einträge gefunden (letzte 50).</td>
                                         </tr>
                                     )}
                                 </tbody>
