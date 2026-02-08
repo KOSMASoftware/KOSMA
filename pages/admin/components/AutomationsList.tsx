@@ -1,218 +1,177 @@
 import React, { useEffect, useState } from 'react';
-import { Zap, Clock, Users, Mail, Activity, Calendar } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
-
-const AUTOMATIONS = [
-    { 
-        name: "Signup / Aktivierung", 
-        audience: "Noch nie eingeloggt", 
-        trigger: "bestehend", 
-        emails: "signup_reminder_1, signup_reminder_2, signup_reminder_3" 
-    },
-    { 
-        name: "Trial", 
-        audience: "Trial aktiv", 
-        trigger: "bestehend", 
-        emails: "trial_activation, trial_reminder, trial_expired" 
-    },
-    { 
-        name: "Inaktivität", 
-        audience: "Eingeloggt, aber inaktiv", 
-        trigger: "bestehend", 
-        emails: "inactivity_*" 
-    },
-    { 
-        name: "Konto‑Löschung – Warnung 1", 
-        audience: "Nie gekauft + ≥11 Monate keine Aktivität", 
-        trigger: "Datum", 
-        emails: "account_deletion_warning_1" 
-    },
-    { 
-        name: "Konto‑Löschung – Warnung 2", 
-        audience: "Nie gekauft + ≥12 Monate keine Aktivität", 
-        trigger: "Datum", 
-        emails: "account_deletion_warning_2" 
-    },
-    { 
-        name: "Konto‑Löschung – Aktion", 
-        audience: "Nie gekauft + ≥12 Monate keine Aktivität", 
-        trigger: "Frist abgelaufen", 
-        emails: "ACTION: account-delete-job" 
-    },
-    { 
-        name: "Monats → Jahres‑Upsell", 
-        audience: "Aktive Monatskunden, ≥3 Perioden", 
-        trigger: "bestehend", 
-        emails: "monthly_to_yearly_offer" 
-    },
-    { 
-        name: "Kündigung", 
-        audience: "Gekündigt", 
-        trigger: "Kündigung", 
-        emails: "cancellation_confirmation" 
-    },
-    { 
-        name: "Reaktivierung", 
-        audience: "Gekündigt", 
-        trigger: "bestehend", 
-        emails: "reactivation_offer" 
-    },
-    { 
-        name: "Tipps & Tricks", 
-        audience: "Alle", 
-        trigger: "1×/Monat", 
-        emails: "monthly_tips" 
-    }
-];
+import { Zap, Route, Server, Search, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { AUTOMATION_CATALOG, AutomationDef } from '../data/automationCatalog';
+import { AutomationDrawer } from './AutomationDrawer';
+import { Button } from '../../../components/ui/Button';
 
 interface AutomationStats {
-    lastRun: string | null;
-    lastSent: string | null;
-    sent7d: number;
+    sent_7d: number;
+    failed_7d: number;
+    last_sent_at: string | null;
+    last_failed_at: string | null;
 }
 
 export const AutomationsList: React.FC = () => {
     const [statsMap, setStatsMap] = useState<Record<string, AutomationStats>>({});
     const [loading, setLoading] = useState(true);
+    const [selectedAuto, setSelectedAuto] = useState<AutomationDef | null>(null);
+    const [search, setSearch] = useState('');
 
     useEffect(() => {
-        const fetchActivity = async () => {
+        const fetchData = async () => {
             setLoading(true);
             try {
-                // 1. Fetch recent jobs (Last 50) for "Last Run"
-                const { data: jobs } = await supabase
-                    .from('marketing_jobs')
-                    .select('template_name, created_at, status')
-                    .order('created_at', { ascending: false })
-                    .limit(100);
-
-                // 2. Fetch recent messages (Last 7 days) for "Last Sent" & "Volume"
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                
-                const { data: messages } = await supabase
-                    .from('email_messages')
-                    .select('template_name, sent_at')
-                    .gte('sent_at', sevenDaysAgo.toISOString())
-                    .order('sent_at', { ascending: false });
-
-                // 3. Map Data to Automation Config
-                const newStats: Record<string, AutomationStats> = {};
-
-                AUTOMATIONS.forEach(auto => {
-                    // Normalize keys from config string (e.g. "signup_1, signup_2")
-                    const keys = auto.emails.split(',').map(k => k.trim());
-                    
-                    // Match Logic: Check if any key matches the record's template_name
-                    // We also handle wildcard '*' simple matching
-                    const isMatch = (dbName: string) => {
-                        if (!dbName) return false;
-                        return keys.some(k => {
-                            if (k.endsWith('*')) return dbName.startsWith(k.replace('*', ''));
-                            return dbName === k;
-                        });
-                    };
-
-                    // Find metrics
-                    const lastJob = jobs?.find(j => isMatch(j.template_name));
-                    const matchingMessages = messages?.filter(m => isMatch(m.template_name)) || [];
-                    const lastMsg = matchingMessages[0]; // Ordered desc
-
-                    newStats[auto.name] = {
-                        lastRun: lastJob?.created_at || null,
-                        lastSent: lastMsg?.sent_at || null,
-                        sent7d: matchingMessages.length
-                    };
+                // Fetch consolidated stats from backend function
+                const { data, error } = await supabase.functions.invoke('admin-overview-stats', {
+                    body: {} // default loads 7d
                 });
 
-                setStatsMap(newStats);
+                if (error) throw error;
+                
+                if (data && data.automation_stats) {
+                    setStatsMap(data.automation_stats);
+                }
             } catch (e) {
-                console.error("Error loading automation stats", e);
+                console.error("Failed to load automation stats", e);
             } finally {
                 setLoading(false);
             }
         };
-
-        fetchActivity();
+        fetchData();
     }, []);
 
-    const formatTime = (iso: string | null) => {
-        if (!iso) return '—';
-        const date = new Date(iso);
-        const now = new Date();
-        const isToday = date.toDateString() === now.toDateString();
-        
-        return isToday 
-            ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            : date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    const getTypeIcon = (type: string) => {
+        switch (type) {
+            case 'transactional': return <Zap className="w-4 h-4 text-blue-500" />;
+            case 'journey': return <Route className="w-4 h-4 text-purple-500" />;
+            default: return <Server className="w-4 h-4 text-gray-400" />;
+        }
     };
 
+    const getStatusIndicator = (stat: AutomationStats | undefined, type: string) => {
+        if (!stat && type === 'job') return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 block" title="No Data (System Job)" />;
+        
+        // Logic: Red if failures > 0, Green if sent > 0, Gray if inactive
+        if (stat?.failed_7d && stat.failed_7d > 0) return <span className="w-2.5 h-2.5 rounded-full bg-red-500 block shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="Errors detected" />;
+        if (stat?.sent_7d && stat.sent_7d > 0) return <span className="w-2.5 h-2.5 rounded-full bg-green-500 block shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Active" />;
+        
+        return <span className="w-2.5 h-2.5 rounded-full bg-gray-200 block" title="Inactive (7d)" />;
+    };
+
+    const filteredList = AUTOMATION_CATALOG.filter(auto => 
+        auto.name.toLowerCase().includes(search.toLowerCase()) || 
+        auto.trigger.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {AUTOMATIONS.map((auto, idx) => {
-                    const stat = statsMap[auto.name] || { lastRun: null, lastSent: null, sent7d: 0 };
-                    
-                    return (
-                        <div key={idx} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group hover:border-brand-200 transition-all">
-                            {/* Card Body */}
-                            <div className="p-6 pb-2">
-                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                    <Zap className="w-16 h-16 text-brand-500" />
-                                </div>
-                                
-                                <div className="mb-4">
-                                    <h4 className="text-lg font-black text-gray-900 mb-4 pr-8 leading-tight">{auto.name}</h4>
-                                    
-                                    <div className="flex items-start gap-2 mb-2">
-                                        <Mail className="w-4 h-4 text-brand-500 mt-0.5 shrink-0" />
-                                        <span className="text-xs text-gray-600 font-mono break-all">{auto.emails}</span>
-                                    </div>
-                                </div>
-
-                                <div className="pt-4 border-t border-gray-50 space-y-2 mb-4">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                                        <Users className="w-3.5 h-3.5 text-gray-400" />
-                                        <span>{auto.audience}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                                        <span>Trigger: {auto.trigger}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Live Status Bar */}
-                            <div className="mt-auto bg-gray-50/80 border-t border-gray-100 p-3 px-6 grid grid-cols-3 gap-2 text-[10px] text-gray-500 font-medium">
-                                <div className="flex flex-col items-start">
-                                    <span className="uppercase text-[9px] font-black text-gray-400 tracking-wider mb-0.5 flex items-center gap-1">
-                                        <Activity className="w-3 h-3" /> Last Run
-                                    </span>
-                                    <span className={stat.lastRun ? "text-gray-900 font-bold" : "text-gray-400"}>
-                                        {formatTime(stat.lastRun)}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col items-center border-l border-gray-200 pl-2">
-                                    <span className="uppercase text-[9px] font-black text-gray-400 tracking-wider mb-0.5 flex items-center gap-1">
-                                        <Mail className="w-3 h-3" /> Last Mail
-                                    </span>
-                                    <span className={stat.lastSent ? "text-gray-900 font-bold" : "text-gray-400"}>
-                                        {formatTime(stat.lastSent)}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col items-end border-l border-gray-200 pl-2">
-                                    <span className="uppercase text-[9px] font-black text-gray-400 tracking-wider mb-0.5 flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" /> 7d Vol
-                                    </span>
-                                    <span className={stat.sent7d > 0 ? "text-brand-600 font-black" : "text-gray-400"}>
-                                        {stat.sent7d > 0 ? stat.sent7d : '—'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
+        <div className="relative">
+            {/* Toolbar */}
+            <div className="flex justify-between items-center mb-6">
+                <div className="relative w-full max-w-sm">
+                    <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Search automations..." 
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none transition-shadow"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest flex gap-4">
+                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div> Active</span>
+                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500"></div> Error</span>
+                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-gray-300"></div> Idle</span>
+                </div>
             </div>
+
+            {/* Master Table */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50/50 border-b border-gray-100">
+                        <tr>
+                            <th className="px-6 py-4 w-12 text-center"></th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Automation</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Trigger & Frequency</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Last Sent</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">7d Volume</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {filteredList.map(auto => {
+                            const stat = statsMap[auto.templateName || ''] || { sent_7d: 0, failed_7d: 0, last_sent_at: null, last_failed_at: null };
+                            
+                            return (
+                                <tr key={auto.id} className="hover:bg-gray-50/50 transition-colors group">
+                                    <td className="px-6 py-4 text-center">
+                                        <div className="flex justify-center">
+                                            {getStatusIndicator(stat, auto.type)}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-lg ${
+                                                auto.type === 'transactional' ? 'bg-blue-50 text-blue-600' :
+                                                auto.type === 'journey' ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-500'
+                                            }`}>
+                                                {getTypeIcon(auto.type)}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-gray-900 text-sm">{auto.name}</div>
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">{auto.type}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-xs font-medium text-gray-700">{auto.trigger}</div>
+                                        <div className="text-[10px] text-gray-400 mt-0.5">{auto.frequency}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {stat.last_sent_at ? (
+                                            <div className="text-xs font-mono text-gray-600">
+                                                {new Date(stat.last_sent_at).toLocaleDateString()} <span className="text-gray-400">{new Date(stat.last_sent_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-300 italic">—</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col gap-1 w-24">
+                                            <div className="flex justify-between text-[10px] font-bold">
+                                                <span className="text-green-600">{stat.sent_7d}</span>
+                                                <span className={stat.failed_7d > 0 ? "text-red-600" : "text-gray-300"}>{stat.failed_7d}</span>
+                                            </div>
+                                            {/* Mini Bar Chart */}
+                                            <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden flex">
+                                                <div className="bg-green-500 h-full" style={{ width: `${Math.min(100, (stat.sent_7d / (stat.sent_7d + stat.failed_7d + 1)) * 100)}%` }}></div>
+                                                <div className="bg-red-500 h-full" style={{ width: `${Math.min(100, (stat.failed_7d / (stat.sent_7d + stat.failed_7d + 1)) * 100)}%` }}></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <Button 
+                                            variant="secondary" 
+                                            className="h-8 px-3 text-xs" 
+                                            onClick={() => setSelectedAuto(auto)}
+                                        >
+                                            Inspect
+                                        </Button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Drawer Overlay */}
+            {selectedAuto && (
+                <AutomationDrawer 
+                    automation={selectedAuto} 
+                    onClose={() => setSelectedAuto(null)} 
+                />
+            )}
         </div>
     );
 };
