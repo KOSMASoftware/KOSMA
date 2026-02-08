@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { History, RefreshCw, ClipboardCopy } from 'lucide-react';
+import { History, RefreshCw, ClipboardCopy, Trash2 } from 'lucide-react';
 import { AdminTabs } from './components/AdminTabs';
 
 export const DebugView: React.FC = () => {
     const [events, setEvents] = useState<any[]>([]);
     const [customerEmails, setCustomerEmails] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
+    const [cleanupLoading, setCleanupLoading] = useState(false);
 
     // 1. Helper: Payload robust parsen
     const parsePayload = (payload: any) => {
@@ -74,6 +75,31 @@ export const DebugView: React.FC = () => {
         }
     };
 
+    const handleCleanup = async () => {
+        if (!confirm("Möchtest du wirklich alle Logs löschen, die älter als 30 Tage sind?")) return;
+        
+        setCleanupLoading(true);
+        try {
+            const dateThreshold = new Date();
+            dateThreshold.setDate(dateThreshold.getDate() - 30);
+            
+            const { error } = await supabase
+                .from('stripe_events')
+                .delete()
+                .lt('created_at', dateThreshold.toISOString());
+
+            if (error) throw error;
+            
+            alert("Alte Logs erfolgreich gelöscht.");
+            refresh();
+        } catch (e: any) {
+            console.error("Cleanup error:", e);
+            alert("Fehler beim Löschen: " + e.message);
+        } finally {
+            setCleanupLoading(false);
+        }
+    };
+
     useEffect(() => { refresh(); }, []);
 
     // 4. Anzeige-Logik
@@ -102,7 +128,28 @@ export const DebugView: React.FC = () => {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
-            <div className="flex justify-between items-center mb-8 px-4"><h3 className="text-xl font-black text-gray-900 flex items-center gap-3"><History className="w-6 h-6 text-gray-400" /> Stripe Logs</h3><button onClick={refresh} className="p-3 bg-white border border-gray-100 rounded-xl hover:bg-gray-50"><RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} /></button></div>
+            <div className="flex justify-between items-center mb-8 px-4">
+                <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                    <History className="w-6 h-6 text-gray-400" /> Stripe Logs
+                </h3>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={handleCleanup} 
+                        disabled={cleanupLoading || loading}
+                        className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-black uppercase tracking-widest hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                        <Trash2 className={`w-4 h-4 ${cleanupLoading ? 'animate-spin' : ''}`} />
+                        Cleanup &gt;30d
+                    </button>
+                    <button 
+                        onClick={refresh} 
+                        disabled={loading}
+                        className="p-3 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
+                    >
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
+            </div>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50/50 border-b border-gray-100">
@@ -135,6 +182,11 @@ export const DebugView: React.FC = () => {
                                 </tr>
                             );
                         })}
+                        {events.length === 0 && !loading && (
+                            <tr>
+                                <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-400 italic">Keine Logs gefunden.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
