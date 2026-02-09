@@ -55,7 +55,7 @@ export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ onSelectCo
                 </h2>
                 <p className="text-sm font-medium text-brand-800/80 leading-relaxed max-w-2xl">
                     Complete 1 course = 1 month free for each course.<br/>
-                    Complete all 6 courses = 3 months free (Course Completion Bonus).<br/>
+                    Complete all 6 courses = 3 months free + license upgrade (Course Completion Bonus).<br/>
                     <span className="text-xs opacity-70 mt-1 block">Important: Rewards only count for goals you explicitly mark as completed.</span>
                 </p>
             </div>
