@@ -1,10 +1,12 @@
 
-import React from 'react';
-import { ArrowLeft, CheckCircle, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, CheckCircle, ChevronRight, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { SmartLink } from '../../components/SmartLink';
 import { HELP_DATA, HelpArticle } from '../../data/helpArticles';
 import { LearningCourse } from '../../data/learningCourses';
+import { Button } from '../../components/ui/Button';
+import { Notice, NoticeVariant } from '../../components/ui/Notice';
 
 // --- HELPER: Find Article Content ---
 const findArticleContent = (articleId: string): HelpArticle | undefined => {
@@ -45,6 +47,10 @@ export const LessonView: React.FC<LessonViewProps> = ({
   onBack,
   onNavigate 
 }) => {
+  // Local State for Actions
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [toast, setToast] = useState<{title: string, message: string, variant: NoticeVariant} | null>(null);
+
   // Find current goal index
   const currentGoalIndex = course.goals.findIndex(g => g.articleId === articleId);
   const currentGoal = course.goals[currentGoalIndex];
@@ -54,14 +60,69 @@ export const LessonView: React.FC<LessonViewProps> = ({
   const article = findArticleContent(articleId);
 
   // Scroll to top on mount
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, [articleId]);
+
+  // TRACKING: Open Goal (Best Effort)
+  useEffect(() => {
+    if (course.id && articleId) {
+      supabase.functions.invoke('learning-track', {
+        body: { action: 'open_goal', course_id: course.id, article_id: articleId }
+      }).catch(err => console.warn('[Learning] Track open failed (ignored):', err));
+    }
+  }, [course.id, articleId]);
+
+  // ACTION: Mark as Completed
+  const handleMarkCompleted = async () => {
+    setIsCompleting(true);
+    // Dismiss previous toast
+    setToast(null); 
+
+    try {
+      const { data, error } = await supabase.functions.invoke('learning-track', {
+        body: { action: 'complete_goal', course_id: course.id, article_id: articleId }
+      });
+
+      if (error) throw error;
+
+      setToast({
+        title: 'Marked as completed',
+        message: data?.motivation_line || 'Progress saved.',
+        variant: 'success'
+      });
+    } catch (err: any) {
+      console.error('[Learning] Completion failed:', err);
+      setToast({
+        title: 'Could not mark as completed',
+        message: 'Please try again.',
+        variant: 'error'
+      });
+    } finally {
+      setIsCompleting(false);
+      // Auto-dismiss toast after 4s
+      setTimeout(() => setToast((prev) => (prev?.variant === 'success' ? null : prev)), 4000);
+    }
+  };
 
   if (!article) return <div className="p-8 text-center">Content not found.</div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
+    <div className="max-w-4xl mx-auto px-6 py-8 animate-in fade-in slide-in-from-bottom-8 duration-500 relative">
+       
+       {/* Toast Notification Positioned Absolute Top-Right of Container */}
+       {toast && (
+         <div className="fixed top-24 right-6 md:right-10 z-50 w-full max-w-sm drop-shadow-xl">
+            <Notice 
+              title={toast.title} 
+              message={toast.message} 
+              variant={toast.variant} 
+              onClose={() => setToast(null)}
+              className="bg-white"
+            />
+         </div>
+       )}
+
        {/* Nav Header */}
        <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
           <button onClick={onBack} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">
@@ -133,8 +194,27 @@ export const LessonView: React.FC<LessonViewProps> = ({
           </div>
        </div>
 
+       {/* Completion Action Area */}
+       <div className="mt-12 bg-gray-50 rounded-2xl p-6 border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-center md:text-left">
+             <h4 className="text-sm font-bold text-gray-900">Finished this goal?</h4>
+             <p className="text-xs text-gray-500 mt-1 font-medium">
+               Required for rewards.
+             </p>
+          </div>
+          <Button 
+            onClick={handleMarkCompleted}
+            isLoading={isCompleting}
+            variant="secondary"
+            className="w-full md:w-auto min-w-[180px] shadow-sm text-brand-600 border-brand-100 bg-white hover:bg-brand-50 hover:border-brand-200"
+            icon={<Check className="w-4 h-4" />}
+          >
+            Mark as completed
+          </Button>
+       </div>
+
        {/* Footer Navigation */}
-       <div className="mt-16 pt-10 border-t border-gray-100 flex justify-between items-center">
+       <div className="mt-8 pt-8 border-t border-gray-100 flex justify-between items-center">
           <button 
              onClick={onBack}
              className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors text-sm"

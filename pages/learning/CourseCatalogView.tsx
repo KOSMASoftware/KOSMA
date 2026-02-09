@@ -1,14 +1,31 @@
 
-import React from 'react';
-import { ChevronRight, Clock, List } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, Clock, List, Trophy, Gift } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { COURSES } from '../../data/learningCourses';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
 
 interface CourseCatalogViewProps {
   onSelectCourse: (courseId: string) => void;
 }
 
 export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ onSelectCourse }) => {
+  const { isAuthenticated } = useAuth();
+  const [summary, setSummary] = useState<{courses_completed_count: number} | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+        supabase.functions.invoke('learning-progress-summary')
+        .then(({ data, error }) => {
+            if (!error && data) {
+                setSummary({ courses_completed_count: data.courses_completed_count || 0 });
+            }
+        })
+        .catch(console.warn);
+    }
+  }, [isAuthenticated]);
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center mb-10">
@@ -17,6 +34,40 @@ export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ onSelectCo
           Master KOSMA with our structured courses. From basics to expert level.
         </p>
       </div>
+
+      {/* REWARDS BANNER (Authenticated Only) */}
+      {isAuthenticated && summary !== null && (
+        <div className="mb-12 bg-brand-50 rounded-2xl border border-brand-100 p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 shadow-sm relative overflow-hidden">
+            {/* Decorative Background Blur */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-200/40 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="p-4 bg-white rounded-2xl shadow-sm text-brand-500 shrink-0 relative z-10">
+                <Trophy className="w-8 h-8" />
+            </div>
+            
+            <div className="flex-1 text-center md:text-left relative z-10">
+                <h2 className="text-xl font-black text-brand-900 uppercase tracking-tight mb-1">
+                    Rewards Status: <span className="text-brand-600">{summary.courses_completed_count} / 6</span> courses completed
+                </h2>
+                <p className="text-sm font-medium text-brand-800/80 leading-relaxed max-w-2xl">
+                    Complete 1 course = 1 month free. Complete all 6 = Course Completion Bonus.<br/>
+                    <span className="text-xs opacity-70 mt-1 block">Important: Rewards only count for goals you explicitly mark as completed.</span>
+                </p>
+            </div>
+
+            {/* Visual Indicator of 6 slots */}
+            <div className="flex gap-2 relative z-10">
+                {[...Array(6)].map((_, i) => (
+                    <div 
+                        key={i} 
+                        className={`w-3 h-3 rounded-full border border-brand-200 ${
+                            i < summary.courses_completed_count ? 'bg-brand-500 border-brand-500 shadow-[0_0_8px_rgba(0,147,208,0.4)]' : 'bg-white'
+                        }`} 
+                    />
+                ))}
+            </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {COURSES.map((course, idx) => {
