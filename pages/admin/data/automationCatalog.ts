@@ -1,3 +1,4 @@
+
 export type AutomationType = 'transactional' | 'journey' | 'job' | 'system';
 
 export interface AutomationDef {
@@ -215,5 +216,47 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         condition: 'deletion_at <= now',
         frequency: '1x',
         dedupe: 'Hard delete'
+    },
+
+    // --- E) Learning Automations ---
+    {
+        id: '23',
+        name: 'Learning: Reminder 1 (2d inactive)',
+        type: 'journey',
+        templateName: 'Supabase: Learning Reminder 1',
+        trigger: 'Marketing Job (auto)',
+        condition: 'Learning inactive >= 2 days (per course)',
+        frequency: 'as needed (deduped per user+course+version)',
+        dedupe: 'learning_inactive_1:<user_id>:<course_id>:v<catalog_version>'
+    },
+    {
+        id: '24',
+        name: 'Learning: Reminder 2 (14d inactive)',
+        type: 'journey',
+        templateName: 'Supabase: Learning Reminder 2',
+        trigger: 'Marketing Job (auto)',
+        condition: 'Learning inactive >= 14 days (per course)',
+        frequency: 'as needed (deduped per user+course+version)',
+        dedupe: 'learning_inactive_2:<user_id>:<course_id>:v<catalog_version>'
+    },
+    {
+        id: '25',
+        name: 'Learning: Reward Granted (course completed)',
+        type: 'transactional',
+        templateName: 'Supabase: Learning Reward Granted',
+        trigger: 'Edge Function (learning-track)',
+        condition: 'User completes a course (reward month granted)',
+        frequency: 'event-based (1x per course version)',
+        dedupe: 'learning_reward:<user_id>:<course_id>:v<catalog_version>'
+    },
+    {
+        id: '26',
+        name: 'Learning: Course Completion Bonus (all 6)',
+        type: 'transactional',
+        templateName: 'Supabase: Learning Course Completion Bonus',
+        trigger: 'Edge Function (learning-track)',
+        condition: 'All 6 courses completed (bonus reward)',
+        frequency: 'event-based (1x per user)',
+        dedupe: 'learning_completion_bonus:<user_id>'
     }
 ];
