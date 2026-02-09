@@ -33,6 +33,10 @@ export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ onSelectCo
         <p className="text-base md:text-lg text-gray-500 font-medium max-w-2xl mx-auto">
           Master KOSMA with our structured courses. From basics to expert level.
         </p>
+        <div className="flex items-center justify-center gap-2 mt-4 text-sm font-bold text-brand-600">
+           <Gift className="w-4 h-4" />
+           <span>Complete courses to get free months and license upgrades.</span>
+        </div>
       </div>
 
       {/* REWARDS BANNER (Authenticated Only) */}
