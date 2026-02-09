@@ -27,17 +27,17 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
         supabase.functions.invoke('learning-progress-summary', {
             body: { course_id: course.id }
         }).then(({ data, error }) => {
-            if (!error && data && data.courses && data.courses[course.id]) {
-                const cData = data.courses[course.id];
-                // Try to find the last touched article from data (if available in future)
-                // For now, fallback to undefined or check if the API returns a global 'last_activity'
-                const lastId = data.last_activity?.course_id === course.id ? data.last_activity.article_id : undefined;
+            if (!error && data) {
+                // Backend returns courses as an array: [{ course_id: '...', completed_goals: 5, ... }]
+                const courseRow = (data.courses || []).find((c: any) => c.course_id === course.id);
                 
-                setProgress({
-                    completed: cData.completed_goals_count || 0,
-                    total: cData.total_goals_count || course.goals.length,
-                    last_article_id: lastId
-                });
+                if (courseRow) {
+                    setProgress({
+                        completed: courseRow.completed_goals ?? 0,
+                        total: courseRow.total_goals ?? course.goals.length,
+                        last_article_id: courseRow.last_article_id
+                    });
+                }
             }
         }).catch(err => console.warn('[Overview] Progress fetch failed (best-effort)', err));
     }
