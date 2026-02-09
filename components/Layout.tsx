@@ -44,9 +44,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <>
       <div className="p-6 border-b border-gray-100 flex justify-between items-center h-[72px]">
         <div>
-          <div className="flex items-center gap-2 text-brand-500">
+          {/* Logo links always to Landing Page */}
+          <Link to="/" className="flex items-center gap-2 text-brand-500 hover:opacity-80 transition-opacity">
             <Logo className="h-8 w-auto" />
-          </div>
+          </Link>
           <div className="mt-1 text-[10px] font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full inline-block tracking-[0.2em]">
             {isAdmin ? 'ADMIN AREA' : 'CUSTOMER AREA'}
           </div>

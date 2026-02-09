@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Footer } from './Footer';
 import { Logo } from '../ui/Logo';
 
@@ -16,9 +17,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children, onMobileMenuClick,
     <div className="min-h-screen bg-transparent flex flex-col md:flex-row font-sans text-gray-900">
       {/* MOBILE HEADER */}
       <header className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-30 h-[72px]">
-        <div className="text-brand-500">
+        {/* Logo links always to Landing Page */}
+        <Link to="/" className="text-brand-500 hover:opacity-80 transition-opacity">
           <Logo className="h-8 w-auto" />
-        </div>
+        </Link>
         <button onClick={onMobileMenuClick} className="p-2 -mr-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
           <Menu className="w-6 h-6" />
         </button>
