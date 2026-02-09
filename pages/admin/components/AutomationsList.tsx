@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import { Zap, Route, Server, Search, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Zap, Route, Server, Search, AlertCircle, CheckCircle, Clock, ExternalLink } from 'lucide-react';
 import { AUTOMATION_CATALOG, AutomationDef } from '../data/automationCatalog';
 import { AutomationDrawer } from './AutomationDrawer';
 import { Button } from '../../../components/ui/Button';
@@ -11,6 +12,17 @@ interface AutomationStats {
     last_sent_at: string | null;
     last_failed_at: string | null;
 }
+
+// Helper to generate deep link to Elastic Email Editor
+const getElasticTemplateUrl = (templateName: string) => {
+    try {
+        const token = `!!!${templateName}`;
+        const encoded = btoa(token).replace(/=+$/g, "");
+        return `https://app.elasticemail.com/marketing/templates/new/editor/${encoded}?page=1&perPage=25`;
+    } catch (e) {
+        return '#';
+    }
+};
 
 export const AutomationsList: React.FC = () => {
     const [statsMap, setStatsMap] = useState<Record<string, AutomationStats>>({});
@@ -118,7 +130,20 @@ export const AutomationsList: React.FC = () => {
                                                 {getTypeIcon(auto.type)}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-900 text-sm">{auto.name}</div>
+                                                <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                                                    {auto.name}
+                                                    {auto.templateName && (
+                                                        <a 
+                                                            href={getElasticTemplateUrl(auto.templateName)}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-gray-300 hover:text-brand-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                            title="Open Template in Elastic Email"
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                        </a>
+                                                    )}
+                                                </div>
                                                 <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">{auto.type}</div>
                                             </div>
                                         </div>
