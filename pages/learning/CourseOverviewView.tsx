@@ -126,8 +126,8 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
                         Complete this course and unlock rewards
                      </h4>
                      <div className="text-sm text-brand-800/80 font-medium leading-relaxed space-y-0.5">
-                        <p>Complete 1 course = <span className="font-bold text-brand-900">1 month free</span>.</p>
-                        <p>Complete all 6 = <span className="font-bold text-brand-900">Course Completion Bonus</span>.</p>
+                        <p>Complete 1 course = <span className="font-bold text-brand-900">1 month free for each course</span>.</p>
+                        <p>Complete all 6 courses = <span className="font-bold text-brand-900">3 months free (Course Completion Bonus)</span>.</p>
                      </div>
                      <p className="text-[10px] text-brand-400 font-bold uppercase tracking-widest mt-2.5">
                         Rewards only count for goals you mark as completed.
