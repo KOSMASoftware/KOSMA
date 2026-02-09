@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, GraduationCap, List, Clock, Play, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, GraduationCap, List, Clock, Play, CheckCircle2, Trophy, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { LearningCourse } from '../../data/learningCourses';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { buildLearningUrl } from './learningNav';
 
 interface CourseOverviewViewProps {
   course: LearningCourse;
@@ -17,6 +19,7 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
   onSelectGoal 
 }) => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [progress, setProgress] = useState<{completed: number, total: number, last_article_id?: string} | null>(null);
   
   const totalDuration = course.goals.reduce((acc, g) => acc + g.durationMin, 0);
@@ -42,6 +45,12 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
         }).catch(err => console.warn('[Overview] Progress fetch failed (best-effort)', err));
     }
   }, [course.id, isAuthenticated]);
+
+  const handleLoginToStart = () => {
+    // Navigate to Login with redirect to the FIRST lesson of this course
+    const target = buildLearningUrl({ courseId: course.id, articleId: course.goals[0].articleId });
+    navigate(`/login?redirect=${encodeURIComponent(target)}`);
+  };
 
   const percentage = progress && progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
@@ -76,7 +85,7 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
                </span>
             </div>
 
-            {/* Authenticated Progress Bar */}
+            {/* Authenticated: Progress Bar */}
             {isAuthenticated && progress && (
                <div className="bg-white p-4 rounded-xl border border-brand-100 shadow-sm flex flex-col md:flex-row items-center gap-4">
                   <div className="flex-1 w-full">
@@ -99,6 +108,38 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
                         Continue
                      </button>
                   )}
+               </div>
+            )}
+
+            {/* Unauthenticated: Rewards CTA Block */}
+            {!isAuthenticated && (
+               <div className="mt-6 bg-brand-50 border border-brand-100 rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center gap-5 relative overflow-hidden group">
+                  {/* Decorative shimmer */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+
+                  <div className="bg-white p-3 rounded-xl shadow-sm text-brand-500 border border-brand-100 shrink-0 relative z-10">
+                     <Trophy className="w-6 h-6" />
+                  </div>
+                  
+                  <div className="flex-1 relative z-10">
+                     <h4 className="text-sm font-black text-brand-900 uppercase tracking-wide mb-2">
+                        Complete this course and unlock rewards
+                     </h4>
+                     <div className="text-sm text-brand-800/80 font-medium leading-relaxed space-y-0.5">
+                        <p>Complete 1 course = <span className="font-bold text-brand-900">1 month free</span>.</p>
+                        <p>Complete all 6 = <span className="font-bold text-brand-900">Course Completion Bonus</span>.</p>
+                     </div>
+                     <p className="text-[10px] text-brand-400 font-bold uppercase tracking-widest mt-2.5">
+                        Rewards only count for goals you mark as completed.
+                     </p>
+                  </div>
+
+                  <button
+                     onClick={handleLoginToStart}
+                     className="bg-brand-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/20 whitespace-nowrap w-full md:w-auto flex items-center justify-center gap-2 relative z-10"
+                  >
+                     <LogIn className="w-4 h-4" /> Log in to start
+                  </button>
                </div>
             )}
          </div>
@@ -124,7 +165,7 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
             ))}
          </div>
          
-         {!progress?.last_article_id && (
+         {!progress?.last_article_id && isAuthenticated && (
              <div className="p-6 bg-gray-50 border-t border-gray-100 text-center">
                 <button 
                    onClick={() => onSelectGoal(course.goals[0].articleId)}
