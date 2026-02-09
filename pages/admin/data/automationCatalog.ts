@@ -80,9 +80,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Lizenz gekauft',
         type: 'transactional',
         templateName: 'Supabase: Subscription acquired',
-        trigger: 'Stündlicher Stripe-Abgleich (email-automation)',
+        trigger: 'Stripe webhook (checkout.session.completed)',
         condition: 'Abo ist aktiv (bezahltes Stripe-Abo ist vorhanden)',
-        frequency: '1x pro Abo (dedupliziert)',
+        frequency: 'Automatic, near real-time (deduped per subscription)',
         dedupe: 'subscription_acquired:<id>'
     },
     {
@@ -110,9 +110,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Zahlung fehlgeschlagen',
         type: 'transactional',
         templateName: 'Supabase: Payment Failed',
-        trigger: 'Stripe Webhook (invoice.payment_failed)',
+        trigger: 'Stripe webhook (invoice.payment_failed)',
         condition: 'Payment failed event',
-        frequency: 'Event-based',
+        frequency: 'Automatic, near real-time (event-based)',
         dedupe: 'payment_failed:<sub_id>_<period>'
     },
     {
@@ -120,9 +120,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Rechnung bezahlt',
         type: 'transactional',
         templateName: 'Supabase: KOSMA Invoice',
-        trigger: 'Stündlicher Abgleich bezahlter Rechnungen (email-automation)',
+        trigger: 'Stripe webhook (invoice.payment_succeeded)',
         condition: 'Rechnung ist bezahlt (Status: paid)',
-        frequency: '1x pro Rechnung (dedupliziert)',
+        frequency: 'Automatic, near real-time (deduped per invoice)',
         dedupe: 'invoice_paid:<invoice_id>'
     },
     {
@@ -130,9 +130,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Kündigung bestätigen',
         type: 'transactional',
         templateName: 'Supabase: Subscription Cancellation',
-        trigger: 'Stripe Webhook',
+        trigger: 'Stripe webhook (customer.subscription.updated/deleted)',
         condition: 'Subscription cancelled',
-        frequency: '1x pro Subscription',
+        frequency: 'Automatic, near real-time (deduped per subscription)',
         dedupe: 'subscription_cancellation:<sub_id>'
     },
 
@@ -224,9 +224,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Learning: Reminder 1 (2d inactive)',
         type: 'journey',
         templateName: 'Supabase: Learning Reminder 1',
-        trigger: 'Marketing Job (auto)',
+        trigger: 'Marketing Job (auto) – learning inactivity 2d',
         condition: 'Learning inactive >= 2 days (per course)',
-        frequency: 'as needed (deduped per user+course+version)',
+        frequency: 'Automatic (deduped per user + course + catalog version)',
         dedupe: 'learning_inactive_1:<user_id>:<course_id>:v<catalog_version>'
     },
     {
@@ -234,9 +234,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Learning: Reminder 2 (14d inactive)',
         type: 'journey',
         templateName: 'Supabase: Learning Reminder 2',
-        trigger: 'Marketing Job (auto)',
+        trigger: 'Marketing Job (auto) – learning inactivity 14d',
         condition: 'Learning inactive >= 14 days (per course)',
-        frequency: 'as needed (deduped per user+course+version)',
+        frequency: 'Automatic (deduped per user + course + catalog version)',
         dedupe: 'learning_inactive_2:<user_id>:<course_id>:v<catalog_version>'
     },
     {
@@ -244,9 +244,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Learning: Reward Granted (course completed)',
         type: 'transactional',
         templateName: 'Supabase: Learning Reward Granted',
-        trigger: 'Edge Function (learning-track)',
+        trigger: 'Edge Function (learning-track) – goal/course completed',
         condition: 'User completes a course (reward month granted)',
-        frequency: 'event-based (1x per course version)',
+        frequency: 'Automatic, near real-time (deduped per user + course + catalog version)',
         dedupe: 'learning_reward:<user_id>:<course_id>:v<catalog_version>'
     },
     {
@@ -254,9 +254,9 @@ export const AUTOMATION_CATALOG: AutomationDef[] = [
         name: 'Learning: Course Completion Bonus (all 6)',
         type: 'transactional',
         templateName: 'Supabase: Learning Course Completion Bonus',
-        trigger: 'Edge Function (learning-track)',
+        trigger: 'Edge Function (learning-track) – all courses completed',
         condition: 'All 6 courses completed (bonus reward)',
-        frequency: 'event-based (1x per user)',
+        frequency: 'Automatic, near real-time (deduped per user)',
         dedupe: 'learning_completion_bonus:<user_id>'
     }
 ];
