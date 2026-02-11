@@ -55,7 +55,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
             
             <DashboardTabs />
             
-            {/* Top Row: Status & Action */}
+            {/* Top Row: Status & Action - 2x2 Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 
                 {/* 1. Subscription Status (White Card) */}
@@ -96,46 +96,49 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                     </div>
                 </div>
 
-                {/* 2. Learning Snapshot (Dark Card) */}
-                <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 rounded-2xl shadow-xl flex flex-col justify-between relative overflow-hidden min-h-[220px]">
-                    {/* Abstract Background Shape */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                {/* 2. Learning Snapshot (Now Light Card for Consistency) */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between relative overflow-hidden group min-h-[220px]">
+                    {/* Decorative Blob (Blue/Brand to differentiate slightly from Subscription) */}
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-50 rounded-full blur-3xl group-hover:bg-blue-100 transition-colors duration-500"></div>
                     
                     {learningLoading ? (
-                        <div className="flex-1 flex items-center justify-center opacity-50">
+                        <div className="flex-1 flex items-center justify-center opacity-50 text-sm font-bold text-gray-400">
                             Loading Campus...
                         </div>
                     ) : (
                         <>
-                            <div className="relative z-10 flex justify-between items-start">
-                                <div>
-                                    <span className="text-[10px] font-black text-brand-400 uppercase tracking-widest flex items-center gap-2 mb-1">
-                                        <GraduationCap className="w-3 h-3" /> Campus Level
-                                    </span>
-                                    <h3 className="text-2xl font-black tracking-tight text-white">{badge}</h3>
-                                    <p className="text-xs text-gray-400 mt-2 font-medium leading-snug max-w-[200px]">
-                                        {coursesToNext > 0 
-                                            ? <>{coursesToNext} courses until <span className="text-white">{nextBadge}</span></>
-                                            : "You reached the top level!"}
-                                    </p>
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-start mb-4">
+                                     <div className="p-3 rounded-xl bg-blue-50 text-brand-600">
+                                        <BadgeIcon type={badge} className="w-6 h-6" />
+                                     </div>
+                                     <Link to="/dashboard/learning" className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                                        Campus
+                                     </Link>
                                 </div>
-                                <div className="bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/10 shadow-lg">
-                                    <BadgeIcon type={badge} className="text-yellow-400 w-8 h-8 drop-shadow-md" />
+                                
+                                <div>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Rank</h3>
+                                    <p className="text-2xl font-black text-gray-900 tracking-tight">{badge}</p>
+                                    <p className="text-xs text-gray-500 mt-1 font-bold">
+                                        {coursesToNext > 0 
+                                            ? `${coursesToNext} courses to ${nextBadge}`
+                                            : "Highest rank achieved!"}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="mt-6 relative z-10 flex flex-col gap-3">
+                            <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between relative z-10">
+                                <div>
+                                    <Link to="/dashboard/learning" className="text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors">
+                                        View Rewards
+                                    </Link>
+                                </div>
                                 <Link 
                                     to={continueUrl} 
-                                    className="w-full py-3 bg-white text-gray-900 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-brand-50 transition-colors shadow-lg shadow-black/20"
+                                    className="flex items-center gap-2 py-2.5 px-5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-brand-600 transition-all shadow-sm"
                                 >
-                                    <Play className="w-3 h-3 fill-current" /> Continue Learning
-                                </Link>
-                                <Link 
-                                    to="/dashboard/learning" 
-                                    className="text-center text-[10px] font-bold text-gray-400 hover:text-white transition-colors uppercase tracking-widest flex items-center justify-center gap-1"
-                                >
-                                    View Rewards <ArrowRight className="w-3 h-3" />
+                                    Continue <Play className="w-3 h-3 fill-current" />
                                 </Link>
                             </div>
                         </>
