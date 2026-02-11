@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useLearningRewards } from '../../hooks/useLearningRewards';
 import { DashboardTabs } from './DashboardTabs';
-import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, GraduationCap, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, ChevronDown, ChevronUp, AlertTriangle, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // --- HELPER: Badge Icon Logic ---
@@ -86,7 +86,15 @@ export const LearningRewardsView: React.FC = () => {
         return a.course_completed ? 1 : -1;
     });
 
-    const displayBadge = global.current_badge || 'Novice'; 
+    // Strict Badge Normalization
+    const normalizeBadge = (badge: string | null): string => {
+        const b = badge?.toLowerCase() || '';
+        if (b === 'expert') return 'Expert';
+        if (b === 'skilled') return 'Skilled';
+        return 'Novice'; // Fallback for 'None', null, or any other value
+    };
+
+    const displayBadge = normalizeBadge(global.current_badge);
     const nextBadgeDisplay = global.next_badge || 'Expert';
 
     return (
