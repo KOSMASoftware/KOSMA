@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { X, Loader2, Search, AlertCircle, Check, Clock } from 'lucide-react';
 import { MarketingJobRecipient } from '../../../types';
 import { Input } from '../../../components/ui/Input';
+import { H3, H5, Label, Small } from '../../../components/ui/Typography';
 
 export const JobRecipientsModal: React.FC<{ jobId: string, onClose: () => void }> = ({ jobId, onClose }) => {
     const [recipients, setRecipients] = useState<MarketingJobRecipient[]>([]);
@@ -42,8 +44,8 @@ export const JobRecipientsModal: React.FC<{ jobId: string, onClose: () => void }
             <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                     <div>
-                        <h3 className="text-xl font-black text-gray-900 tracking-tight">Job Recipients</h3>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">ID: {jobId}</p>
+                        <H3>Job Recipients</H3>
+                        <H5 className="mt-1">ID: {jobId}</H5>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><X className="w-5 h-5 text-gray-400"/></button>
                 </div>
@@ -69,32 +71,38 @@ export const JobRecipientsModal: React.FC<{ jobId: string, onClose: () => void }
                         <table className="w-full text-left">
                             <thead className="bg-gray-50 sticky top-0 z-10">
                                 <tr>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Email</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Info / Error</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Time</th>
+                                    <th className="px-6 py-3"><H5>Email</H5></th>
+                                    <th className="px-6 py-3"><H5>Status</H5></th>
+                                    <th className="px-6 py-3"><H5>Info / Error</H5></th>
+                                    <th className="px-6 py-3 text-right"><H5>Time</H5></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filtered.map(r => (
                                     <tr key={r.user_id} className="hover:bg-gray-50/50">
-                                        <td className="px-6 py-3 font-bold text-gray-700 text-xs">{r.email}</td>
+                                        <td className="px-6 py-3">
+                                            <Label className="text-gray-700">{r.email}</Label>
+                                        </td>
                                         <td className="px-6 py-3">
                                             <div className="flex items-center gap-2">
                                                 {getStatusIcon(r.status)}
-                                                <span className="text-xs font-bold uppercase">{r.status}</span>
+                                                <Label className="text-xs uppercase">{r.status}</Label>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-3 text-xs font-mono text-red-600 max-w-xs truncate">
-                                            {r.error || r.skip_reason || '-'}
+                                        <td className="px-6 py-3">
+                                            <Small className="font-mono text-red-600 max-w-xs truncate block">
+                                                {r.error || r.skip_reason || '-'}
+                                            </Small>
                                         </td>
-                                        <td className="px-6 py-3 text-right text-xs text-gray-400 font-mono">
-                                            {r.sent_at ? new Date(r.sent_at).toLocaleTimeString() : '-'}
+                                        <td className="px-6 py-3 text-right">
+                                            <Small className="text-gray-400 font-mono">
+                                                {r.sent_at ? new Date(r.sent_at).toLocaleTimeString() : '-'}
+                                            </Small>
                                         </td>
                                     </tr>
                                 ))}
                                 {filtered.length === 0 && (
-                                    <tr><td colSpan={4} className="p-8 text-center text-gray-400 italic">No recipients found.</td></tr>
+                                    <tr><td colSpan={4} className="p-8 text-center text-gray-400 italic"><Small>No recipients found.</Small></td></tr>
                                 )}
                             </tbody>
                         </table>

@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { Search, Loader2, Send, Eye, MousePointer, Activity } from 'lucide-react';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { FormField } from '../../../components/ui/FormField';
+import { H4, H5, Small } from '../../../components/ui/Typography';
 
 export const CRMView: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -69,18 +71,20 @@ export const CRMView: React.FC = () => {
                         </div>
                         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex-1">
                             <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{item.date.toLocaleString()}</span>
-                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${item.type === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                                <H5>{item.date.toLocaleString()}</H5>
+                                <H5 className={`px-2 py-0.5 rounded ${item.type === 'outbound' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                                     {item.type === 'outbound' ? 'Sent Message' : `Event: ${item.event_type}`}
-                                </span>
+                                </H5>
                             </div>
-                            <h4 className="font-bold text-gray-900 mb-1">{item.template_name || item.event_key || 'Unknown Event'}</h4>
-                            {item.status === 'failed' && <p className="text-xs text-red-500 font-bold mt-2">Delivery Failed</p>}
+                            <H4 className="mb-1">{item.template_name || item.event_key || 'Unknown Event'}</H4>
+                            {item.status === 'failed' && <Small className="text-red-500 font-bold mt-2">Delivery Failed</Small>}
                         </div>
                     </div>
                 ))}
                 {timeline.length === 0 && !loading && (
-                    <div className="text-center text-gray-400 text-sm italic py-10">No events found for this email.</div>
+                    <div className="text-center text-gray-400 py-10">
+                        <Small className="italic">No events found for this email.</Small>
+                    </div>
                 )}
             </div>
         </div>

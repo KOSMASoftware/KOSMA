@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Loader2, Search, Pencil, Trash, Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
@@ -9,12 +10,13 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { FormField } from '../../components/ui/FormField';
+import { H5, Label, Small } from '../../components/ui/Typography';
 
 // --- HELPERS (Local to this view) ---
 
 const getRemainingTimeBadge = (lic: License | undefined) => {
     if (!lic || lic.planTier === PlanTier.FREE) {
-        return <span className="px-2 py-0.5 bg-gray-100 text-gray-400 text-[9px] font-bold uppercase rounded border border-gray-200">Unbegrenzt</span>;
+        return <H5 className="px-2 py-0.5 bg-gray-100 text-gray-400 rounded border border-gray-200 inline-block text-[9px] leading-tight">Unbegrenzt</H5>;
     }
     
     const validUntilDate = lic.validUntil;
@@ -24,7 +26,7 @@ const getRemainingTimeBadge = (lic: License | undefined) => {
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     
     if (days <= 0) {
-        return <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[9px] font-bold uppercase rounded border border-red-100">Abgelaufen</span>;
+        return <H5 className="px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-100 inline-block text-[9px] leading-tight">Abgelaufen</H5>;
     }
     
     let colorClass = "bg-green-50 text-green-600 border-green-100";
@@ -33,32 +35,32 @@ const getRemainingTimeBadge = (lic: License | undefined) => {
 
     const label = days > 31 ? `Noch ~${Math.floor(days / 30)} Mon.` : `Noch ${days} Tage`;
     
-    return <span className={`px-2 py-0.5 ${colorClass} text-[9px] font-bold uppercase rounded border tracking-tight`}>{label}</span>;
+    return <H5 className={`px-2 py-0.5 ${colorClass} rounded border inline-block text-[9px] leading-tight`}>{label}</H5>;
 };
 
 const getPaymentBadge = (lic: License | undefined) => {
-    if (!lic) return <span className="px-2 py-0.5 bg-gray-100 text-gray-400 text-[10px] font-bold uppercase rounded border border-gray-200">Keine Info</span>;
+    if (!lic) return <H5 className="px-2 py-0.5 bg-gray-100 text-gray-400 rounded border border-gray-200 inline-block text-[9px]">Keine Info</H5>;
 
     if (lic.status === SubscriptionStatus.TRIAL) {
-        return <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold uppercase rounded border border-blue-100">Trial</span>;
+        return <H5 className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 inline-block text-[9px]">Trial</H5>;
     }
 
     const hasStripeSub = !!lic.stripeSubscriptionId?.startsWith('sub_');
 
     if (!hasStripeSub) {
       if (lic.status === SubscriptionStatus.CANCELED) {
-        return <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase rounded border border-amber-100">Gekündigt</span>;
+        return <H5 className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded border border-amber-100 inline-block text-[9px]">Gekündigt</H5>;
       }
-      return <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded border border-gray-200">Keine Stripe-Info</span>;
+      return <H5 className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200 inline-block text-[9px]">Keine Stripe-Info</H5>;
     }
 
     if (lic.status === SubscriptionStatus.PAST_DUE) {
-      return <span className="px-2 py-0.5 bg-red-50 text-red-700 text-[10px] font-bold uppercase rounded border border-red-100">Zahlung offen</span>;
+      return <H5 className="px-2 py-0.5 bg-red-50 text-red-700 rounded border border-red-100 inline-block text-[9px]">Zahlung offen</H5>;
     }
     if (lic.status === SubscriptionStatus.ACTIVE) {
-      return <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold uppercase rounded border border-green-100">Bezahlt</span>;
+      return <H5 className="px-2 py-0.5 bg-green-50 text-green-700 rounded border border-green-100 inline-block text-[9px]">Bezahlt</H5>;
     }
-    return <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded border border-gray-200">Keine Stripe-Info</span>;
+    return <H5 className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200 inline-block text-[9px]">Keine Stripe-Info</H5>;
 };
 
 export const UsersManagement: React.FC = () => {
@@ -219,10 +221,10 @@ export const UsersManagement: React.FC = () => {
                     <table className="min-w-[900px] w-full text-left border-collapse">
                         <thead className="bg-gray-50/50 border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nutzer</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Plan</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right sticky right-0 bg-gray-50/50 z-10 w-[110px] shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">Aktionen</th>
+                                <th className="px-6 py-3"><H5>Nutzer</H5></th>
+                                <th className="px-6 py-3"><H5>Plan</H5></th>
+                                <th className="px-6 py-3 text-center"><H5>Status</H5></th>
+                                <th className="px-6 py-3 text-right sticky right-0 bg-gray-50/50 z-10 w-[110px] shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]"><H5>Aktionen</H5></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -233,16 +235,16 @@ export const UsersManagement: React.FC = () => {
                                 return (
                                     <tr key={user.id} className="hover:bg-gray-50/50 group transition-colors">
                                         <td className="px-6 py-3">
-                                            <div className="font-bold text-sm text-gray-900">{user.name}</div>
-                                            <div className="text-xs text-gray-400 font-mono mt-0.5">{user.email}</div>
+                                            <Label className="block text-gray-900">{user.name}</Label>
+                                            <Small className="text-gray-400 font-mono mt-0.5 block">{user.email}</Small>
                                         </td>
                                         <td className="px-6 py-3 align-middle">
                                             <div className="flex flex-col gap-1 items-start">
-                                                <div className="text-xs font-bold text-gray-700">{lic?.planTier || 'Free'}</div>
+                                                <Label className="text-xs text-gray-700">{lic?.planTier || 'Free'}</Label>
                                                 {getRemainingTimeBadge(lic)}
-                                                <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                                <Small className="text-gray-400 font-medium mt-0.5">
                                                     Gültig bis: {lic?.validUntil ? new Date(lic.validUntil).toLocaleDateString('de-DE') : '—'}
-                                                </span>
+                                                </Small>
                                             </div>
                                         </td>
                                         <td className="px-6 py-3 text-center align-middle">
@@ -284,8 +286,8 @@ export const UsersManagement: React.FC = () => {
                     </table>
                 </div>
                 {filteredUsers.length === 0 && (
-                    <div className="p-12 text-center text-gray-400 text-sm font-medium italic">
-                        Keine Nutzer gefunden.
+                    <div className="p-12 text-center text-gray-400 font-medium italic">
+                        <Small>Keine Nutzer gefunden.</Small>
                     </div>
                 )}
             </div>

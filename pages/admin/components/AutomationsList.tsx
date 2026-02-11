@@ -5,6 +5,7 @@ import { Zap, Route, Server, Search, AlertCircle, CheckCircle, Clock, ExternalLi
 import { AUTOMATION_CATALOG, AutomationDef } from '../data/automationCatalog';
 import { AutomationDrawer } from './AutomationDrawer';
 import { Button } from '../../../components/ui/Button';
+import { H5, Label, Small } from '../../../components/ui/Typography';
 
 interface AutomationStats {
     sent_7d: number;
@@ -90,10 +91,10 @@ export const AutomationsList: React.FC = () => {
                         onChange={e => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest flex gap-4">
-                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div> Active</span>
-                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500"></div> Error</span>
-                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-gray-300"></div> Idle</span>
+                <div className="flex gap-4">
+                    <H5 className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div> Active</H5>
+                    <H5 className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500"></div> Error</H5>
+                    <H5 className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-gray-300"></div> Idle</H5>
                 </div>
             </div>
 
@@ -103,11 +104,11 @@ export const AutomationsList: React.FC = () => {
                     <thead className="bg-gray-50/50 border-b border-gray-100">
                         <tr>
                             <th className="px-6 py-4 w-12 text-center"></th>
-                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Automation</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Trigger & Frequency</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Last Sent</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">7d Volume</th>
-                            <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                            <th className="px-6 py-4"><H5>Automation</H5></th>
+                            <th className="px-6 py-4"><H5>Trigger & Frequency</H5></th>
+                            <th className="px-6 py-4"><H5>Last Sent</H5></th>
+                            <th className="px-6 py-4"><H5>7d Volume</H5></th>
+                            <th className="px-6 py-4 text-right"><H5>Action</H5></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -130,8 +131,8 @@ export const AutomationsList: React.FC = () => {
                                                 {getTypeIcon(auto.type)}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                                                    {auto.name}
+                                                <div className="flex items-center gap-2">
+                                                    <Label>{auto.name}</Label>
                                                     {auto.templateName && (
                                                         <a 
                                                             href={getElasticTemplateUrl(auto.templateName)}
@@ -144,21 +145,21 @@ export const AutomationsList: React.FC = () => {
                                                         </a>
                                                     )}
                                                 </div>
-                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">{auto.type}</div>
+                                                <H5 className="mt-0.5">{auto.type}</H5>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="text-xs font-medium text-gray-700">{auto.trigger}</div>
-                                        <div className="text-[10px] text-gray-400 mt-0.5">{auto.frequency}</div>
+                                        <Label className="text-xs text-gray-700 block">{auto.trigger}</Label>
+                                        <H5 className="mt-0.5">{auto.frequency}</H5>
                                     </td>
                                     <td className="px-6 py-4">
                                         {stat.last_sent_at ? (
-                                            <div className="text-xs font-mono text-gray-600">
+                                            <Small className="font-mono">
                                                 {new Date(stat.last_sent_at).toLocaleDateString()} <span className="text-gray-400">{new Date(stat.last_sent_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                                            </div>
+                                            </Small>
                                         ) : (
-                                            <span className="text-xs text-gray-300 italic">—</span>
+                                            <Small className="text-gray-300 italic">—</Small>
                                         )}
                                     </td>
                                     <td className="px-6 py-4">

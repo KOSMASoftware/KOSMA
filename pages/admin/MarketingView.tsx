@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { MarketingJob } from '../../types';
@@ -10,6 +11,7 @@ import { AutomationsList } from './components/AutomationsList';
 import { SegmentsMonitor } from './components/SegmentsMonitor';
 import { JobRecipientsModal } from './components/JobRecipientsModal';
 import { Button } from '../../components/ui/Button';
+import { H2, H5, Label, Small, Paragraph } from '../../components/ui/Typography';
 
 export const MarketingView: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'automations' | 'segments' | 'campaigns' | 'crm'>('automations');
@@ -109,7 +111,7 @@ export const MarketingView: React.FC = () => {
             {activeTab === 'campaigns' && (
                 <div>
                     <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Campaign Manager</h2>
+                        <H2>Campaign Manager</H2>
                         <button onClick={() => setIsCreateModalOpen(true)} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all shadow-lg"><Plus className="w-4 h-4" /> New Campaign</button>
                     </div>
 
@@ -118,12 +120,12 @@ export const MarketingView: React.FC = () => {
                         <table className="min-w-[900px] w-full text-left border-collapse">
                             <thead className="bg-gray-50/50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Name & Template</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Segment</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Progress</th>
+                                    <th className="px-6 py-3"><H5>Name & Template</H5></th>
+                                    <th className="px-6 py-3"><H5>Segment</H5></th>
+                                    <th className="px-6 py-3"><H5>Status</H5></th>
+                                    <th className="px-6 py-3"><H5>Progress</H5></th>
                                     {/* Sticky Header for Actions - Right 0 */}
-                                    <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right w-[120px] sticky right-0 bg-gray-50 z-20 shadow-[-10px_0_20px_-15px_rgba(0,0,0,0.1)]">Actions</th>
+                                    <th className="px-6 py-3 text-right w-[120px] sticky right-0 bg-gray-50 z-20 shadow-[-10px_0_20px_-15px_rgba(0,0,0,0.1)]"><H5>Actions</H5></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -141,15 +143,15 @@ export const MarketingView: React.FC = () => {
                                     return (
                                         <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
                                             <td className="px-6 py-3">
-                                                <div className="font-bold text-gray-900">{job.template_name}</div>
-                                                <div className="text-xs text-gray-400 font-mono mt-1">{new Date(job.created_at).toLocaleString()}</div>
-                                                {job.dry_run && <span className="inline-block mt-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 text-[9px] font-bold rounded">DRY RUN</span>}
+                                                <Label className="text-gray-900 block">{job.template_name}</Label>
+                                                <Small className="text-gray-400 font-mono mt-1 block">{new Date(job.created_at).toLocaleString()}</Small>
+                                                {job.dry_run && <H5 className="inline-block mt-1 px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[9px]">DRY RUN</H5>}
                                             </td>
                                             <td className="px-6 py-3">
                                                 <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100">{job.segment_key}</span>
                                             </td>
                                             <td className="px-6 py-3">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${job.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-brand-100 text-brand-700'}`}>{job.status.replace(/_/g, ' ')}</span>
+                                                <H5 className={`inline-block px-3 py-1 rounded-full text-[10px] ${job.status === 'done' ? 'bg-green-100 text-green-700' : 'bg-brand-100 text-brand-700'}`}>{job.status.replace(/_/g, ' ')}</H5>
                                             </td>
                                             <td className="px-6 py-3">
                                                 <div className="text-xs font-medium">

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { User, License, PlanTier, SubscriptionStatus } from '../../../types';
@@ -6,6 +7,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { FormField } from '../../../components/ui/FormField';
+import { H3, H5, Small } from '../../../components/ui/Typography';
 
 export const EditLicenseModal: React.FC<{ user: User, license: License | undefined, onClose: () => void, onUpdate: () => void }> = ({ user, license, onClose, onUpdate }) => {
     const [tier, setTier] = useState<PlanTier>(license?.planTier || PlanTier.FREE);
@@ -60,14 +62,14 @@ export const EditLicenseModal: React.FC<{ user: User, license: License | undefin
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95">
                 <div className="mb-6">
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight">License Control</h3>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1 truncate">{user.email}</p>
+                    <H3>License Control</H3>
+                    <H5 className="mt-1 truncate">{user.email}</H5>
                 </div>
                 
                 {errorMsg && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-bold flex gap-3">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        <p>{errorMsg}</p>
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 flex gap-3">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                        <Small className="font-bold text-red-600">{errorMsg}</Small>
                     </div>
                 )}
 

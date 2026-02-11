@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { History, RefreshCw, ClipboardCopy, Trash2 } from 'lucide-react';
 import { AdminTabs } from './components/AdminTabs';
+import { H3, H5, Label, Small } from '../../components/ui/Typography';
 
 export const DebugView: React.FC = () => {
     const [events, setEvents] = useState<any[]>([]);
@@ -129,9 +131,9 @@ export const DebugView: React.FC = () => {
         <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
             <div className="flex justify-between items-center mb-8 px-4">
-                <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                <H3 className="flex items-center gap-3">
                     <History className="w-6 h-6 text-gray-400" /> Stripe Logs
-                </h3>
+                </H3>
                 <div className="flex gap-3">
                     <button 
                         onClick={handleCleanup} 
@@ -154,10 +156,10 @@ export const DebugView: React.FC = () => {
                 <table className="w-full text-left">
                     <thead className="bg-gray-50/50 border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Email / Customer</th>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Time</th>
-                            <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Data</th>
+                            <th className="px-6 py-3"><H5>Type</H5></th>
+                            <th className="px-6 py-3"><H5>Email / Customer</H5></th>
+                            <th className="px-6 py-3"><H5>Time</H5></th>
+                            <th className="px-6 py-3 text-right"><H5>Data</H5></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -168,16 +170,16 @@ export const DebugView: React.FC = () => {
                             return (
                                 <tr key={ev.id} className="hover:bg-gray-50/50">
                                     <td className="px-6 py-3 font-mono text-xs text-brand-600 font-black">{ev.type}</td>
-                                    <td className="px-6 py-3 text-xs font-bold text-gray-700">
-                                        <span className={isResolvedEmail ? "text-gray-900" : "text-gray-400 font-mono"}>
+                                    <td className="px-6 py-3">
+                                        <Label className={isResolvedEmail ? "text-gray-900 text-xs" : "text-gray-400 font-mono text-xs"}>
                                             {displayInfo}
-                                        </span>
+                                        </Label>
                                     </td>
-                                    <td className="px-6 py-3 text-xs font-bold text-gray-600">{new Date(ev.created_at).toLocaleString()}</td>
+                                    <td className="px-6 py-3"><Label className="text-gray-600 text-xs">{new Date(ev.created_at).toLocaleString()}</Label></td>
                                     <td className="px-6 py-3 text-right">
-                                        <button onClick={() => navigator.clipboard.writeText(JSON.stringify(parsePayload(ev.payload)))} className="text-[10px] font-black uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-lg hover:bg-gray-200">
+                                        <H5 onClick={() => navigator.clipboard.writeText(JSON.stringify(parsePayload(ev.payload)))} className="cursor-pointer bg-gray-100 px-3 py-1 rounded-lg hover:bg-gray-200 inline-flex items-center text-[10px]">
                                             <ClipboardCopy className="w-3 h-3 inline mr-1"/> JSON
-                                        </button>
+                                        </H5>
                                     </td>
                                 </tr>
                             );

@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { Users, Loader2, RefreshCw } from 'lucide-react';
+import { H2, H3, H4, H5, Label, Small } from '../../../components/ui/Typography';
 
 const SEGMENT_GROUPS = [
     {
@@ -64,14 +66,12 @@ export const SegmentsMonitor: React.FC = () => {
             {/* Sidebar List */}
             <div className="w-full lg:w-1/3 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-gray-900">Segment Groups</h3>
+                    <H5>Segment Groups</H5>
                 </div>
                 <div className="overflow-y-auto flex-1 p-4 space-y-6">
                     {SEGMENT_GROUPS.map((group, groupIdx) => (
                         <div key={groupIdx}>
-                            <h4 className="px-2 text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-                                {group.title}
-                            </h4>
+                            <H5 className="px-2 mb-2">{group.title}</H5>
                             <div className="space-y-1">
                                 {group.keys.map(seg => (
                                     <button
@@ -96,8 +96,8 @@ export const SegmentsMonitor: React.FC = () => {
             <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col relative">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-xl font-black text-gray-900 tracking-tight">{selectedSegment}</h2>
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Live Database Query</p>
+                        <H2>{selectedSegment}</H2>
+                        <H5 className="mt-1">Live Database Query</H5>
                     </div>
                     <button 
                         onClick={() => loadSegmentData(selectedSegment)} 
@@ -111,7 +111,7 @@ export const SegmentsMonitor: React.FC = () => {
                 {loading ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                         <Loader2 className="w-10 h-10 animate-spin mb-4 text-brand-500" />
-                        <p className="text-xs font-black uppercase tracking-widest">Calculating Audience...</p>
+                        <H5>Calculating Audience...</H5>
                     </div>
                 ) : data ? (
                     <div className="flex-1 flex flex-col gap-6">
@@ -121,31 +121,31 @@ export const SegmentsMonitor: React.FC = () => {
                                 <Users className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-3xl font-black text-brand-900">{data.count_total}</h3>
-                                <p className="text-xs font-bold text-brand-700 opacity-80">Active Recipients</p>
+                                <H3 className="text-brand-900">{data.count_total}</H3>
+                                <Label className="text-brand-700 opacity-80">Active Recipients</Label>
                             </div>
                         </div>
 
                         {/* Sample Table */}
                         <div className="flex-1 overflow-hidden flex flex-col">
-                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Users in Segment</h4>
+                            <H5 className="mb-4">Users in Segment</H5>
                             <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden flex-1">
                                 <div className="overflow-y-auto h-full">
                                     <table className="w-full text-left">
-                                        <thead className="bg-gray-100/50 text-[10px] font-black uppercase text-gray-400">
+                                        <thead className="bg-gray-100/50">
                                             <tr>
-                                                <th className="px-6 py-3">User ID</th>
-                                                <th className="px-6 py-3">Email</th>
+                                                <th className="px-6 py-3"><H5 className="text-[10px]">User ID</H5></th>
+                                                <th className="px-6 py-3"><H5 className="text-[10px]">Email</H5></th>
                                             </tr>
                                         </thead>
-                                        <tbody className="text-xs font-medium text-gray-600 divide-y divide-gray-100">
+                                        <tbody className="divide-y divide-gray-100">
                                             {data.sample.length > 0 ? data.sample.map((u, i) => (
                                                 <tr key={i} className="hover:bg-white transition-colors">
-                                                    <td className="px-6 py-3 font-mono">{u.user_id || u.id}</td>
-                                                    <td className="px-6 py-3">{u.email}</td>
+                                                    <td className="px-6 py-3"><Small className="font-mono">{u.user_id || u.id}</Small></td>
+                                                    <td className="px-6 py-3"><Small>{u.email}</Small></td>
                                                 </tr>
                                             )) : (
-                                                <tr><td colSpan={2} className="p-6 text-center italic opacity-50">No users found in this segment.</td></tr>
+                                                <tr><td colSpan={2} className="p-6 text-center italic opacity-50"><Small>No users found in this segment.</Small></td></tr>
                                             )}
                                         </tbody>
                                     </table>

@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { AutomationDef } from '../data/automationCatalog';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
+import { H3, H5, Label, Small, Paragraph } from '../../../components/ui/Typography';
 
 interface AutomationDrawerProps {
     automation: AutomationDef;
@@ -68,15 +69,15 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({ automation, 
                 <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">{automation.name}</h2>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${
+                            <H3>{automation.name}</H3>
+                            <H5 className={`px-2 py-0.5 rounded ${
                                 automation.type === 'transactional' ? 'bg-blue-100 text-blue-700' : 
                                 automation.type === 'journey' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
                             }`}>
                                 {automation.type}
-                            </span>
+                            </H5>
                         </div>
-                        <div className="text-xs text-gray-500 font-mono flex items-center gap-2">
+                        <Small className="font-mono flex items-center gap-2">
                             <span>{automation.id} • {automation.templateName || 'No Template'}</span>
                             {automation.templateName && (
                                 <a 
@@ -89,7 +90,7 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({ automation, 
                                     <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
                             )}
-                        </div>
+                        </Small>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
                         <X className="w-5 h-5 text-gray-500" />
@@ -99,31 +100,31 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({ automation, 
                 {/* Configuration Section */}
                 <div className="p-6 border-b border-gray-100 grid grid-cols-3 gap-6 bg-white">
                     <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Trigger</span>
-                        <p className="text-sm font-bold text-gray-900">{automation.trigger}</p>
+                        <H5 className="mb-1 block">Trigger</H5>
+                        <Label>{automation.trigger}</Label>
                     </div>
                     <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Frequency</span>
-                        <p className="text-sm font-bold text-gray-900">{automation.frequency}</p>
+                        <H5 className="mb-1 block">Frequency</H5>
+                        <Label>{automation.frequency}</Label>
                     </div>
                     <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dedupe Key</span>
-                        <p className="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-100 break-all">{automation.dedupe}</p>
+                        <H5 className="mb-1 block">Dedupe Key</H5>
+                        <Small className="font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100 break-all">{automation.dedupe}</Small>
                     </div>
                     <div className="col-span-3">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Condition</span>
-                        <p className="text-sm font-medium text-gray-700 bg-amber-50/50 border border-amber-100 px-3 py-2 rounded-lg">
+                        <H5 className="mb-1 block">Condition</H5>
+                        <Label className="bg-amber-50/50 border border-amber-100 px-3 py-2 rounded-lg block">
                             {automation.condition}
-                        </p>
+                        </Label>
                     </div>
                 </div>
 
                 {/* Logs Section */}
                 <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/30">
                     <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
-                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                        <H5 className="flex items-center gap-2 text-gray-900">
                             Letzte 50 Sendungen <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px]">{logs.length}</span>
-                        </h3>
+                        </H5>
                         <div className="flex items-center gap-2">
                             <div className="relative w-48">
                                 <Search className="w-3 h-3 absolute left-3 top-2.5 text-gray-400" />
@@ -144,29 +145,29 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({ automation, 
                         {!automation.templateName ? (
                             <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
                                 <AlertCircle className="w-10 h-10 mb-4 opacity-20" />
-                                <p className="text-sm font-bold">No Email Logs</p>
-                                <p className="text-xs">This automation is a system job or action that does not send emails via the standard provider.</p>
+                                <Label>No Email Logs</Label>
+                                <Small>This automation is a system job or action that does not send emails via the standard provider.</Small>
                             </div>
                         ) : (
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-gray-50 border-b border-gray-100">
                                     <tr>
-                                        <th className="px-6 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest sticky top-0 bg-gray-50">Time</th>
-                                        <th className="px-6 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest sticky top-0 bg-gray-50">Recipient</th>
-                                        <th className="px-6 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest sticky top-0 bg-gray-50 text-right">Status</th>
+                                        <th className="px-6 py-2 sticky top-0 bg-gray-50"><H5 className="text-[9px]">Time</H5></th>
+                                        <th className="px-6 py-2 sticky top-0 bg-gray-50"><H5 className="text-[9px]">Recipient</H5></th>
+                                        <th className="px-6 py-2 sticky top-0 bg-gray-50 text-right"><H5 className="text-[9px]">Status</H5></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
                                     {logs.map(log => (
                                         <tr key={log.id} className="hover:bg-gray-50/50 group">
-                                            <td className="px-6 py-3 text-xs text-gray-500 font-mono whitespace-nowrap">
-                                                {new Date(log.sent_at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            <td className="px-6 py-3">
+                                                <Small className="font-mono">{new Date(log.sent_at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</Small>
                                             </td>
                                             <td className="px-6 py-3">
-                                                <div className="text-xs font-bold text-gray-900">{log.to_email}</div>
-                                                <div className="text-[10px] text-gray-400 font-mono truncate max-w-[200px]" title={log.event_key}>
+                                                <Label className="text-xs">{log.to_email}</Label>
+                                                <Small className="font-mono block truncate max-w-[200px]" title={log.event_key}>
                                                     {log.event_key || '-'}
-                                                </div>
+                                                </Small>
                                                 {log.status === 'failed' && log.meta?.error && (
                                                     <div className="mt-1 text-[10px] text-red-600 font-mono bg-red-50 p-1 rounded border border-red-100 truncate max-w-[200px]">
                                                         {log.meta.error}
@@ -174,20 +175,20 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({ automation, 
                                                 )}
                                             </td>
                                             <td className="px-6 py-3 text-right">
-                                                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide border ${
+                                                <H5 className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] border ${
                                                     log.status === 'sent' 
                                                         ? 'bg-green-50 text-green-700 border-green-100' 
                                                         : 'bg-red-50 text-red-700 border-red-100'
                                                 }`}>
                                                     {log.status === 'sent' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                                                     {log.status}
-                                                </span>
+                                                </H5>
                                             </td>
                                         </tr>
                                     ))}
                                     {logs.length === 0 && !loading && (
                                         <tr>
-                                            <td colSpan={3} className="p-8 text-center text-gray-400 text-sm italic">Keine Einträge gefunden (letzte 50).</td>
+                                            <td colSpan={3} className="p-8 text-center text-gray-400 italic"><Small>Keine Einträge gefunden (letzte 50).</Small></td>
                                         </tr>
                                     )}
                                 </tbody>
