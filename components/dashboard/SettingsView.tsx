@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { User, License, BillingAddress, PlanTier } from '../../types';
 import { DashboardTabs } from './DashboardTabs';
 import { Notice, NoticeProps } from '../ui/Notice';
-import { Building, Loader2, Settings, ExternalLink, CreditCard, CalendarMinus } from 'lucide-react';
+import { Building, Settings, ExternalLink, CreditCard, CalendarMinus } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 export const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, licenses, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
@@ -104,10 +106,15 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
                         <p className="text-gray-400 italic text-sm mb-8">No billing address stored yet. This will be updated after your first purchase.</p>
                     )}
                     
-                    <button onClick={handlePortal} disabled={loadingPortal} className="w-full py-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-900 text-sm font-black flex items-center justify-center gap-3 hover:bg-gray-100 transition-all">
-                        {loadingPortal ? <Loader2 className="w-5 h-5 animate-spin" /> : <Settings className="w-5 h-5" />}
+                    <Button 
+                        onClick={handlePortal} 
+                        isLoading={loadingPortal}
+                        variant="secondary"
+                        className="w-full h-12"
+                        icon={<Settings className="w-4 h-4" />}
+                    >
                         Update Billing Address
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50">
@@ -118,20 +125,26 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
                         Securely manage your credit cards and subscription preferences in the Stripe customer portal.
                     </p>
                     <div className="flex flex-col gap-3">
-                        <button onClick={handlePortal} disabled={loadingPortal} className="w-full py-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-900 text-sm font-black flex items-center justify-center gap-3 hover:bg-gray-100 transition-all">
-                            {loadingPortal ? <Loader2 className="w-5 h-5 animate-spin" /> : <ExternalLink className="w-5 h-5" />}
+                        <Button 
+                            onClick={handlePortal} 
+                            isLoading={loadingPortal}
+                            variant="primary"
+                            className="w-full h-12"
+                            icon={<ExternalLink className="w-4 h-4" />}
+                        >
                             Open Portal
-                        </button>
+                        </Button>
                         
                         {hasStripeId && activeLicense?.status === 'active' && !activeLicense.cancelAtPeriodEnd && (
-                            <button 
+                            <Button 
                                 onClick={handleCancelSubscription}
-                                disabled={cancelling}
-                                className="w-full py-2.5 rounded-xl border border-red-100 text-red-600 bg-red-50/50 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                isLoading={cancelling}
+                                variant="danger"
+                                className="w-full mt-2"
+                                icon={<CalendarMinus className="w-3.5 h-3.5" />}
                             >
-                                {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarMinus className="w-3 h-3" />}
                                 Cancel Subscription
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </div>

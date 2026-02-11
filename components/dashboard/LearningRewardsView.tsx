@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { useLearningRewards } from '../../hooks/useLearningRewards';
 import { DashboardTabs } from './DashboardTabs';
-import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, ChevronDown, ChevronUp, AlertTriangle, GraduationCap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 // --- HELPER: URL Normalization ---
 const toHashRouterPath = (url: string) => {
@@ -241,14 +241,15 @@ export const LearningRewardsView: React.FC = () => {
                                                 {/* CTA */}
                                                 <div className="flex justify-end pt-2">
                                                     {!course.course_completed ? (
-                                                        <Link 
+                                                        <Button 
                                                             to={toHashRouterPath(course.continue_url)} 
-                                                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-brand-600 transition-colors shadow-lg shadow-gray-900/10"
+                                                            variant="primary"
+                                                            icon={<ArrowRight className="w-3.5 h-3.5" />}
                                                         >
-                                                            Continue Course <ArrowRight className="w-3 h-3" />
-                                                        </Link>
+                                                            Continue Course
+                                                        </Button>
                                                     ) : (
-                                                        <div className="flex items-center gap-2 text-green-600 font-bold text-xs bg-green-50 px-4 py-2 rounded-xl border border-green-100">
+                                                        <div className="flex items-center gap-2 text-green-600 font-bold text-xs bg-green-50 px-4 py-2.5 rounded-xl border border-green-100">
                                                             <CheckCircle2 className="w-4 h-4" /> Course fully completed
                                                         </div>
                                                     )}

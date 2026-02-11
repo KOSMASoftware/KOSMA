@@ -1,10 +1,11 @@
 
 import React, { useMemo } from 'react';
 import { User, License, Invoice } from '../../types';
-import { Zap, FileText, Download, ChevronRight, CreditCard, Star, Trophy, Medal, Play, GraduationCap, ArrowRight } from 'lucide-react';
+import { Zap, FileText, Download, ChevronRight, CreditCard, Star, Trophy, Medal, Play, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DashboardTabs } from './DashboardTabs';
 import { useLearningRewards } from '../../hooks/useLearningRewards';
+import { Button } from '../ui/Button';
 
 // --- HELPER: Badge Logic ---
 const normalizeBadge = (badge: string | null): string => {
@@ -96,15 +97,19 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                             <span className="block text-xl font-black text-gray-900 leading-none">{daysRemaining ?? '∞'}</span>
                             <span className="block text-[9px] text-gray-400 font-bold uppercase mt-1 tracking-wide">Days left</span>
                         </div>
-                        <Link to="/dashboard/subscription" className="flex items-center gap-2 py-2.5 px-5 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-bold hover:border-gray-300 hover:text-gray-900 transition-all shadow-sm">
-                            Manage <ChevronRight className="w-3.5 h-3.5"/>
-                        </Link>
+                        <Button 
+                            to="/dashboard/subscription" 
+                            variant="secondary"
+                            icon={<ChevronRight className="w-3.5 h-3.5"/>}
+                        >
+                            Manage
+                        </Button>
                     </div>
                 </div>
 
-                {/* 2. Learning Snapshot (Now Light Card for Consistency) */}
+                {/* 2. Learning Snapshot (Light Card) */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between relative overflow-hidden group min-h-[220px]">
-                    {/* Decorative Blob (Blue/Brand to differentiate slightly from Subscription) */}
+                    {/* Decorative Blob */}
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-50 rounded-full blur-3xl group-hover:bg-blue-100 transition-colors duration-500"></div>
                     
                     {learningLoading ? (
@@ -140,12 +145,13 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                                         View Rewards
                                     </Link>
                                 </div>
-                                <Link 
+                                <Button 
                                     to={toHashRouterPath(continueUrl)} 
-                                    className="flex items-center gap-2 py-2.5 px-5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-brand-600 transition-all shadow-sm"
+                                    variant="primary"
+                                    icon={<Play className="w-3 h-3 fill-current" />}
                                 >
-                                    Continue <Play className="w-3 h-3 fill-current" />
-                                </Link>
+                                    Continue
+                                </Button>
                             </div>
                         </>
                     )}
