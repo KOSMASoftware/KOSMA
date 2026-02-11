@@ -14,6 +14,12 @@ const normalizeBadge = (badge: string | null): string => {
     return 'Novice';
 };
 
+// --- HELPER: URL Normalization ---
+const toHashRouterPath = (url: string) => {
+    if (!url) return '/learning';
+    return url.replace(/^\/#/, ''); // '/#/learning?...' -> '/learning?...'
+};
+
 const BadgeIcon = ({ type, className }: { type: string, className?: string }) => {
     switch (type) {
         case 'Novice': return <Star className={className} />;
@@ -135,7 +141,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                                     </Link>
                                 </div>
                                 <Link 
-                                    to={continueUrl} 
+                                    to={toHashRouterPath(continueUrl)} 
                                     className="flex items-center gap-2 py-2.5 px-5 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-brand-600 transition-all shadow-sm"
                                 >
                                     Continue <Play className="w-3 h-3 fill-current" />

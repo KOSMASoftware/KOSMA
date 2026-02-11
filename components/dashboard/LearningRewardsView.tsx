@@ -5,6 +5,12 @@ import { DashboardTabs } from './DashboardTabs';
 import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, ChevronDown, ChevronUp, AlertTriangle, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+// --- HELPER: URL Normalization ---
+const toHashRouterPath = (url: string) => {
+    if (!url) return '/learning';
+    return url.replace(/^\/#/, ''); // '/#/learning?...' -> '/learning?...'
+};
+
 // --- HELPER: Badge Icon Logic ---
 const BadgeIcon = ({ type, className }: { type: string | null, className?: string }) => {
     const badge = type?.toLowerCase() || 'novice'; // Default Fallback
@@ -236,7 +242,7 @@ export const LearningRewardsView: React.FC = () => {
                                                 <div className="flex justify-end pt-2">
                                                     {!course.course_completed ? (
                                                         <Link 
-                                                            to={course.continue_url} 
+                                                            to={toHashRouterPath(course.continue_url)} 
                                                             className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-brand-600 transition-colors shadow-lg shadow-gray-900/10"
                                                         >
                                                             Continue Course <ArrowRight className="w-3 h-3" />
