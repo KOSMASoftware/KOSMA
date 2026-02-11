@@ -1,21 +1,22 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useLearningRewards } from '../../hooks/useLearningRewards';
 import { DashboardTabs } from './DashboardTabs';
-import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, GraduationCap } from 'lucide-react';
+import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, GraduationCap, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+// --- HELPER: Badge Icon Logic ---
 const BadgeIcon = ({ type, className }: { type: string | null, className?: string }) => {
-    // Normalizing input to handle potential backend casing differences
-    const badge = type?.toLowerCase() || '';
+    const badge = type?.toLowerCase() || 'novice'; // Default Fallback
     switch (badge) {
         case 'novice': return <Star className={className} />;
         case 'skilled': return <Medal className={className} />;
         case 'expert': return <Trophy className={className} />;
-        default: return <GraduationCap className={className} />;
+        default: return <Star className={className} />; // Safety Fallback
     }
 };
 
+// --- HELPER: Status Badge for Rewards ---
 const StatusBadge = ({ status }: { status: string }) => {
     switch(status) {
         case 'granted': 
@@ -29,8 +30,22 @@ const StatusBadge = ({ status }: { status: string }) => {
     }
 };
 
+// --- HELPER: Course Theme Logic ---
+const getCourseTheme = (courseId: string) => {
+    if (courseId.includes('budgeting')) return { border: 'border-l-amber-500', text: 'text-amber-600', bg: 'bg-amber-500' };
+    if (courseId.includes('cashflow')) return { border: 'border-l-green-600', text: 'text-green-600', bg: 'bg-green-600' };
+    if (courseId.includes('cost-control')) return { border: 'border-l-purple-600', text: 'text-purple-600', bg: 'bg-purple-600' };
+    // Fallback / Production
+    return { border: 'border-l-brand-500', text: 'text-brand-600', bg: 'bg-brand-500' };
+};
+
 export const LearningRewardsView: React.FC = () => {
-    const { data, loading } = useLearningRewards();
+    const { data, loading, error } = useLearningRewards();
+    const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
+
+    const toggleCourse = (id: string) => {
+        setExpandedCourseId(prev => prev === id ? null : id);
+    };
 
     if (loading) {
         return (
@@ -44,30 +59,33 @@ export const LearningRewardsView: React.FC = () => {
         );
     }
 
-    if (!data) {
+    if (error) {
         return (
             <div className="max-w-5xl mx-auto animate-in fade-in">
                 <DashboardTabs />
-                <div className="p-8 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
-                    <p className="text-gray-500 text-sm font-medium">Could not load learning data. Please try again later.</p>
+                <div className="p-6 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 text-red-700">
+                    <AlertTriangle className="w-6 h-6 shrink-0" />
+                    <div>
+                        <h3 className="font-bold text-sm">Failed to load learning data</h3>
+                        <p className="text-xs mt-1 opacity-80">{error}</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
+    if (!data) return null;
+
     const { global, courses, rewards } = data;
     
-    // Sort courses: Active/In-Progress first, then Not Started, then Completed
+    // Logic: Sort active/uncompleted first
     const sortedCourses = [...courses].sort((a, b) => {
         if (a.course_completed === b.course_completed) {
-            // If completion status is same, prefer the one with more progress (but not done)
             return b.completed_goals - a.completed_goals; 
         }
-        // Completed courses go to the bottom
         return a.course_completed ? 1 : -1;
     });
 
-    // Enforce strict Badge Display names
     const displayBadge = global.current_badge || 'Novice'; 
     const nextBadgeDisplay = global.next_badge || 'Expert';
 
@@ -80,7 +98,7 @@ export const LearningRewardsView: React.FC = () => {
             <DashboardTabs />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* 1. Header Stats / Badges (Normalized to Dashboard Style) */}
+                {/* 1. Header Stats / Badges */}
                 <div className="col-span-1 md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between h-full relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-50/50 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-brand-100/50 transition-colors duration-500"></div>
                     
@@ -101,11 +119,11 @@ export const LearningRewardsView: React.FC = () => {
                             <span>{displayBadge}</span>
                             <span className="text-gray-300">{nextBadgeDisplay}</span>
                         </div>
-                        {/* Normalized Progress Bar */}
+                        {/* Progress Bar */}
                         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden border border-gray-100 relative">
                             <div 
                                 className="h-full bg-brand-500 shadow-[0_0_10px_rgba(0,147,208,0.3)] relative z-10 transition-all duration-1000 ease-out"
-                                style={{ width: `${(global.courses_completed_count / 6) * 100}%` }}
+                                style={{ width: `${Math.min(100, (global.courses_completed_count / 6) * 100)}%` }}
                             />
                             {/* Step Dividers */}
                             <div className="absolute inset-0 flex justify-between px-[16.66%] z-20">
@@ -120,7 +138,7 @@ export const LearningRewardsView: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 2. Next Milestone (Call to Action Card) */}
+                {/* 2. Next Milestone */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col items-center justify-center text-center h-full relative overflow-hidden">
                     <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-300 via-brand-500 to-brand-300"></div>
                     <div className="mb-4 w-12 h-12 bg-gray-50 text-gray-900 rounded-full flex items-center justify-center shrink-0">
@@ -134,63 +152,106 @@ export const LearningRewardsView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* 3. Open Courses */}
+                {/* 3. Your Courses (Accordion List) */}
                 <div className="lg:col-span-2 space-y-6">
                     <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
                         <Play className="w-5 h-5 text-brand-500" /> Your Courses
                     </h3>
                     
-                    <div className="space-y-4">
-                        {sortedCourses.map(course => (
-                            <div 
-                                key={course.course_id} 
-                                className={`group p-5 rounded-2xl border transition-all ${
-                                    course.course_completed 
-                                    ? 'bg-gray-50 border-gray-100 opacity-70 hover:opacity-100' 
-                                    : 'bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-brand-200'
-                                }`}
-                            >
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h4 className={`font-bold text-base truncate ${course.course_completed ? 'text-gray-600 line-through decoration-gray-300' : 'text-gray-900'}`}>
+                    <div className="space-y-3">
+                        {sortedCourses.map(course => {
+                            const theme = getCourseTheme(course.course_id);
+                            const isExpanded = expandedCourseId === course.course_id;
+                            const progressPercent = Math.round((course.completed_goals / course.total_goals) * 100);
+                            
+                            // Status Determination
+                            let statusLabel = 'Not Started';
+                            let statusColor = 'bg-gray-100 text-gray-500';
+                            
+                            if (course.course_completed) {
+                                statusLabel = 'Completed';
+                                statusColor = 'bg-green-50 text-green-700 border border-green-100';
+                            } else if (course.completed_goals > 0) {
+                                statusLabel = 'In Progress';
+                                statusColor = 'bg-blue-50 text-blue-700 border border-blue-100';
+                            }
+
+                            return (
+                                <div 
+                                    key={course.course_id} 
+                                    className={`bg-white rounded-xl border border-gray-100 overflow-hidden transition-all duration-300 ${isExpanded ? 'shadow-md border-gray-200 ring-1 ring-black/5' : 'hover:border-gray-200'}`}
+                                >
+                                    {/* Header (Always Visible) */}
+                                    <div 
+                                        className={`flex items-center justify-between p-4 cursor-pointer border-l-[4px] ${theme.border} bg-white hover:bg-gray-50/50 transition-colors`}
+                                        onClick={() => toggleCourse(course.course_id)}
+                                    >
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+                                            <h4 className={`font-bold text-sm text-gray-900 ${theme.text}`}>
                                                 {course.course_title}
                                             </h4>
-                                            {course.course_completed && <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />}
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-4 text-xs font-bold text-gray-400 mt-2">
-                                            <span className="flex items-center gap-1.5 shrink-0">
-                                                <List className="w-3.5 h-3.5" /> {course.completed_goals}/{course.total_goals} Goals
-                                            </span>
-                                            {/* Mini Progress */}
-                                            <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                <div 
-                                                    className={`h-full ${course.course_completed ? 'bg-green-500' : 'bg-brand-500'}`} 
-                                                    style={{ width: `${(course.completed_goals / course.total_goals) * 100}%` }}
-                                                />
+                                            
+                                            <div className="flex items-center gap-3">
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${statusColor}`}>
+                                                    {statusLabel}
+                                                </span>
+                                                {/* Mini Stats (always visible) */}
+                                                <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
+                                                    <List className="w-3 h-3" /> {course.completed_goals}/{course.total_goals}
+                                                </span>
                                             </div>
+                                        </div>
+                                        <div className="pl-4 text-gray-300">
+                                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                         </div>
                                     </div>
 
-                                    {!course.course_completed && (
-                                        <Link 
-                                            to={course.continue_url} 
-                                            className="w-full sm:w-auto px-5 py-2.5 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-brand-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-gray-900/10 whitespace-nowrap"
-                                        >
-                                            Continue <ArrowRight className="w-3 h-3" />
-                                        </Link>
+                                    {/* Body (Accordion) */}
+                                    {isExpanded && (
+                                        <div className="px-6 pb-6 pt-2 border-t border-gray-50">
+                                            <div className="flex flex-col gap-4">
+                                                {/* Details Row */}
+                                                <div className="flex items-center justify-between text-xs text-gray-400">
+                                                    <span>Last activity: {course.last_activity_at ? new Date(course.last_activity_at).toLocaleDateString() : 'Never'}</span>
+                                                    {course.last_article_id && <span>Resume at: {course.last_article_id}</span>}
+                                                </div>
+
+                                                {/* Large Progress Bar */}
+                                                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className={`h-full ${theme.bg} transition-all duration-500`}
+                                                        style={{ width: `${progressPercent}%` }}
+                                                    />
+                                                </div>
+
+                                                {/* CTA */}
+                                                <div className="flex justify-end pt-2">
+                                                    {!course.course_completed ? (
+                                                        <Link 
+                                                            to={course.continue_url} 
+                                                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-brand-600 transition-colors shadow-lg shadow-gray-900/10"
+                                                        >
+                                                            Continue Course <ArrowRight className="w-3 h-3" />
+                                                        </Link>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 text-green-600 font-bold text-xs bg-green-50 px-4 py-2 rounded-xl border border-green-100">
+                                                            <CheckCircle2 className="w-4 h-4" /> Course fully completed
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* 4. Rewards History */}
                 <div className="space-y-6">
                     <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-gray-400" /> History
+                        <Clock className="w-5 h-5 text-gray-400" /> Reward History
                     </h3>
                     
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1">
@@ -220,7 +281,7 @@ export const LearningRewardsView: React.FC = () => {
                         )}
                     </div>
 
-                    {/* 5. Info Hint (Clean Style) */}
+                    {/* 5. Info Hint */}
                     <div className="bg-gray-50 border border-gray-100 p-4 rounded-xl flex gap-3">
                         <Info className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                         <div className="text-[11px] font-medium text-gray-500 leading-relaxed">
