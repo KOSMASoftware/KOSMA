@@ -7,8 +7,8 @@ import { HELP_DATA, HelpArticle } from '../../data/helpArticles';
 import { LearningCourse } from '../../data/learningCourses';
 import { Button } from '../../components/ui/Button';
 import { Notice, NoticeVariant } from '../../components/ui/Notice';
+import { H1, H3, H4, H5, Paragraph, Label } from '../../components/ui/Typography';
 
-// --- HELPER: Find Article Content ---
 const findArticleContent = (articleId: string): HelpArticle | undefined => {
   for (const cat of HELP_DATA) {
     const found = cat.articles.find(a => a.id === articleId);
@@ -17,7 +17,6 @@ const findArticleContent = (articleId: string): HelpArticle | undefined => {
   return undefined;
 };
 
-// --- COMPONENT: Media Renderer ---
 const MediaRenderer = ({ media }: { media: any }) => {
   const publicUrl = supabase.storage.from(media.bucket).getPublicUrl(media.path).data.publicUrl;
   const style = (media.w && media.h) ? { aspectRatio: `${media.w} / ${media.h}` } : undefined; 
@@ -47,24 +46,19 @@ export const LessonView: React.FC<LessonViewProps> = ({
   onBack,
   onNavigate 
 }) => {
-  // Local State for Actions
   const [isCompleting, setIsCompleting] = useState(false);
   const [toast, setToast] = useState<{title: string, message: string, variant: NoticeVariant} | null>(null);
 
-  // Find current goal index
   const currentGoalIndex = course.goals.findIndex(g => g.articleId === articleId);
   const currentGoal = course.goals[currentGoalIndex];
   const nextGoal = course.goals[currentGoalIndex + 1];
   
-  // Load Content
   const article = findArticleContent(articleId);
 
-  // Scroll to top on mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [articleId]);
 
-  // TRACKING: Open Goal (Best Effort)
   useEffect(() => {
     if (course.id && articleId) {
       supabase.functions.invoke('learning-track', {
@@ -73,10 +67,8 @@ export const LessonView: React.FC<LessonViewProps> = ({
     }
   }, [course.id, articleId]);
 
-  // ACTION: Mark as Completed
   const handleMarkCompleted = async () => {
     setIsCompleting(true);
-    // Dismiss previous toast
     setToast(null); 
 
     try {
@@ -100,7 +92,6 @@ export const LessonView: React.FC<LessonViewProps> = ({
       });
     } finally {
       setIsCompleting(false);
-      // Auto-dismiss toast after 4s
       setTimeout(() => setToast((prev) => (prev?.variant === 'success' ? null : prev)), 4000);
     }
   };
@@ -110,7 +101,6 @@ export const LessonView: React.FC<LessonViewProps> = ({
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 animate-in fade-in slide-in-from-bottom-8 duration-500 relative">
        
-       {/* Toast Notification Positioned Absolute Top-Right of Container */}
        {toast && (
          <div className="fixed top-24 right-6 md:right-10 z-50 w-full max-w-sm drop-shadow-xl">
             <Notice 
@@ -125,19 +115,20 @@ export const LessonView: React.FC<LessonViewProps> = ({
 
        {/* Nav Header */}
        <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
-          <button onClick={onBack} className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">
-             <ArrowLeft className="w-4 h-4" /> Back to Overview
+          <button onClick={onBack} className="flex items-center gap-2 group">
+             <ArrowLeft className="w-4 h-4 text-gray-500 group-hover:text-gray-900 transition-colors" />
+             <Label className="text-gray-500 group-hover:text-gray-900 cursor-pointer">Back to Overview</Label>
           </button>
-          <div className="text-xs font-black uppercase tracking-widest text-brand-500 bg-brand-50 px-3 py-1 rounded-full">
+          <H5 className="text-brand-500 bg-brand-50 px-3 py-1 rounded-full">
              Goal {currentGoalIndex + 1} / {course.goals.length}
-          </div>
+          </H5>
        </div>
 
        {/* Article Content */}
        <div>
-          <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-8 tracking-tight leading-tight">
+          <H1 className="mb-8 leading-tight">
             {currentGoal?.title || article.title}
-          </h1>
+          </H1>
 
           {article.entry.summary && (
             <div className="bg-blue-50/50 border border-blue-100 p-6 rounded-2xl mb-10 flex gap-4 text-blue-900/80 leading-relaxed font-medium">
@@ -145,16 +136,16 @@ export const LessonView: React.FC<LessonViewProps> = ({
                   <CheckCircle className="w-5 h-5 text-brand-500" />
                </div>
                <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-brand-500 mb-1">Summary</p>
-                  {article.entry.summary}
+                  <H5 className="text-brand-500 mb-1">Summary</H5>
+                  <Paragraph className="text-blue-900">{article.entry.summary}</Paragraph>
                </div>
             </div>
           )}
 
           <div className="space-y-8">
             {article.entry.steps.length === 0 && (
-                <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 border-dashed text-gray-400 italic">
-                    Content coming soon.
+                <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 border-dashed italic">
+                    <Paragraph className="text-gray-400">Content coming soon.</Paragraph>
                 </div>
             )}
             
@@ -164,16 +155,15 @@ export const LessonView: React.FC<LessonViewProps> = ({
                      <div className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center font-black text-sm shrink-0">
                        {idx + 1}
                      </div>
-                     <h3 className="text-xl font-bold text-gray-900">
+                     <H3>
                        {step.title}
-                     </h3>
+                     </H3>
                    </div>
                    
                    <div className="pl-[3rem]">
-                      <div className="text-gray-600 leading-relaxed mb-4 font-medium">
-                        {/* Use SmartLink to handle [[kb:id]] references inside learning content */}
+                      <Paragraph className="mb-4">
                         <SmartLink text={step.content} />
-                      </div>
+                      </Paragraph>
 
                       {step.media && <MediaRenderer media={step.media} />}
 
@@ -197,10 +187,8 @@ export const LessonView: React.FC<LessonViewProps> = ({
        {/* Completion Action Area */}
        <div className="mt-12 bg-gray-50 rounded-2xl p-6 border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-center md:text-left">
-             <h4 className="text-sm font-bold text-gray-900">Finished this goal?</h4>
-             <p className="text-xs text-gray-500 mt-1 font-medium">
-               Required for rewards.
-             </p>
+             <H4 className="text-sm">Finished this goal?</H4>
+             <Label className="text-xs text-gray-500 mt-1">Required for rewards.</Label>
           </div>
           <Button 
             onClick={handleMarkCompleted}

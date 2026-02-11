@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Search, BookOpen, ArrowLeft, ChevronRight, 
@@ -13,6 +14,7 @@ import { SmartLink } from '../components/SmartLink';
 import { Card } from '../components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
 import { Input } from '../components/ui/Input';
+import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../components/ui/Typography';
 
 // --- ICONS MAPPING ---
 const CATEGORY_ICONS: Record<string, any> = {
@@ -27,7 +29,6 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 // --- CONFIGURATION: THE 7 MAIN CATEGORIES ---
-// This maps the cleaner URL slugs to the data/logic
 const KB_STRUCTURE = [
   {
     slug: 'first-steps',
@@ -158,9 +159,9 @@ const KBLanding = () => {
       
       {/* Header */}
       <div className="text-center mb-16">
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-4">Knowledge Base</h1>
+        <H1 className="mb-4">Knowledge Base</H1>
         
-        {/* Search Bar - Standardized to Input Primitive */}
+        {/* Search Bar */}
         <div className="relative max-w-2xl mx-auto group z-20">
            <div className="absolute inset-0 bg-gray-200/50 rounded-lg blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
            <div className="relative">
@@ -182,13 +183,15 @@ const KBLanding = () => {
                     <div className="divide-y divide-gray-50">
                        {searchResults.map(res => (
                           <Link to={`/help/article/${res.id}`} key={res.id} className="block p-4 hover:bg-gray-50 transition-colors">
-                             <div className="font-bold text-gray-900">{res.title}</div>
-                             <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">{res.categoryTitle}</div>
+                             <Label className="block text-gray-900 cursor-pointer">{res.title}</Label>
+                             <H5 className="text-gray-400 mt-1 cursor-pointer">{res.categoryTitle}</H5>
                           </Link>
                        ))}
                     </div>
                  ) : (
-                    <div className="p-6 text-center text-gray-400 italic font-medium">No results found.</div>
+                    <div className="p-6 text-center">
+                        <Paragraph className="text-gray-400 italic">No results found.</Paragraph>
+                    </div>
                  )}
               </div>
            )}
@@ -211,12 +214,12 @@ const KBLanding = () => {
               >
                 <Icon className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-brand-600 transition-colors">
+              <H3 className="mb-2 group-hover:text-brand-600 transition-colors">
                 {cat.title}
-              </h3>
-              <p className="text-sm text-gray-500 font-medium leading-relaxed">
+              </H3>
+              <Paragraph className="text-sm text-gray-500">
                 {cat.description}
-              </p>
+              </Paragraph>
             </Link>
           );
         })}
@@ -230,7 +233,6 @@ const KBCategory = ({ slug }: { slug: string }) => {
   const config = KB_STRUCTURE.find(c => c.slug === slug);
   const navigate = useNavigate();
 
-  // If slug is invalid, redirect to landing
   if (!config) {
     React.useEffect(() => { navigate('/help'); }, [navigate]);
     return null;
@@ -240,7 +242,6 @@ const KBCategory = ({ slug }: { slug: string }) => {
 
   // DATA MAPPING LOGIC
   const categorizedArticles = useMemo(() => {
-    // 1. Fetch relevant articles from KB_DATA
     const rawArticles: KnowledgeArticle[] = [];
     KB_DATA.forEach(kbCat => {
         if (config.dataIds.includes(kbCat.id)) {
@@ -250,7 +251,6 @@ const KBCategory = ({ slug }: { slug: string }) => {
         }
     });
 
-    // 2. Distribute into groups
     const groupsWithArticles = config.groups.map(grp => ({
         ...grp,
         articles: [] as KnowledgeArticle[]
@@ -260,7 +260,6 @@ const KBCategory = ({ slug }: { slug: string }) => {
 
     rawArticles.forEach(art => {
         let placed = false;
-        // Try to match with group keywords
         for (const grp of groupsWithArticles) {
             const lowerTitle = art.title.toLowerCase();
             const lowerSynonyms = (art.synonyms || []).join(' ').toLowerCase();
@@ -274,7 +273,6 @@ const KBCategory = ({ slug }: { slug: string }) => {
         if (!placed) leftoverArticles.push(art);
     });
 
-    // Add "Other" group if needed
     if (leftoverArticles.length > 0) {
         groupsWithArticles.push({ title: 'Other Topics', match: [], articles: leftoverArticles });
     }
@@ -286,8 +284,9 @@ const KBCategory = ({ slug }: { slug: string }) => {
     <div className="max-w-5xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-right-4 duration-500">
       {/* Header */}
       <div className="mb-12">
-        <Link to="/help" className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors mb-8">
-           <ArrowLeft className="w-4 h-4" /> Back to Knowledge Base
+        <Link to="/help" className="inline-flex items-center gap-2 mb-8 group">
+           <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-gray-900 transition-colors" /> 
+           <Label className="text-gray-400 group-hover:text-gray-900 transition-colors cursor-pointer">Back to Knowledge Base</Label>
         </Link>
         
         <div className="flex items-center gap-5">
@@ -295,19 +294,19 @@ const KBCategory = ({ slug }: { slug: string }) => {
               <Icon className="w-8 h-8" style={{ color: config.color }} />
            </div>
            <div>
-              <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">{config.title}</h1>
-              <p className="text-gray-500 font-medium mt-1">{config.description}</p>
+              <H1>{config.title}</H1>
+              <Paragraph className="text-gray-500 mt-1">{config.description}</Paragraph>
            </div>
         </div>
       </div>
 
-      {/* Directory Grid (Masonry-ish) */}
+      {/* Directory Grid */}
       <div className="columns-1 md:columns-2 gap-6 space-y-6">
          {categorizedArticles.map((group, idx) => (
             <div key={idx} className="break-inside-avoid bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 pb-2 border-b border-gray-100">
+                <H5 className="mb-6 pb-2 border-b border-gray-100 text-gray-400">
                    {group.title}
-                </h3>
+                </H5>
                 <ul className="space-y-3">
                    {group.articles.map(article => (
                       <li key={article.id}>
@@ -319,12 +318,12 @@ const KBCategory = ({ slug }: { slug: string }) => {
                                <CornerDownRight className="w-4 h-4" />
                             </div>
                             <div>
-                               <div className="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors">
+                               <Label className="block text-gray-900 group-hover:text-brand-600 transition-colors cursor-pointer">
                                   {article.title}
-                               </div>
-                               <div className="text-xs text-gray-400 line-clamp-1 mt-0.5">
+                               </Label>
+                               <Small className="text-gray-400 line-clamp-1 mt-0.5 cursor-pointer">
                                   {article.content.definition}
-                               </div>
+                               </Small>
                             </div>
                          </Link>
                       </li>
@@ -347,57 +346,56 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
   }
 
   const { article, category } = match;
-
-  // Find parent config to link back correctly
   const parentConfig = KB_STRUCTURE.find(c => c.dataIds.includes(category.id)) || KB_STRUCTURE[0];
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
        {/* Breadcrumb Nav */}
-       <div className="flex items-center gap-2 text-sm font-bold text-gray-400 mb-8 overflow-hidden">
-          <Link to="/help" className="hover:text-gray-900 transition-colors">Knowledge Base</Link>
-          <ChevronRight className="w-3 h-3" />
-          <Link to={`/help/${parentConfig.slug}`} className="hover:text-gray-900 transition-colors whitespace-nowrap">
-             {parentConfig.title}
+       <div className="flex items-center gap-2 mb-8 overflow-hidden">
+          <Link to="/help" className="hover:opacity-70 transition-opacity"><Label className="text-gray-400 cursor-pointer">Knowledge Base</Label></Link>
+          <ChevronRight className="w-3 h-3 text-gray-300" />
+          <Link to={`/help/${parentConfig.slug}`} className="hover:opacity-70 transition-opacity whitespace-nowrap">
+             <Label className="text-gray-400 cursor-pointer">{parentConfig.title}</Label>
           </Link>
        </div>
 
        {/* Article Header */}
        <div className="mb-12 border-b border-gray-100 pb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-black uppercase tracking-widest mb-6">
-             <FileText className="w-3 h-3" /> Definition
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 mb-6">
+             <FileText className="w-3 h-3 text-gray-500" /> 
+             <H5 className="text-gray-500 mb-0">Definition</H5>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter mb-6 leading-tight">
+          <H1 className="mb-6 leading-tight">
              {article.title}
-          </h1>
-          <div className="text-lg md:text-xl font-medium text-gray-600 leading-relaxed bg-brand-50/30 p-6 rounded-2xl border border-brand-100/50">
-             {article.content.definition}
+          </H1>
+          <div className="bg-brand-50/30 p-6 rounded-2xl border border-brand-100/50">
+             <Paragraph className="text-lg md:text-xl font-medium text-gray-600">
+                {article.content.definition}
+             </Paragraph>
           </div>
        </div>
 
        {/* Content Sections */}
        <div className="space-y-12">
           {article.content.sections.map((sec, idx) => {
-             // --- RENDER LOGIC BASED ON TYPE ---
-             
              // 1. Process (Steps)
              if (sec.type === 'process') {
                const steps = sec.body.split('\n').filter(s => s.trim().length > 0);
                return (
                  <div key={idx} className="group">
-                    <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 mb-6">
+                    <div className="flex items-center gap-3 mb-6">
                        <div className="p-1.5 rounded-lg bg-gray-100 text-gray-400"><ListOrdered className="w-4 h-4" /></div>
-                       {sec.heading}
-                    </h3>
+                       <H3 className="mb-0">{sec.heading}</H3>
+                    </div>
                     <div className="space-y-4">
                        {steps.map((step, sIdx) => (
                           <div key={sIdx} className="flex gap-4">
                              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center font-bold text-xs mt-0.5">
                                 {sIdx + 1}
                              </div>
-                             <div className="text-gray-600 font-medium leading-relaxed">
+                             <Paragraph>
                                 <SmartLink text={step} />
-                             </div>
+                             </Paragraph>
                           </div>
                        ))}
                     </div>
@@ -405,7 +403,7 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
                );
              }
 
-             // 2. Callouts (Warning, Tip, Note)
+             // 2. Callouts
              if (['warning', 'tip', 'note'].includes(sec.type || '')) {
                const styles = {
                  warning: { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-900', icon: AlertTriangle, iconColor: 'text-amber-500' },
@@ -420,26 +418,26 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
                  <div key={idx} className={`p-6 rounded-2xl border ${style.bg} ${style.border} flex gap-4`}>
                     <div className={`mt-0.5 ${style.iconColor}`}><Icon className="w-5 h-5" /></div>
                     <div>
-                       <h4 className={`font-bold text-sm mb-1 uppercase tracking-wider opacity-80 ${style.text}`}>{sec.heading}</h4>
-                       <p className={`text-sm font-medium leading-relaxed ${style.text}`}><SmartLink text={sec.body} /></p>
+                       <H5 className={`mb-1 opacity-80 ${style.text}`}>{sec.heading}</H5>
+                       <Paragraph className={`text-sm ${style.text}`}><SmartLink text={sec.body} /></Paragraph>
                     </div>
                  </div>
                );
              }
 
-             // 3. Example & Standard
+             // 3. Standard
              return (
                <div key={idx} className="group">
-                  <h3 className="flex items-center gap-3 text-lg font-bold text-gray-900 mb-4">
+                  <div className="flex items-center gap-3 mb-4">
                      <div className="p-1.5 rounded-lg bg-gray-100 text-gray-400">
                         <Hash className="w-4 h-4" />
                      </div>
-                     {sec.heading}
-                  </h3>
-                  <div className={`prose prose-slate max-w-none text-gray-600 font-medium leading-relaxed ${
-                     sec.type === 'example' ? 'bg-gray-50 p-6 rounded-2xl border border-gray-100 text-sm' : ''
-                  }`}>
-                     <SmartLink text={sec.body} />
+                     <H3 className="mb-0">{sec.heading}</H3>
+                  </div>
+                  <div className={sec.type === 'example' ? 'bg-gray-50 p-6 rounded-2xl border border-gray-100' : ''}>
+                     <Paragraph>
+                        <SmartLink text={sec.body} />
+                     </Paragraph>
                   </div>
                   
                   {sec.media && (
@@ -458,8 +456,9 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
 
        {/* Footer */}
        <div className="mt-16 pt-8 border-t border-gray-100">
-          <Link to={`/help/${parentConfig.slug}`} className="inline-flex items-center gap-2 text-brand-600 font-bold hover:text-brand-700 hover:underline">
-             <ArrowLeft className="w-4 h-4" /> Back to {parentConfig.title} overview
+          <Link to={`/help/${parentConfig.slug}`} className="inline-flex items-center gap-2 group">
+             <ArrowLeft className="w-4 h-4 text-brand-600 group-hover:text-brand-700" />
+             <Label className="text-brand-600 group-hover:text-brand-700 cursor-pointer">Back to {parentConfig.title} overview</Label>
           </Link>
        </div>
     </div>
@@ -468,19 +467,16 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
 
 // --- MAIN CONTROLLER ---
 const KnowledgeBaseContent: React.FC = () => {
-  const { id, articleId } = useParams(); // 'id' in route definition matches ':id' which we use for category slug
+  const { id, articleId } = useParams();
 
-  // Case 1: Article Detail
   if (articleId) {
      return <KBArticle articleId={articleId} />;
   }
 
-  // Case 2: Category Listing
   if (id && KB_STRUCTURE.some(c => c.slug === id)) {
      return <KBCategory slug={id} />;
   }
 
-  // Case 3: Landing Page
   return <KBLanding />;
 };
 

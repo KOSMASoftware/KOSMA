@@ -1,9 +1,11 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { TrendingUp, AlertCircle } from 'lucide-react';
 import { ImageZoom } from '../../../components/ui/ImageZoom';
 import { MODULES, FeatureItem } from '../data';
 import { USPBlock } from './USPSection';
 import { KosmaMarkIcon } from './LandingIcons';
+import { H3, H5, Paragraph } from '../../../components/ui/Typography';
 
 // Helper to render the consistent feature boxes
 const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorName: string }) => {
@@ -11,7 +13,7 @@ const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorNam
   const colors: Record<string, any> = {
     amber: { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700', icon: 'text-amber-600', light: 'bg-amber-50/50' },
     purple: { bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-700', icon: 'text-purple-600', light: 'bg-purple-50/50' },
-    brand: { bg: 'bg-brand-50', border: 'border-brand-100', text: 'text-brand-700', icon: 'text-brand-600', light: 'bg-brand-50/50' }, // map 'brand' to blue-ish
+    brand: { bg: 'bg-brand-50', border: 'border-brand-100', text: 'text-brand-700', icon: 'text-brand-600', light: 'bg-brand-50/50' }, 
     rose: { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-700', icon: 'text-rose-600', light: 'bg-rose-50/50' },
     green: { bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-700', icon: 'text-green-600', light: 'bg-green-50/50' },
   };
@@ -26,8 +28,8 @@ const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorNam
              <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
           </div>
           <div>
-             <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">The Challenge</div>
-             <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">{feature.pain}</p>
+             <H5 className="text-slate-400 mb-1">The Challenge</H5>
+             <Paragraph className="text-xs md:text-sm text-slate-600 font-medium">{feature.pain}</Paragraph>
           </div>
        </div>
 
@@ -40,8 +42,8 @@ const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorNam
              <KosmaMarkIcon className={`w-3 h-3 md:w-4 md:h-4 ${theme.icon}`} />
           </div>
           <div className="relative z-10">
-             <div className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest ${theme.text} mb-1 opacity-90`}>The KOSMA Way</div>
-             <p className="text-xs md:text-sm text-gray-900 font-bold leading-relaxed">{feature.solution}</p>
+             <H5 className={`${theme.text} mb-1 opacity-90`}>The KOSMA Way</H5>
+             <Paragraph className="text-xs md:text-sm text-gray-900 font-bold">{feature.solution}</Paragraph>
           </div>
        </div>
 
@@ -51,8 +53,8 @@ const FeatureProcess = ({ feature, colorName }: { feature: FeatureItem, colorNam
              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-gray-900" />
           </div>
           <div>
-             <div className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-900 mb-1">The Result</div>
-             <p className="text-xs md:text-sm text-gray-600 font-medium leading-relaxed">{feature.impact}</p>
+             <H5 className="text-gray-900 mb-1">The Result</H5>
+             <Paragraph className="text-xs md:text-sm text-gray-600 font-medium">{feature.impact}</Paragraph>
           </div>
        </div>
     </div>
@@ -64,7 +66,7 @@ export const FeatureScrollytelling = () => {
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const sectionRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null); // For horizontal tabs
+  const scrollContainerRef = useRef<HTMLDivElement>(null); 
   
   const activeModule = MODULES.find(m => m.id === activeModuleId) || MODULES[0];
 
@@ -79,7 +81,7 @@ export const FeatureScrollytelling = () => {
     setActiveFeatureIndex(0);
   }, [activeModuleId]);
 
-  // Scroll Progress Logic - Throttled with rAF and Index Guard
+  // Scroll Progress Logic
   useEffect(() => {
     if (isMobile) return;
 
@@ -88,7 +90,7 @@ export const FeatureScrollytelling = () => {
 
     const handleScroll = () => {
       if (!sectionRef.current) return;
-      if (ticking) return; // Throttle
+      if (ticking) return; 
 
       ticking = true;
       window.requestAnimationFrame(() => {
@@ -100,7 +102,7 @@ export const FeatureScrollytelling = () => {
         const rect = sectionRef.current.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
         const height = rect.height;
-        const stickyOffset = 180; // Matches top-[180px]
+        const stickyOffset = 180; 
         
         const scrolled = -rect.top + stickyOffset;
         const scrollableHeight = height - viewportHeight + stickyOffset;
@@ -121,7 +123,7 @@ export const FeatureScrollytelling = () => {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Init
+    handleScroll(); 
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, [activeModule, isMobile]);
@@ -131,19 +133,17 @@ export const FeatureScrollytelling = () => {
     <section id="features" className="relative w-full py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
-        {/* NEW USP BLOCK REPLACES OLD INTRO */}
+        {/* NEW USP BLOCK */}
         <USPBlock />
 
-        {/* Phase Headline - ID Added here for precise scrolling */}
+        {/* Phase Headline */}
         <div id="detailed-features" className="text-center mb-8 md:mb-10 max-w-4xl mx-auto mt-16 md:mt-24 scroll-mt-32">
-           <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+           <H3>
              Maximum oversight, control and safety in all phases of production
-           </h3>
+           </H3>
         </div>
 
-        {/* TABS - Sticky outside the scroll container with reduced margin */}
-        {/* MOBILE OPTIMIZATION: Horizontal scroll instead of wrap */}
-        {/* FIXED: Removed sticky on mobile, added md:sticky for desktop only */}
+        {/* TABS */}
         <div className="relative md:sticky md:top-[80px] z-30 flex justify-center mb-8 md:mb-12 -mx-6 px-6 md:mx-0 md:px-0">
            <div 
              ref={scrollContainerRef}
@@ -183,17 +183,17 @@ export const FeatureScrollytelling = () => {
                           {idx + 1}
                        </div>
                        <div className="flex-1 pt-1">
-                          <h3 className="text-xl font-black text-gray-900 leading-tight">{feature.title}</h3>
+                          <H3>{feature.title}</H3>
                        </div>
                     </div>
 
                     {/* Content Body (indented) */}
                     <div className="pl-12 flex flex-col gap-6">
-                       <p className="text-sm font-medium text-gray-500 leading-relaxed">
+                       <Paragraph className="text-sm font-medium text-gray-500">
                           {feature.desc}
-                       </p>
+                       </Paragraph>
 
-                       {/* Visual - Aspect Ratio 4:3 for Mobile (Better fit) */}
+                       {/* Visual */}
                        <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 bg-gray-100 aspect-[4/3] w-full">
                           <ImageZoom 
                                src={feature.image} 
@@ -209,24 +209,20 @@ export const FeatureScrollytelling = () => {
                ))}
             </div>
         ) : (
-            /* DESKTOP STAGE VIEW (Unchanged) */
+            /* DESKTOP STAGE VIEW */
             <div 
                 ref={sectionRef}
                 className="hidden lg:block relative h-[350vh]"
             >
                {/* The Sticky Stage */}
                <div className="sticky top-[180px] h-[calc(100vh-180px)] flex items-start justify-center">
-                  {/* Grid - items-stretch to align height of Text and Image column */}
                   <div className="w-full max-w-7xl grid grid-cols-2 gap-8 xl:gap-12 items-stretch">
                      
-                     {/* LEFT: Text Stage - Fixed Height 520px, overflow hidden, pt-8 */}
+                     {/* LEFT: Text Stage */}
                      <div className="relative h-[520px] pt-8 flex gap-8">
-                        {/* UX: Vertical Progress Rail */}
+                        {/* Vertical Progress Rail */}
                         <div className="flex flex-col items-center h-[400px] py-4 w-8 shrink-0 relative">
-                            {/* The vertical line */}
                             <div className="absolute top-4 bottom-4 left-1/2 w-0.5 bg-gray-100 -translate-x-1/2 rounded-full"></div>
-                            
-                            {/* The Dots */}
                             <div className="flex flex-col justify-between h-full relative z-10">
                                 {activeModule.features.map((_, idx) => (
                                     <div 
@@ -263,12 +259,12 @@ export const FeatureScrollytelling = () => {
                                     <span>{activeModule.label}</span>
                                 </div>
                                 
-                                <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 leading-tight">
+                                <H3 className="mb-2 leading-tight">
                                     {feature.title}
-                                </h3>
-                                <p className="text-base font-bold text-gray-400 mb-10">
+                                </H3>
+                                <Paragraph className="font-bold text-gray-400 mb-10">
                                     {feature.desc}
-                                </p>
+                                </Paragraph>
 
                                 {/* Unified Cards for Desktop */}
                                 <FeatureProcess feature={feature} colorName={activeModule.colorName} />
@@ -277,7 +273,7 @@ export const FeatureScrollytelling = () => {
                         </div>
                      </div>
 
-                     {/* RIGHT: Image Stage - Fixed Height 520px - UPDATED FOR ZOOM */}
+                     {/* RIGHT: Image Stage */}
                      <div className="relative w-full h-[520px] bg-gray-50 rounded-2xl border border-gray-200 shadow-2xl overflow-hidden group">
                         {/* Fake Browser Header */}
                         <div className="absolute top-0 left-0 right-0 h-8 bg-white border-b border-gray-100 flex items-center px-4 gap-2 z-20">
@@ -286,9 +282,8 @@ export const FeatureScrollytelling = () => {
                            <div className="w-2.5 h-2.5 rounded-full bg-green-400/20"></div>
                         </div>
 
-                        {/* Single Active Image - Background Blur + Contain Zoom Strategy */}
+                        {/* Image Logic */}
                         <div className="absolute inset-0 top-8 bg-gray-100 flex items-center justify-center overflow-hidden">
-                            {/* 1. Background Blur Layer (fills container to remove whitespace) */}
                             <div 
                                 className="absolute inset-0 bg-cover bg-center blur-2xl opacity-50 scale-110 transition-all duration-700"
                                 style={{ 
@@ -296,20 +291,19 @@ export const FeatureScrollytelling = () => {
                                 }}
                             />
 
-                            {/* 2. Main Image (Zoomable, Contained) */}
                             <div className="relative z-10 w-full h-full p-4 flex items-center justify-center">
                                 <ImageZoom
-                                    key={activeModule.features[activeFeatureIndex].image} // Key forces re-mount on change for clean transition
+                                    key={activeModule.features[activeFeatureIndex].image} 
                                     src={activeModule.features[activeFeatureIndex].image}
                                     alt={activeModule.features[activeFeatureIndex].title}
                                     className="max-h-full max-w-full object-contain shadow-2xl rounded-lg animate-in fade-in zoom-in-95 duration-500"
-                                    style={{ maxHeight: '460px' }} // 520px total - 32px header - padding
+                                    style={{ maxHeight: '460px' }} 
                                 />
                             </div>
                         </div>
                         
                         <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/90 backdrop-blur rounded-lg shadow-lg border border-gray-100 pointer-events-none z-30">
-                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">View</div>
+                             <H5 className="mb-0">View</H5>
                              <div className="text-sm font-bold text-gray-900">{activeModule.features[activeFeatureIndex].title}</div>
                         </div>
                      </div>

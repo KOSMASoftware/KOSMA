@@ -6,6 +6,7 @@ import { LearningCourse } from '../../data/learningCourses';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { buildLearningUrl } from './learningNav';
+import { H1, H3, H4, H5, Paragraph, Label, Small } from '../../components/ui/Typography';
 
 interface CourseOverviewViewProps {
   course: LearningCourse;
@@ -24,16 +25,13 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
   
   const totalDuration = course.goals.reduce((acc, g) => acc + g.durationMin, 0);
 
-  // Fetch progress if authenticated
   useEffect(() => {
     if (isAuthenticated) {
         supabase.functions.invoke('learning-progress-summary', {
             body: { course_id: course.id }
         }).then(({ data, error }) => {
             if (!error && data) {
-                // Backend returns courses as an array: [{ course_id: '...', completed_goals: 5, ... }]
                 const courseRow = (data.courses || []).find((c: any) => c.course_id === course.id);
-                
                 if (courseRow) {
                     setProgress({
                         completed: courseRow.completed_goals ?? 0,
@@ -47,7 +45,6 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
   }, [course.id, isAuthenticated]);
 
   const handleLoginToStart = () => {
-    // Navigate to Login with redirect to the FIRST lesson of this course
     const target = buildLearningUrl({ courseId: course.id, articleId: course.goals[0].articleId });
     navigate(`/login?redirect=${encodeURIComponent(target)}`);
   };
@@ -56,17 +53,18 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-right-4 duration-500">
-      <button onClick={onBack} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-gray-900 transition-colors mb-8">
-        <ArrowLeft className="w-4 h-4" /> Back to Courses
+      <button onClick={onBack} className="flex items-center gap-2 mb-8 group">
+        <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-gray-900 transition-colors" /> 
+        <Label className="text-gray-400 group-hover:text-gray-900 transition-colors cursor-pointer">Back to Courses</Label>
       </button>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
          <div className="p-6 border-b border-gray-100 bg-gray-50/30">
             <div className="flex items-start justify-between gap-6 mb-6">
                <div>
-                  <span className="text-xs font-black text-brand-500 uppercase tracking-[0.2em] mb-2 block">Course Overview</span>
-                  <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-4">{course.title}</h1>
-                  <p className="text-lg text-gray-500 font-medium max-w-xl">{course.teaser}</p>
+                  <H5 className="text-brand-500 mb-2 block">Course Overview</H5>
+                  <H1 className="mb-4">{course.title}</H1>
+                  <Paragraph className="text-lg font-medium max-w-xl">{course.teaser}</Paragraph>
                </div>
                <div className="hidden md:block">
                   <div className="w-14 h-14 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center text-brand-500">
@@ -76,12 +74,12 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
             </div>
             
             {/* Meta Stats Row */}
-            <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-gray-600 mb-6">
+            <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-6">
                <span className="bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm flex items-center gap-2">
-                  <List className="w-4 h-4 text-brand-500" /> {course.goals.length} Learning goals
+                  <List className="w-4 h-4 text-brand-500" /> <Label className="text-sm font-bold">{course.goals.length} Learning goals</Label>
                </span>
                <span className="bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-brand-500" /> ~{totalDuration} min Total
+                  <Clock className="w-4 h-4 text-brand-500" /> <Label className="text-sm font-bold">~{totalDuration} min Total</Label>
                </span>
             </div>
 
@@ -89,9 +87,9 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
             {isAuthenticated && progress && (
                <div className="bg-white p-4 rounded-xl border border-brand-100 shadow-sm flex flex-col md:flex-row items-center gap-4">
                   <div className="flex-1 w-full">
-                     <div className="flex justify-between text-xs font-black uppercase tracking-widest text-gray-400 mb-2">
-                        <span>Progress</span>
-                        <span className="text-brand-600">{percentage}% Completed</span>
+                     <div className="flex justify-between mb-2">
+                        <H5 className="text-gray-400">Progress</H5>
+                        <H5 className="text-brand-600">{percentage}% Completed</H5>
                      </div>
                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                         <div 
@@ -114,7 +112,6 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
             {/* Unauthenticated: Rewards CTA Block */}
             {!isAuthenticated && (
                <div className="mt-6 bg-brand-50 border border-brand-100 rounded-xl p-5 flex flex-col md:flex-row items-start md:items-center gap-5 relative overflow-hidden group">
-                  {/* Decorative shimmer */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
 
                   <div className="bg-white p-3 rounded-xl shadow-sm text-brand-500 border border-brand-100 shrink-0 relative z-10">
@@ -122,16 +119,16 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
                   </div>
                   
                   <div className="flex-1 relative z-10">
-                     <h4 className="text-sm font-black text-brand-900 uppercase tracking-wide mb-2">
+                     <H4 className="text-brand-900 text-sm mb-2">
                         Complete this course and unlock rewards
-                     </h4>
+                     </H4>
                      <div className="text-sm text-brand-800/80 font-medium leading-relaxed space-y-0.5">
                         <p>Complete 1 course = <span className="font-bold text-brand-900">1 month free for each course</span>.</p>
                         <p>Complete all 6 courses = <span className="font-bold text-brand-900">3 months free + license upgrade (Course Completion Bonus)</span>.</p>
                      </div>
-                     <p className="text-[10px] text-brand-400 font-bold uppercase tracking-widest mt-2.5">
+                     <H5 className="text-brand-400 mt-2.5">
                         Rewards only count for goals you mark as completed.
-                     </p>
+                     </H5>
                   </div>
 
                   <button
@@ -155,8 +152,8 @@ export const CourseOverviewView: React.FC<CourseOverviewViewProps> = ({
                      {idx + 1}
                   </div>
                   <div className="flex-1">
-                     <h4 className="text-lg font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{goal.title}</h4>
-                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{goal.durationMin} min</span>
+                     <H4 className="text-lg group-hover:text-brand-600 transition-colors">{goal.title}</H4>
+                     <H5 className="text-gray-400">{goal.durationMin} min</H5>
                   </div>
                   <div className="w-10 h-10 rounded-full border-2 border-gray-100 flex items-center justify-center group-hover:border-brand-200 group-hover:bg-white transition-all">
                      <Play className="w-4 h-4 text-gray-300 group-hover:text-brand-500 ml-0.5" />

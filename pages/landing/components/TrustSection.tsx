@@ -1,5 +1,7 @@
+
 import React from 'react';
 import TestimonialSlider from '../../../components/TestimonialSlider';
+import { H2, Paragraph } from '../../../components/ui/Typography';
 
 export const TrustSection = () => {
   return (
@@ -7,12 +9,12 @@ export const TrustSection = () => {
        <div className="max-w-7xl mx-auto px-6">
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
-             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 tracking-tight leading-tight">
+             <H2 className="mb-6 leading-tight">
                Trusted by production teams who need budget certainty.
-             </h2>
-             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed">
+             </H2>
+             <Paragraph className="text-lg font-medium">
                From budgeting to cash flow and cost control — KOSMA keeps every project financially aligned.
-             </p>
+             </Paragraph>
           </div>
 
           {/* Testimonial Slider */}

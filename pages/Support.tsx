@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { Send, CheckCircle, ChevronDown, ChevronUp, Search, CircleHelp, CreditCard, Laptop, User } from 'lucide-react';
@@ -7,6 +8,7 @@ import { Input } from '../components/ui/Input';
 import { TextArea } from '../components/ui/TextArea';
 import { FormField } from '../components/ui/FormField';
 import { Card } from '../components/ui/Card';
+import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../components/ui/Typography';
 
 export const SupportPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -47,7 +49,7 @@ export const SupportPage: React.FC = () => {
           <div className={`mb-4 w-12 h-12 rounded-xl flex items-center justify-center ${activeCategory === category ? 'bg-brand-500 text-white' : 'bg-gray-50 text-gray-500'}`}>
               <Icon className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-gray-900 text-sm">{title}</h3>
+          <H4 className="text-sm">{title}</H4>
       </Card>
   );
 
@@ -57,10 +59,10 @@ export const SupportPage: React.FC = () => {
          
          {/* HERO HEADER */}
          <div className="text-center max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 mb-4">Support Center</h1>
-            <p className="text-base md:text-lg text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+            <H1 className="mb-4">Support Center</H1>
+            <Paragraph className="text-lg max-w-2xl mx-auto">
                 Browse topics or get in touch with our team.
-            </p>
+            </Paragraph>
          </div>
 
          {/* CATEGORY CARDS */}
@@ -99,21 +101,20 @@ export const SupportPage: React.FC = () => {
                                         className="w-full text-left px-6 py-5 flex justify-between items-center gap-4 group"
                                     >
                                         <div className="flex flex-col items-start gap-1">
+                                            {/* Using H4 for semantic structure, styled appropriately */}
                                             <span className={`font-bold text-base transition-colors ${isOpen ? 'text-brand-600' : 'text-gray-900'}`}>
                                                 {item.question}
                                             </span>
                                             {!activeCategory && (
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                                    {item.category}
-                                                </span>
+                                                <H5 className="text-gray-400">{item.category}</H5>
                                             )}
                                         </div>
                                         {isOpen ? <ChevronUp className="w-5 h-5 text-brand-500 shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-brand-500 shrink-0" />}
                                     </button>
                                     
                                     {isOpen && (
-                                        <div className="px-6 pb-6 text-gray-600 leading-relaxed font-medium text-sm animate-in slide-in-from-top-1 whitespace-pre-wrap">
-                                            {item.answer}
+                                        <div className="px-6 pb-6 animate-in slide-in-from-top-1">
+                                            <Paragraph className="text-sm whitespace-pre-wrap">{item.answer}</Paragraph>
                                         </div>
                                     )}
                                 </div>
@@ -121,7 +122,9 @@ export const SupportPage: React.FC = () => {
                         })}
                     </div>
                 ) : (
-                    <div className="p-12 text-center text-gray-400 italic">No answers found. Try a different search term.</div>
+                    <div className="p-12 text-center">
+                        <Paragraph className="text-gray-400 italic">No answers found. Try a different search term.</Paragraph>
+                    </div>
                 )}
              </div>
          </div>
@@ -129,15 +132,15 @@ export const SupportPage: React.FC = () => {
          {/* CONTACT FORM */}
          <div className="max-w-2xl mx-auto mt-24 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
              <div className="text-center mb-8">
-                 <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-2">Still need help?</h2>
-                 <p className="text-gray-500 text-sm font-medium">Send us a direct message.</p>
+                 <H2 className="mb-2">Still need help?</H2>
+                 <Paragraph className="text-sm">Send us a direct message.</Paragraph>
              </div>
 
              {success ? (
                  <div className="bg-green-50 border border-green-100 rounded-2xl p-8 text-center animate-in fade-in zoom-in-95">
                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                     <h3 className="text-xl font-bold text-gray-900 mb-2">Message Sent!</h3>
-                     <p className="text-gray-600 mb-6 text-sm">We'll get back to you shortly.</p>
+                     <H3 className="mb-2 text-gray-900">Message Sent!</H3>
+                     <Paragraph className="mb-6 text-sm">We'll get back to you shortly.</Paragraph>
                      <Button variant="ghost" onClick={() => { setSuccess(false); setFormData({name:'', email:'', message:''}); }}>
                         Send another message
                      </Button>
@@ -189,9 +192,9 @@ export const SupportPage: React.FC = () => {
              )}
              
              <div className="text-center mt-8">
-                <p className="text-xs text-gray-400">
+                <Small className="text-gray-400">
                     Direct Email: <a href="mailto:support@kosma.io" className="text-brand-500 font-bold hover:underline">support@kosma.io</a>
-                </p>
+                </Small>
              </div>
          </div>
       </div>

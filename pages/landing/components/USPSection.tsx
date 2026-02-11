@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { H2, H3, Paragraph } from '../../../components/ui/Typography';
 
 export const USPBlock = () => {
-  // Definition der Module mit Farben und Beschreibungen, um den Weißraum zu füllen
   const steps = [
     {
       id: '01',
@@ -45,19 +46,18 @@ export const USPBlock = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
              
              {/* LEFT COLUMN: The Statement */}
-             {/* FIXED: Removed sticky on mobile, added lg:sticky for desktop only */}
              <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 relative lg:sticky lg:top-32">
                 {/* Huge Headline */}
-                <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter leading-[0.95]">
+                <H2 className="leading-[0.95] text-gray-900">
                   Financial Control.<br />
                   <span className="text-brand-500">From Script to Screen.</span>
-                </h2>
+                </H2>
 
                 {/* The Mandatory Text */}
                 <div className="relative pl-6 border-l-4 border-gray-100">
-                   <p className="text-lg md:text-xl text-gray-600 font-medium leading-relaxed">
+                   <Paragraph className="text-lg md:text-xl font-medium">
                      KOSMA is a software for <strong className="text-gray-900">film production companies</strong> and production managers providing a variety of unique tools to <strong className="text-gray-900">plan and control</strong> the financial side of projects from <span className="italic text-gray-800">development</span> to <span className="italic text-gray-800">delivery</span>.
-                   </p>
+                   </Paragraph>
                 </div>
              </div>
 
@@ -69,7 +69,7 @@ export const USPBlock = () => {
                         key={step.id} 
                         className="group flex items-start gap-6 py-8 border-b border-gray-100 last:border-0 transition-all duration-300 hover:pl-4 cursor-default"
                       >
-                         {/* Numbering - Visual Anchor */}
+                         {/* Numbering - Visual Anchor - Keeping as visual element, not standard typo */}
                          <div className="text-2xl md:text-3xl font-black text-gray-100 group-hover:text-gray-200 transition-colors select-none tabular-nums">
                             {step.id}
                          </div>
@@ -81,15 +81,15 @@ export const USPBlock = () => {
                                <div className={`w-2.5 h-2.5 rounded-full ${step.color} ${step.shadow} transition-transform duration-300 group-hover:scale-125`}></div>
                                
                                {/* The Title */}
-                               <h3 className={`text-2xl md:text-3xl font-black text-gray-900 ${step.textHover} transition-colors tracking-tight`}>
+                               <H3 className={`${step.textHover} transition-colors`}>
                                   {step.title}
-                               </h3>
+                               </H3>
                             </div>
                             
-                            {/* The Description - Fills the whitespace */}
-                            <p className="text-sm md:text-base font-medium text-gray-400 group-hover:text-gray-600 transition-colors leading-relaxed max-w-sm">
+                            {/* The Description */}
+                            <Paragraph className="text-sm md:text-base text-gray-400 group-hover:text-gray-600 transition-colors max-w-sm">
                                {step.desc}
-                            </p>
+                            </Paragraph>
                          </div>
 
                          {/* Hover Arrow on the far right */}

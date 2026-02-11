@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card';
 import { COURSES } from '../../data/learningCourses';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
+import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../../components/ui/Typography';
 
 interface CourseCatalogViewProps {
   onSelectCourse: (courseId: string) => void;
@@ -29,13 +30,13 @@ export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ onSelectCo
   return (
     <div className="max-w-6xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center mb-10">
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-4">Learning Campus</h1>
-        <p className="text-base md:text-lg text-gray-500 font-medium max-w-2xl mx-auto">
+        <H1 className="mb-4">Learning Campus</H1>
+        <Paragraph className="text-lg max-w-2xl mx-auto">
           Master KOSMA with our structured courses. From basics to expert level.
-        </p>
-        <div className="flex items-center justify-center gap-2 mt-4 text-sm font-bold text-brand-600">
+        </Paragraph>
+        <div className="flex items-center justify-center gap-2 mt-4 text-brand-600">
            <Gift className="w-4 h-4" />
-           <span>Complete courses to get free months and license upgrades.</span>
+           <Label className="text-brand-600 cursor-text">Complete courses to get free months and license upgrades.</Label>
         </div>
       </div>
 
@@ -50,14 +51,14 @@ export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ onSelectCo
             </div>
             
             <div className="flex-1 text-center md:text-left relative z-10">
-                <h2 className="text-xl font-black text-brand-900 uppercase tracking-tight mb-1">
+                <H3 className="text-brand-900 uppercase tracking-tight mb-1">
                     Rewards Status: <span className="text-brand-600">{summary.courses_completed_count} / 6</span> courses completed
-                </h2>
-                <p className="text-sm font-medium text-brand-800/80 leading-relaxed max-w-2xl">
-                    Complete 1 course = 1 month free for each course.<br/>
-                    Complete all 6 courses = 3 months free + license upgrade (Course Completion Bonus).<br/>
+                </H3>
+                <div className="text-sm font-medium text-brand-800/80 leading-relaxed max-w-2xl">
+                    <p>Complete 1 course = 1 month free for each course.</p>
+                    <p>Complete all 6 courses = 3 months free + license upgrade (Course Completion Bonus).</p>
                     <span className="text-xs opacity-70 mt-1 block">Important: Rewards only count for goals you explicitly mark as completed.</span>
-                </p>
+                </div>
             </div>
 
             {/* Visual Indicator of 6 slots */}
@@ -106,25 +107,25 @@ export const CourseCatalogView: React.FC<CourseCatalogViewProps> = ({ onSelectCo
                 {idx + 1}
               </div>
               
-              <h3 className="text-xl font-black text-gray-900 mb-3 group-hover:text-brand-600 transition-colors">
+              <H3 className="mb-3 group-hover:text-brand-600 transition-colors">
                 {course.title}
-              </h3>
+              </H3>
               
-              <p className="text-sm text-gray-500 font-medium mb-8 leading-relaxed flex-1">
+              <Paragraph className="text-sm text-gray-500 font-medium mb-8 flex-1">
                 {course.teaser}
-              </p>
+              </Paragraph>
 
               <div className="w-full space-y-4">
-                <div className="flex items-center gap-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                   <span className="flex items-center gap-1.5"><List className="w-3.5 h-3.5" /> {course.goals.length} Learning goals</span>
-                   <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> ~{totalDuration} min</span>
+                <div className="flex items-center gap-4 text-gray-400">
+                   <H5 className="flex items-center gap-1.5"><List className="w-3.5 h-3.5" /> {course.goals.length} Learning goals</H5>
+                   <H5 className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> ~{totalDuration} min</H5>
                 </div>
-                <div className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                <H5 className="text-gray-300">
                    {course.languages.join(' · ')}
-                </div>
+                </H5>
                 
                 <div className="pt-6 border-t border-gray-100 flex items-center justify-between w-full">
-                   <span className="text-sm font-black text-brand-500 group-hover:underline decoration-2 underline-offset-4">Read more</span>
+                   <Label className="text-sm font-black text-brand-500 group-hover:underline decoration-2 underline-offset-4 cursor-pointer">Read more</Label>
                    <button className="bg-gray-900 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
                       <ChevronRight className="w-4 h-4" />
                    </button>

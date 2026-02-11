@@ -6,6 +6,7 @@ import { DashboardTabs } from './DashboardTabs';
 import { Notice, NoticeProps } from '../ui/Notice';
 import { Building, Settings, ExternalLink, CreditCard, CalendarMinus } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { H1, H3, Paragraph, Label, Small } from '../ui/Typography';
 
 export const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, licenses, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
@@ -18,7 +19,6 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
 
     const handlePortal = async () => {
         setNotice(null);
-        // GUARD: No Stripe Customer = No Portal
         if (!hasStripeCustomer || activeLicense?.planTier === PlanTier.FREE) {
             setNotice({
                 variant: 'warning',
@@ -81,7 +81,7 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Account Settings</h1>
+            <H1 className="mb-8">Account Settings</H1>
             <DashboardTabs />
             
             {notice && (
@@ -92,18 +92,18 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50">
-                    <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
+                    <H3 className="mb-6 flex items-center gap-3">
                         <Building className="w-6 h-6 text-brand-500" /> Billing Info
-                    </h3>
+                    </H3>
                     {billingAddress ? (
                         <div className="space-y-2 text-gray-600 font-medium mb-8">
-                            <p className="text-gray-900 font-black">{billingAddress.companyName || user.name}</p>
-                            <p>{billingAddress.street}</p>
-                            <p>{billingAddress.zip} {billingAddress.city}</p>
-                            <p className="text-xs uppercase font-bold text-gray-400 pt-4">VAT: {billingAddress.vatId || 'Not provided'}</p>
+                            <Label className="text-gray-900 font-black block">{billingAddress.companyName || user.name}</Label>
+                            <Label className="block text-gray-600">{billingAddress.street}</Label>
+                            <Label className="block text-gray-600">{billingAddress.zip} {billingAddress.city}</Label>
+                            <Small className="uppercase font-bold text-gray-400 pt-4 block">VAT: {billingAddress.vatId || 'Not provided'}</Small>
                         </div>
                     ) : (
-                        <p className="text-gray-400 italic text-sm mb-8">No billing address stored yet. This will be updated after your first purchase.</p>
+                        <Paragraph className="text-gray-400 italic text-sm mb-8">No billing address stored yet. This will be updated after your first purchase.</Paragraph>
                     )}
                     
                     <Button 
@@ -118,12 +118,12 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50">
-                    <h3 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-3">
+                    <H3 className="mb-4 flex items-center gap-3">
                         <CreditCard className="w-6 h-6 text-brand-500" /> Payment Methods
-                    </h3>
-                    <p className="text-sm text-gray-500 mb-8 leading-relaxed font-medium">
+                    </H3>
+                    <Paragraph className="text-sm text-gray-500 mb-8 leading-relaxed font-medium">
                         Securely manage your credit cards and subscription preferences in the Stripe customer portal.
-                    </p>
+                    </Paragraph>
                     <div className="flex flex-col gap-3">
                         <Button 
                             onClick={handlePortal} 

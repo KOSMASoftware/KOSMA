@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { User, License, Invoice, PlanTier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -5,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import { DashboardTabs } from './DashboardTabs';
 import { PricingSection } from '../billing/PricingSection';
 import { RefreshCw, Check, AlertCircle, TrendingDown } from 'lucide-react';
+import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../ui/Typography';
 
 export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoices: Invoice[], refresh: () => void }> = ({ user, licenses, invoices, refresh }) => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -45,15 +47,15 @@ export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoi
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">Your Subscription</h1>
+            <H1 className="mb-8">Your Subscription</H1>
             <DashboardTabs />
 
             {isPolling && (
                 <div className="bg-brand-50 border border-brand-100 text-brand-800 p-6 rounded-2xl mb-12 flex items-center gap-4 animate-pulse">
                     <RefreshCw className="w-6 h-6 text-brand-500 animate-spin" />
                     <div>
-                        <h3 className="font-black text-base tracking-tight">Syncing Status...</h3>
-                        <p className="text-sm font-medium opacity-70">We are synchronizing your account with Stripe. This takes a few seconds.</p>
+                        <H4 className="mb-1">Syncing Status...</H4>
+                        <Small className="opacity-70 block">We are synchronizing your account with Stripe. This takes a few seconds.</Small>
                     </div>
                 </div>
             )}
@@ -62,34 +64,34 @@ export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoi
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gray-50/50 rounded-full blur-3xl -mr-32 -mt-32"></div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
-                        <span className="text-xs font-black text-brand-500 uppercase tracking-[0.2em]">Active Plan</span>
-                        <div className="flex items-baseline gap-3 mt-2">
-                            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter">{activeLicense?.planTier || 'Free'}</h2>
+                        <H5 className="text-brand-500 mb-2">Active Plan</H5>
+                        <div className="flex items-baseline gap-3">
+                            <H2>{activeLicense?.planTier || 'Free'}</H2>
                             <span className="text-gray-400 font-bold">/{cycleLabel}</span>
                         </div>
                         <div className="mt-6 flex flex-wrap gap-3">
-                            <div className={`flex items-center gap-2 border px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
+                            <H5 className={`flex items-center gap-2 border px-4 py-1.5 rounded-full ${
                                 activeLicense?.status === 'active' 
                                     ? 'bg-green-50 border-green-100 text-green-700' 
                                     : 'bg-gray-50 border-gray-100 text-gray-500'
                             }`}>
                                 <Check className="w-4 h-4" /> {activeLicense?.status}
-                            </div>
+                            </H5>
                             {activeLicense?.cancelAtPeriodEnd && (
-                                <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+                                <H5 className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 px-4 py-1.5 rounded-full">
                                     <AlertCircle className="w-4 h-4" /> Cancels soon
-                                </div>
+                                </H5>
                             )}
                             {activeLicense?.pendingDowngradePlan && (
-                                <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
+                                <H5 className="flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1.5 rounded-full">
                                     <TrendingDown className="w-4 h-4" /> Downgrade scheduled
-                                </div>
+                                </H5>
                             )}
                         </div>
                     </div>
                     
                     <div className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-100 md:min-w-[280px]">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Renewal Details</p>
+                        <H5 className="text-gray-400 mb-4">Renewal Details</H5>
                         <div className="space-y-3">
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-gray-500 font-medium">Valid until</span>

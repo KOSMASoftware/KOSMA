@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Monitor, HardDrive, WifiOff, Laptop } from 'lucide-react';
@@ -7,6 +8,7 @@ import { STRIPE_LINKS } from '../config/stripe';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { Card } from '../components/ui/Card';
 import { PLANS } from '../data/plans';
+import { H1, H3, H4, H5, Paragraph, Label, Small } from '../components/ui/Typography';
 
 export const Pricing: React.FC = () => {
   const [billingInterval, setBillingInterval] = useState<'yearly' | 'monthly'>('yearly');
@@ -40,12 +42,12 @@ export const Pricing: React.FC = () => {
   return (
     <MarketingLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 tracking-tight">
+        <H1 className="mb-6">
           Simple, transparent pricing
-        </h1>
-        <p className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto leading-relaxed font-medium">
+        </H1>
+        <Paragraph className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto font-medium">
           Choose the plan that fits your production needs. Professional tools for modern film production.
-        </p>
+        </Paragraph>
         
         {/* TOGGLE */}
         <div className="flex justify-center mb-12" id="pricing">
@@ -72,24 +74,26 @@ export const Pricing: React.FC = () => {
                 enableLedEffect={true}
                 className="h-full transform transition-all hover:-translate-y-2 hover:shadow-2xl duration-300 p-6 rounded-2xl"
               >
-                <h3 className={`text-xl font-black ${plan.textClass} mb-4 tracking-tight`}>{plan.title}</h3>
+                {/* Title now H4 based on logic check (20px) */}
+                <H4 className={`${plan.textClass} mb-4 text-center`}>{plan.title}</H4>
                 
                 <div className="flex justify-center mb-6">
                   <plan.Icon className={`w-10 h-10 ${plan.textClass} opacity-90`} />
                 </div>
 
-                <p className="text-xs text-gray-500 h-10 mb-6 leading-relaxed px-2 font-medium">{plan.subtitle}</p>
+                <Small className="h-10 mb-6 block text-center leading-relaxed px-2 font-medium">{plan.subtitle}</Small>
                 
-                <div className="mb-2">
+                <div className="mb-2 text-center">
+                   {/* Prices are special, keep ad-hoc or use H3 */}
                    <span className={`text-3xl font-black ${plan.textClass}`}>{price} €</span>
                    <span className="text-xs text-gray-400 font-bold ml-1">{billingInterval === 'yearly' ? '/year' : '/month'}</span>
                 </div>
 
-                <div className="h-6 mb-6">
+                <div className="h-6 mb-6 flex justify-center">
                   {saveText && (
-                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full">
+                      <H5 className="text-gray-900 bg-gray-100 px-3 py-1.5 rounded-full border-none">
                           {saveText}
-                      </span>
+                      </H5>
                   )}
                 </div>
 
@@ -105,7 +109,7 @@ export const Pricing: React.FC = () => {
                       {plan.features.map((feat, fIdx) => (
                       <li key={fIdx} className="flex gap-2 items-start">
                           <Check className={`w-3.5 h-3.5 ${plan.textClass} shrink-0 mt-0.5`} />
-                          <span className="leading-tight">{feat}</span>
+                          <Label className="text-xs leading-tight">{feat}</Label>
                       </li>
                       ))}
                   </ul>
@@ -123,10 +127,10 @@ export const Pricing: React.FC = () => {
                     <Monitor className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-slate-900 text-sm mb-1">Cross-Platform</h3>
-                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
+                    <Label className="text-slate-900 text-sm mb-1 block font-bold">Cross-Platform</Label>
+                    <Paragraph className="text-slate-500 text-xs">
                         It runs on Mac and Windows equally.
-                    </p>
+                    </Paragraph>
                 </div>
              </div>
 
@@ -136,10 +140,10 @@ export const Pricing: React.FC = () => {
                     <HardDrive className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-slate-900 text-sm mb-1">Local & Secure</h3>
-                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
+                    <Label className="text-slate-900 text-sm mb-1 block font-bold">Local & Secure</Label>
+                    <Paragraph className="text-slate-500 text-xs">
                         KOSMA stores your data locally on your machine and on the KOSMA server for you to share with other project members.
-                    </p>
+                    </Paragraph>
                 </div>
              </div>
 
@@ -149,10 +153,10 @@ export const Pricing: React.FC = () => {
                     <WifiOff className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-slate-900 text-sm mb-1">Offline Ready</h3>
-                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
+                    <Label className="text-slate-900 text-sm mb-1 block font-bold">Offline Ready</Label>
+                    <Paragraph className="text-slate-500 text-xs">
                         No internet, no problem – KOSMA runs offline as desktop app, not in a browser.
-                    </p>
+                    </Paragraph>
                 </div>
              </div>
 
@@ -162,10 +166,10 @@ export const Pricing: React.FC = () => {
                     <Laptop className="w-5 h-5" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-slate-900 text-sm mb-1">Flexible Licensing</h3>
-                    <p className="text-slate-500 leading-relaxed text-xs font-medium">
+                    <Label className="text-slate-900 text-sm mb-1 block font-bold">Flexible Licensing</Label>
+                    <Paragraph className="text-slate-500 text-xs">
                         One KOSMA license runs on a maximum of two computers.
-                    </p>
+                    </Paragraph>
                 </div>
              </div>
         </div>

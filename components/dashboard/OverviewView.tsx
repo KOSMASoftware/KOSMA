@@ -6,8 +6,8 @@ import { Link } from 'react-router-dom';
 import { DashboardTabs } from './DashboardTabs';
 import { useLearningRewards } from '../../hooks/useLearningRewards';
 import { Button } from '../ui/Button';
+import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../ui/Typography';
 
-// --- HELPER: Badge Logic ---
 const normalizeBadge = (badge: string | null): string => {
     const b = badge?.toLowerCase() || '';
     if (b === 'expert') return 'Expert';
@@ -15,10 +15,9 @@ const normalizeBadge = (badge: string | null): string => {
     return 'Novice';
 };
 
-// --- HELPER: URL Normalization ---
 const toHashRouterPath = (url: string) => {
     if (!url) return '/learning';
-    return url.replace(/^\/#/, ''); // '/#/learning?...' -> '/learning?...'
+    return url.replace(/^\/#/, '');
 };
 
 const BadgeIcon = ({ type, className }: { type: string, className?: string }) => {
@@ -32,8 +31,6 @@ const BadgeIcon = ({ type, className }: { type: string, className?: string }) =>
 
 export const OverviewView: React.FC<{ user: User, licenses: License[], invoices: Invoice[] }> = ({ user, licenses, invoices }) => {
     const activeLicense = licenses[0];
-    
-    // Fetch Learning Data
     const { data: learningData, loading: learningLoading } = useLearningRewards();
 
     const daysRemaining = useMemo(() => {
@@ -42,12 +39,9 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
         return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     }, [activeLicense]);
 
-    // Calculate Learning State
     const badge = normalizeBadge(learningData?.global.current_badge || null);
     const nextBadge = learningData?.global.next_badge || 'Expert';
     const coursesToNext = learningData?.global.courses_to_next_badge || 0;
-    
-    // Determine Continue Link (Deep Link to first incomplete course)
     const continueCourse = learningData?.courses.find(c => !c.course_completed) || learningData?.courses[0];
     const continueUrl = continueCourse?.continue_url || '/learning';
 
@@ -55,8 +49,8 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Welcome, {user.name}</h1>
-                    <p className="text-gray-500 mt-1 font-medium italic">Production Dashboard</p>
+                    <H1>Welcome, {user.name}</H1>
+                    <Label className="text-gray-500 mt-1 italic">Production Dashboard</Label>
                 </div>
             </div>
             
@@ -65,7 +59,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
             {/* Top Row: Status & Action - 2x2 Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 
-                {/* 1. Subscription Status (White Card) */}
+                {/* 1. Subscription Status */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between relative overflow-hidden group min-h-[220px]">
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-50 rounded-full blur-3xl group-hover:bg-brand-100 transition-colors duration-500"></div>
                     
@@ -74,20 +68,20 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                              <div className={`p-3 rounded-xl ${activeLicense?.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-brand-50 text-brand-500'}`}>
                                 <Zap className="w-6 h-6" />
                              </div>
-                             <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${
+                             <H5 className={`px-2.5 py-1 rounded-lg ${
                                 activeLicense?.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-brand-100 text-brand-700'
                              }`}>
                                 {activeLicense?.status || 'No License'}
-                             </span>
+                             </H5>
                         </div>
                         
                         <div>
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Plan</h3>
-                            <p className="text-2xl font-black text-gray-900 tracking-tight">{activeLicense?.planTier || 'Free'}</p>
+                            <H5 className="text-gray-400 mb-1">Current Plan</H5>
+                            <H2>{activeLicense?.planTier || 'Free'}</H2>
                             {activeLicense?.validUntil && (
-                                <p className="text-xs text-gray-500 mt-1 font-bold">
+                                <Small className="mt-1 block">
                                     Valid until {new Date(activeLicense.validUntil).toLocaleDateString()}
-                                </p>
+                                </Small>
                             )}
                         </div>
                     </div>
@@ -107,14 +101,13 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                     </div>
                 </div>
 
-                {/* 2. Learning Snapshot (Light Card) */}
+                {/* 2. Learning Snapshot */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col justify-between relative overflow-hidden group min-h-[220px]">
-                    {/* Decorative Blob */}
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-50 rounded-full blur-3xl group-hover:bg-blue-100 transition-colors duration-500"></div>
                     
                     {learningLoading ? (
-                        <div className="flex-1 flex items-center justify-center opacity-50 text-sm font-bold text-gray-400">
-                            Loading Campus...
+                        <div className="flex-1 flex items-center justify-center opacity-50">
+                            <Label className="text-gray-400">Loading Campus...</Label>
                         </div>
                     ) : (
                         <>
@@ -123,26 +116,28 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                                      <div className="p-3 rounded-xl bg-blue-50 text-brand-600">
                                         <BadgeIcon type={badge} className="w-6 h-6" />
                                      </div>
-                                     <Link to="/dashboard/learning" className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                                        Campus
+                                     <Link to="/dashboard/learning">
+                                        <H5 className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer">
+                                            Campus
+                                        </H5>
                                      </Link>
                                 </div>
                                 
                                 <div>
-                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Rank</h3>
-                                    <p className="text-2xl font-black text-gray-900 tracking-tight">{badge}</p>
-                                    <p className="text-xs text-gray-500 mt-1 font-bold">
+                                    <H5 className="text-gray-400 mb-1">Current Rank</H5>
+                                    <H2>{badge}</H2>
+                                    <Small className="mt-1 block">
                                         {coursesToNext > 0 
                                             ? `${coursesToNext} courses to ${nextBadge}`
                                             : "Highest rank achieved!"}
-                                    </p>
+                                    </Small>
                                 </div>
                             </div>
 
                             <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between relative z-10">
                                 <div>
-                                    <Link to="/dashboard/learning" className="text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors">
-                                        View Rewards
+                                    <Link to="/dashboard/learning" className="hover:opacity-80 transition-opacity">
+                                        <Label className="text-gray-400 font-bold cursor-pointer">View Rewards</Label>
                                     </Link>
                                 </div>
                                 <Button 
@@ -158,14 +153,14 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                 </div>
             </div>
 
-            {/* Bottom Row: History (Full Width) */}
+            {/* Bottom Row: History */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 flex flex-col">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <H3 className="flex items-center gap-2">
                         <FileText className="w-5 h-5 text-gray-400" /> Recent Invoices
-                    </h3>
-                    <Link to="/dashboard/subscription" className="text-xs font-bold text-brand-500 hover:text-brand-700">
-                        View All
+                    </H3>
+                    <Link to="/dashboard/subscription" className="hover:opacity-80">
+                        <Label className="text-brand-500 cursor-pointer">View All</Label>
                     </Link>
                 </div>
                 
@@ -174,15 +169,15 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                         {invoices.slice(0, 3).map(inv => (
                             <div key={inv.id} className="flex justify-between items-center p-4 rounded-xl bg-gray-50/50 border border-gray-100 hover:bg-white hover:shadow-sm hover:border-gray-200 transition-all">
                                 <div>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">{new Date(inv.date).toLocaleDateString()}</p>
-                                    <p className="font-bold text-gray-900 text-sm">{inv.amount.toFixed(2)} €</p>
+                                    <H5 className="text-gray-400 mb-0.5">{new Date(inv.date).toLocaleDateString()}</H5>
+                                    <Label className="text-gray-900 font-bold">{inv.amount.toFixed(2)} €</Label>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${
+                                    <H5 className={`px-2.5 py-1 rounded-lg ${
                                         inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
                                     }`}>
                                         {inv.status}
-                                    </span>
+                                    </H5>
                                     {inv.pdfUrl && inv.pdfUrl !== '#' && (
                                         <a 
                                             href={inv.pdfUrl} 

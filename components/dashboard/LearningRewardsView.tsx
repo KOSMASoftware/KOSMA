@@ -4,44 +4,40 @@ import { useLearningRewards } from '../../hooks/useLearningRewards';
 import { DashboardTabs } from './DashboardTabs';
 import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../ui/Typography';
 
-// --- HELPER: URL Normalization ---
 const toHashRouterPath = (url: string) => {
     if (!url) return '/learning';
-    return url.replace(/^\/#/, ''); // '/#/learning?...' -> '/learning?...'
+    return url.replace(/^\/#/, '');
 };
 
-// --- HELPER: Badge Icon Logic ---
 const BadgeIcon = ({ type, className }: { type: string | null, className?: string }) => {
-    const badge = type?.toLowerCase() || 'novice'; // Default Fallback
+    const badge = type?.toLowerCase() || 'novice';
     switch (badge) {
         case 'novice': return <Star className={className} />;
         case 'skilled': return <Medal className={className} />;
         case 'expert': return <Trophy className={className} />;
-        default: return <Star className={className} />; // Safety Fallback
+        default: return <Star className={className} />;
     }
 };
 
-// --- HELPER: Status Badge for Rewards ---
 const StatusBadge = ({ status }: { status: string }) => {
     switch(status) {
         case 'granted': 
-            return <span className="bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3"/> Granted</span>;
+            return <H5 className="bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3"/> Granted</H5>;
         case 'pending': 
-            return <span className="bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">Processing</span>;
+            return <H5 className="bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5">Processing</H5>;
         case 'failed': 
-            return <span className="bg-red-50 text-red-700 border border-red-100 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">Failed</span>;
+            return <H5 className="bg-red-50 text-red-700 border border-red-100 px-2.5 py-1 rounded-lg">Failed</H5>;
         default: 
             return null;
     }
 };
 
-// --- HELPER: Course Theme Logic ---
 const getCourseTheme = (courseId: string) => {
     if (courseId.includes('budgeting')) return { border: 'border-l-amber-500', text: 'text-amber-600', bg: 'bg-amber-500' };
     if (courseId.includes('cashflow')) return { border: 'border-l-green-600', text: 'text-green-600', bg: 'bg-green-600' };
     if (courseId.includes('cost-control')) return { border: 'border-l-purple-600', text: 'text-purple-600', bg: 'bg-purple-600' };
-    // Fallback / Production
     return { border: 'border-l-brand-500', text: 'text-brand-600', bg: 'bg-brand-500' };
 };
 
@@ -59,7 +55,7 @@ export const LearningRewardsView: React.FC = () => {
                 <DashboardTabs />
                 <div className="flex flex-col justify-center items-center py-20 text-gray-400 gap-4">
                     <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
-                    <span className="text-xs font-black uppercase tracking-widest">Loading Progress...</span>
+                    <H5>Loading Progress...</H5>
                 </div>
             </div>
         );
@@ -72,8 +68,8 @@ export const LearningRewardsView: React.FC = () => {
                 <div className="p-6 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-4 text-red-700">
                     <AlertTriangle className="w-6 h-6 shrink-0" />
                     <div>
-                        <h3 className="font-bold text-sm">Failed to load learning data</h3>
-                        <p className="text-xs mt-1 opacity-80">{error}</p>
+                        <Label className="text-red-700 font-bold">Failed to load learning data</Label>
+                        <Small className="block mt-1 opacity-80">{error}</Small>
                     </div>
                 </div>
             </div>
@@ -83,8 +79,6 @@ export const LearningRewardsView: React.FC = () => {
     if (!data) return null;
 
     const { global, courses, rewards } = data;
-    
-    // Logic: Sort active/uncompleted first
     const sortedCourses = [...courses].sort((a, b) => {
         if (a.course_completed === b.course_completed) {
             return b.completed_goals - a.completed_goals; 
@@ -92,12 +86,11 @@ export const LearningRewardsView: React.FC = () => {
         return a.course_completed ? 1 : -1;
     });
 
-    // Strict Badge Normalization
     const normalizeBadge = (badge: string | null): string => {
         const b = badge?.toLowerCase() || '';
         if (b === 'expert') return 'Expert';
         if (b === 'skilled') return 'Skilled';
-        return 'Novice'; // Fallback for 'None', null, or any other value
+        return 'Novice';
     };
 
     const displayBadge = normalizeBadge(global.current_badge);
@@ -106,7 +99,7 @@ export const LearningRewardsView: React.FC = () => {
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Learning & Rewards</h1>
+                <H1>Learning & Rewards</H1>
             </div>
             
             <DashboardTabs />
@@ -118,7 +111,7 @@ export const LearningRewardsView: React.FC = () => {
                     
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Progress</p>
+                            <H5 className="text-gray-400 mb-1">Total Progress</H5>
                             <h2 className="text-3xl font-black text-gray-900 tracking-tight">
                                 {global.courses_completed_count} <span className="text-gray-300 font-medium text-2xl">/</span> 6 <span className="text-lg text-gray-500 font-bold">Courses</span>
                             </h2>
@@ -129,26 +122,24 @@ export const LearningRewardsView: React.FC = () => {
                     </div>
 
                     <div className="mt-8 relative z-10">
-                        <div className="flex justify-between text-xs font-black uppercase tracking-widest text-brand-500 mb-2">
-                            <span>{displayBadge}</span>
-                            <span className="text-gray-300">{nextBadgeDisplay}</span>
+                        <div className="flex justify-between mb-2">
+                            <H5 className="text-brand-500">{displayBadge}</H5>
+                            <H5 className="text-gray-300">{nextBadgeDisplay}</H5>
                         </div>
-                        {/* Progress Bar */}
                         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden border border-gray-100 relative">
                             <div 
                                 className="h-full bg-brand-500 shadow-[0_0_10px_rgba(0,147,208,0.3)] relative z-10 transition-all duration-1000 ease-out"
                                 style={{ width: `${Math.min(100, (global.courses_completed_count / 6) * 100)}%` }}
                             />
-                            {/* Step Dividers */}
                             <div className="absolute inset-0 flex justify-between px-[16.66%] z-20">
                                 {[...Array(5)].map((_, i) => <div key={i} className="w-px h-full bg-white/50"></div>)}
                             </div>
                         </div>
-                        <p className="mt-3 text-xs font-medium text-gray-500">
+                        <Small className="mt-3 block text-gray-500 font-medium">
                             {global.courses_to_next_badge > 0 
                                 ? `${global.courses_to_next_badge} more courses to reach ${nextBadgeDisplay} status.` 
                                 : "You have reached the highest status!"}
-                        </p>
+                        </Small>
                     </div>
                 </div>
 
@@ -158,19 +149,19 @@ export const LearningRewardsView: React.FC = () => {
                     <div className="mb-4 w-12 h-12 bg-gray-50 text-gray-900 rounded-full flex items-center justify-center shrink-0">
                         <Trophy className="w-5 h-5" />
                     </div>
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Next Reward</h3>
-                    <p className="text-gray-900 font-bold text-sm leading-tight max-w-[200px]">
+                    <H5 className="text-gray-400 mb-2">Next Reward</H5>
+                    <Label className="text-gray-900 font-bold leading-tight max-w-[200px]">
                         {rewards.next_milestone?.description || "All rewards unlocked!"}
-                    </p>
+                    </Label>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* 3. Your Courses (Accordion List) */}
+                {/* 3. Your Courses */}
                 <div className="lg:col-span-2 space-y-6">
-                    <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <H3 className="flex items-center gap-2">
                         <Play className="w-5 h-5 text-brand-500" /> Your Courses
-                    </h3>
+                    </H3>
                     
                     <div className="space-y-3">
                         {sortedCourses.map(course => {
@@ -178,7 +169,6 @@ export const LearningRewardsView: React.FC = () => {
                             const isExpanded = expandedCourseId === course.course_id;
                             const progressPercent = Math.round((course.completed_goals / course.total_goals) * 100);
                             
-                            // Status Determination
                             let statusLabel = 'Not Started';
                             let statusColor = 'bg-gray-100 text-gray-500';
                             
@@ -195,21 +185,19 @@ export const LearningRewardsView: React.FC = () => {
                                     key={course.course_id} 
                                     className={`bg-white rounded-xl border border-gray-100 overflow-hidden transition-all duration-300 ${isExpanded ? 'shadow-md border-gray-200 ring-1 ring-black/5' : 'hover:border-gray-200'}`}
                                 >
-                                    {/* Header (Always Visible) */}
                                     <div 
                                         className={`flex items-center justify-between p-4 cursor-pointer border-l-[4px] ${theme.border} bg-white hover:bg-gray-50/50 transition-colors`}
                                         onClick={() => toggleCourse(course.course_id)}
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
-                                            <h4 className={`font-bold text-sm text-gray-900 ${theme.text}`}>
+                                            <Label className={`text-sm font-bold ${theme.text}`}>
                                                 {course.course_title}
-                                            </h4>
+                                            </Label>
                                             
                                             <div className="flex items-center gap-3">
-                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${statusColor}`}>
+                                                <H5 className={`px-2 py-0.5 rounded-md ${statusColor}`}>
                                                     {statusLabel}
-                                                </span>
-                                                {/* Mini Stats (always visible) */}
+                                                </H5>
                                                 <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
                                                     <List className="w-3 h-3" /> {course.completed_goals}/{course.total_goals}
                                                 </span>
@@ -220,17 +208,14 @@ export const LearningRewardsView: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Body (Accordion) */}
                                     {isExpanded && (
                                         <div className="px-6 pb-6 pt-2 border-t border-gray-50">
                                             <div className="flex flex-col gap-4">
-                                                {/* Details Row */}
                                                 <div className="flex items-center justify-between text-xs text-gray-400">
                                                     <span>Last activity: {course.last_activity_at ? new Date(course.last_activity_at).toLocaleDateString() : 'Never'}</span>
                                                     {course.last_article_id && <span>Resume at: {course.last_article_id}</span>}
                                                 </div>
 
-                                                {/* Large Progress Bar */}
                                                 <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
                                                     <div 
                                                         className={`h-full ${theme.bg} transition-all duration-500`}
@@ -238,7 +223,6 @@ export const LearningRewardsView: React.FC = () => {
                                                     />
                                                 </div>
 
-                                                {/* CTA */}
                                                 <div className="flex justify-end pt-2">
                                                     {!course.course_completed ? (
                                                         <Button 
@@ -265,9 +249,9 @@ export const LearningRewardsView: React.FC = () => {
 
                 {/* 4. Rewards History */}
                 <div className="space-y-6">
-                    <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <H3 className="flex items-center gap-2">
                         <Clock className="w-5 h-5 text-gray-400" /> Reward History
-                    </h3>
+                    </H3>
                     
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1">
                         {rewards.history.length === 0 ? (
@@ -275,21 +259,21 @@ export const LearningRewardsView: React.FC = () => {
                                 <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
                                     <Trophy className="w-5 h-5" />
                                 </div>
-                                <span className="text-gray-400 text-xs font-bold">No rewards yet.</span>
+                                <Label className="text-gray-400 text-xs">No rewards yet.</Label>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-50">
                                 {rewards.history.map((reward, idx) => (
                                     <div key={idx} className="p-4 hover:bg-gray-50 transition-colors rounded-xl group">
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            <H5 className="text-gray-400">
                                                 {new Date(reward.granted_at).toLocaleDateString()}
-                                            </span>
+                                            </H5>
                                             <StatusBadge status={reward.status} />
                                         </div>
-                                        <p className="text-xs font-bold text-gray-700 leading-snug group-hover:text-gray-900 transition-colors">
+                                        <Label className="text-xs text-gray-700 group-hover:text-gray-900 transition-colors">
                                             {reward.reward_display_name}
-                                        </p>
+                                        </Label>
                                     </div>
                                 ))}
                             </div>

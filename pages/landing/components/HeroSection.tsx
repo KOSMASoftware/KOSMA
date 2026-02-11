@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MorphingText } from '../../../components/MorphingText';
@@ -6,6 +7,7 @@ import { Globe, ChevronDown, Menu, X } from 'lucide-react';
 import { ShimmerButton } from '../../../components/ui/ShimmerButton';
 import { BG } from '../data';
 import { KosmaTextLogo } from './LandingIcons';
+import { H1, Label } from '../../../components/ui/Typography';
 
 export const HeroSection = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -87,11 +89,8 @@ export const HeroSection = () => {
   };
 
   // Calculate Parallax Styles
-  // Opacity goes from 1 -> 0
-  // Scale goes from 1 -> 0.95 (subtle depth)
-  // Blur goes from 0 -> 10px
   const contentStyle = {
-    opacity: 1 - scrollProgress * 1.5, // Fades out faster than scroll
+    opacity: 1 - scrollProgress * 1.5,
     transform: `scale(${1 - scrollProgress * 0.05}) translateY(${scrollProgress * 50}px)`,
     filter: `blur(${scrollProgress * 10}px)`,
     willChange: 'opacity, transform, filter'
@@ -103,7 +102,7 @@ export const HeroSection = () => {
       className="relative w-full h-screen min-h-[600px] overflow-hidden text-white z-0"
       style={{ background: BG }}
     >
-      {/* HEADER OVERLAY - Fixed to top of viewport to stay accessible during parallax */}
+      {/* HEADER OVERLAY */}
       <div className="absolute top-0 left-0 w-full z-50 flex justify-between items-center p-6 md:px-12 pointer-events-none">
           <div className="pointer-events-auto">
             <Link to="/" className="hover:opacity-80 transition-opacity">
@@ -160,7 +159,7 @@ export const HeroSection = () => {
         </div>
       )}
 
-      {/* CANVAS: Fixed background */}
+      {/* CANVAS */}
       <canvas 
         ref={canvasRef} 
         className="absolute inset-0 w-full h-full block z-0 pointer-events-none" 
@@ -172,19 +171,19 @@ export const HeroSection = () => {
         onClick={randomize}
       />
 
-      {/* CONTENT WRAPPER - Applied Parallax Styles Here */}
+      {/* CONTENT WRAPPER */}
       <div 
         className="relative z-10 w-full h-full flex items-center justify-center px-6 text-center pointer-events-none"
         style={contentStyle}
       >
           <div className="max-w-5xl w-full flex flex-col items-center">
               <div className="pointer-events-auto inline-block">
-                  <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-6 text-base md:text-lg font-bold text-gray-200 tracking-wide">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 mb-6 font-bold text-white tracking-wide">
                       <div className="flex items-center gap-3">
                           <KosmaTextLogo />
                           <span className="hidden md:inline text-brand-500">—</span>
                       </div>
-                      <p className="leading-relaxed">
+                      <Label className="text-white leading-relaxed">
                           Simply the most advanced{' '}
                           <MorphingText
                           words={[
@@ -196,12 +195,12 @@ export const HeroSection = () => {
                           className="text-white"
                           />{' '}
                           Software
-                      </p>
+                      </Label>
                   </div>
 
-                  <h1 className="text-5xl md:text-7xl font-black text-white mb-10 tracking-tight leading-[1.1] drop-shadow-2xl">
+                  <H1 className="text-white mb-10 drop-shadow-2xl">
                     Bring AI to your Film Budget
-                  </h1>
+                  </H1>
 
                   <div className="mt-8 flex flex-wrap gap-6 justify-center items-center">
                       <ShimmerButton
