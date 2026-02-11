@@ -6,7 +6,7 @@ import { DashboardTabs } from './DashboardTabs';
 import { Notice, NoticeProps } from '../ui/Notice';
 import { Building, Settings, ExternalLink, CreditCard, CalendarMinus } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { H1, H3, Paragraph, Label, Small } from '../ui/Typography';
+import { H1, H2, H3, Paragraph, Label, Small } from '../ui/Typography';
 
 export const SettingsView: React.FC<{ user: User, licenses: License[], billingAddress: BillingAddress | null, refresh: () => void }> = ({ user, licenses, billingAddress, refresh }) => {
     const [loadingPortal, setLoadingPortal] = useState(false);
@@ -81,7 +81,7 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <H1 className="mb-8">Account Settings</H1>
+            <H2 className="mb-8">Account Settings</H2>
             <DashboardTabs />
             
             {notice && (

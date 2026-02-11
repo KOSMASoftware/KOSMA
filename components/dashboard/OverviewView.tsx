@@ -49,7 +49,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <H1>Welcome, {user.name}</H1>
+                    <H2>Welcome, {user.name}</H2>
                     <Label className="text-gray-500 mt-1 italic">Production Dashboard</Label>
                 </div>
             </div>
@@ -68,11 +68,11 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                              <div className={`p-3 rounded-xl ${activeLicense?.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-brand-50 text-brand-500'}`}>
                                 <Zap className="w-6 h-6" />
                              </div>
-                             <H5 className={`px-2.5 py-1 rounded-lg ${
+                             <Small className={`px-2.5 py-1 rounded-lg font-bold ${
                                 activeLicense?.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-brand-100 text-brand-700'
                              }`}>
                                 {activeLicense?.status || 'No License'}
-                             </H5>
+                             </Small>
                         </div>
                         
                         <div>
@@ -117,9 +117,9 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                                         <BadgeIcon type={badge} className="w-6 h-6" />
                                      </div>
                                      <Link to="/dashboard/learning">
-                                        <H5 className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer">
+                                        <Small className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 font-bold hover:bg-gray-200 transition-colors cursor-pointer">
                                             Campus
-                                        </H5>
+                                        </Small>
                                      </Link>
                                 </div>
                                 
@@ -173,11 +173,11 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                                     <Label className="text-gray-900 font-bold">{inv.amount.toFixed(2)} €</Label>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <H5 className={`px-2.5 py-1 rounded-lg ${
+                                    <Small className={`px-2.5 py-1 rounded-lg font-bold ${
                                         inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
                                     }`}>
                                         {inv.status}
-                                    </H5>
+                                    </Small>
                                     {inv.pdfUrl && inv.pdfUrl !== '#' && (
                                         <a 
                                             href={inv.pdfUrl} 

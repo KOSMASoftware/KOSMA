@@ -60,7 +60,7 @@ export const Footer: React.FC = () => {
            
            {/* Left: Support Logo */}
            <div className="flex flex-col gap-1.5">
-                <H5 className="text-[9px]">With the support of</H5>
+                <Small className="font-bold text-xs text-gray-400 uppercase">With the support of</Small>
                 <img 
                     src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/MEDIA-Logo.svg/2560px-MEDIA-Logo.svg.png" 
                     alt="Creative Europe MEDIA" 
@@ -74,9 +74,9 @@ export const Footer: React.FC = () => {
                    <div className="text-brand-500 md:hidden"><Logo className="h-5 w-auto" /></div>
                    <div className="hidden md:block text-brand-500 opacity-20 hover:opacity-100 transition-opacity"><Logo className="h-5 w-auto" /></div>
                </div>
-               <H5 className="text-[10px]">
+               <Small className="font-bold text-xs text-gray-400">
                   &copy; {new Date().getFullYear()} Headstart Media GmbH
-               </H5>
+               </Small>
            </div>
         </div>
       </div>

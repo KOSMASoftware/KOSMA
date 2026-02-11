@@ -47,7 +47,7 @@ export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoi
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <H1 className="mb-8">Your Subscription</H1>
+            <H2 className="mb-8">Your Subscription</H2>
             <DashboardTabs />
 
             {isPolling && (
@@ -70,22 +70,22 @@ export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoi
                             <span className="text-gray-400 font-bold">/{cycleLabel}</span>
                         </div>
                         <div className="mt-6 flex flex-wrap gap-3">
-                            <H5 className={`flex items-center gap-2 border px-4 py-1.5 rounded-full ${
+                            <Small className={`flex items-center gap-2 border px-4 py-1.5 rounded-full font-bold ${
                                 activeLicense?.status === 'active' 
                                     ? 'bg-green-50 border-green-100 text-green-700' 
                                     : 'bg-gray-50 border-gray-100 text-gray-500'
                             }`}>
                                 <Check className="w-4 h-4" /> {activeLicense?.status}
-                            </H5>
+                            </Small>
                             {activeLicense?.cancelAtPeriodEnd && (
-                                <H5 className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 px-4 py-1.5 rounded-full">
+                                <Small className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 px-4 py-1.5 rounded-full font-bold">
                                     <AlertCircle className="w-4 h-4" /> Cancels soon
-                                </H5>
+                                </Small>
                             )}
                             {activeLicense?.pendingDowngradePlan && (
-                                <H5 className="flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1.5 rounded-full">
+                                <Small className="flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1.5 rounded-full font-bold">
                                     <TrendingDown className="w-4 h-4" /> Downgrade scheduled
-                                </H5>
+                                </Small>
                             )}
                         </div>
                     </div>

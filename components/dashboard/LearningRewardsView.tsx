@@ -24,11 +24,11 @@ const BadgeIcon = ({ type, className }: { type: string | null, className?: strin
 const StatusBadge = ({ status }: { status: string }) => {
     switch(status) {
         case 'granted': 
-            return <H5 className="bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3"/> Granted</H5>;
+            return <Small className="bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-bold"><CheckCircle2 className="w-3 h-3"/> Granted</Small>;
         case 'pending': 
-            return <H5 className="bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5">Processing</H5>;
+            return <Small className="bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-bold">Processing</Small>;
         case 'failed': 
-            return <H5 className="bg-red-50 text-red-700 border border-red-100 px-2.5 py-1 rounded-lg">Failed</H5>;
+            return <Small className="bg-red-50 text-red-700 border border-red-100 px-2.5 py-1 rounded-lg font-bold">Failed</Small>;
         default: 
             return null;
     }
@@ -99,7 +99,7 @@ export const LearningRewardsView: React.FC = () => {
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <H1>Learning & Rewards</H1>
+                <H2>Learning & Rewards</H2>
             </div>
             
             <DashboardTabs />
@@ -195,9 +195,9 @@ export const LearningRewardsView: React.FC = () => {
                                             </Label>
                                             
                                             <div className="flex items-center gap-3">
-                                                <H5 className={`px-2 py-0.5 rounded-md ${statusColor}`}>
+                                                <Small className={`px-2 py-0.5 rounded-md font-bold ${statusColor}`}>
                                                     {statusLabel}
-                                                </H5>
+                                                </Small>
                                                 <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
                                                     <List className="w-3 h-3" /> {course.completed_goals}/{course.total_goals}
                                                 </span>
