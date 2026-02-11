@@ -1,12 +1,12 @@
 
 import React, { useMemo } from 'react';
 import { User, License, Invoice } from '../../types';
-import { Zap, FileText, Download, ChevronRight, CreditCard, Star, Trophy, Medal, Play, GraduationCap } from 'lucide-react';
+import { Zap, FileText, Download, ChevronRight, CreditCard, Star, Trophy, Medal, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DashboardTabs } from './DashboardTabs';
 import { useLearningRewards } from '../../hooks/useLearningRewards';
 import { Button } from '../ui/Button';
-import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../ui/Typography';
+import { H1, H2, H3, H5, Label, Small } from '../ui/Typography';
 
 const normalizeBadge = (badge: string | null): string => {
     const b = badge?.toLowerCase() || '';
@@ -88,8 +88,8 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
 
                     <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between relative z-10">
                         <div>
-                            <span className="block text-xl font-black text-gray-900 leading-none">{daysRemaining ?? '∞'}</span>
-                            <span className="block text-[9px] text-gray-400 font-bold uppercase mt-1 tracking-wide">Days left</span>
+                            <H2 className="leading-none">{daysRemaining ?? '∞'}</H2>
+                            <H5 className="mt-1">Days left</H5>
                         </div>
                         <Button 
                             to="/dashboard/subscription" 
@@ -194,9 +194,9 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                         ))}
                     </div>
                 ) : (
-                    <div className="py-12 flex flex-col items-center justify-center text-sm text-gray-400 font-medium">
+                    <div className="py-12 flex flex-col items-center justify-center text-gray-400">
                         <div className="p-4 bg-gray-50 rounded-full mb-3 border border-gray-100"><CreditCard className="w-8 h-8 opacity-20" /></div>
-                        No payment history yet.
+                        <Small className="font-medium italic">No payment history yet.</Small>
                     </div>
                 )}
             </div>

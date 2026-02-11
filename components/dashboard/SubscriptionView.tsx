@@ -93,20 +93,20 @@ export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoi
                     <div className="bg-gray-50/80 backdrop-blur-sm p-6 rounded-2xl border border-gray-100 md:min-w-[280px]">
                         <H5 className="text-gray-400 mb-4">Renewal Details</H5>
                         <div className="space-y-3">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500 font-medium">Valid until</span>
-                                <span className="text-gray-900 font-black">{activeLicense?.validUntil ? new Date(activeLicense.validUntil).toLocaleDateString() : '—'}</span>
+                            <div className="flex justify-between items-center">
+                                <Label className="text-gray-500 font-medium text-sm">Valid until</Label>
+                                <Label className="text-gray-900 font-black text-sm">{activeLicense?.validUntil ? new Date(activeLicense.validUntil).toLocaleDateString() : '—'}</Label>
                             </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500 font-medium">Auto-renew</span>
-                                <span className={`${autoRenewClass} font-black`}>
+                            <div className="flex justify-between items-center">
+                                <Label className="text-gray-500 font-medium text-sm">Auto-renew</Label>
+                                <Label className={`${autoRenewClass} font-black text-sm`}>
                                     {autoRenewLabel}
-                                </span>
+                                </Label>
                             </div>
                             {activeLicense?.pendingDowngradeAt && (
-                                <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-2 mt-2">
-                                    <span className="text-gray-500 font-medium">Downgrade to {activeLicense.pendingDowngradePlan}</span>
-                                    <span className="text-brand-600 font-black">{new Date(activeLicense.pendingDowngradeAt).toLocaleDateString()}</span>
+                                <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-2">
+                                    <Label className="text-gray-500 font-medium text-sm">Downgrade to {activeLicense.pendingDowngradePlan}</Label>
+                                    <Label className="text-brand-600 font-black text-sm">{new Date(activeLicense.pendingDowngradeAt).toLocaleDateString()}</Label>
                                 </div>
                             )}
                         </div>

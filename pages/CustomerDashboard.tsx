@@ -8,6 +8,7 @@ import { OverviewView } from '../components/dashboard/OverviewView';
 import { SubscriptionView } from '../components/dashboard/SubscriptionView';
 import { SettingsView } from '../components/dashboard/SettingsView';
 import { LearningRewardsView } from '../components/dashboard/LearningRewardsView';
+import { H5 } from '../components/ui/Typography';
 
 export const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -17,7 +18,7 @@ export const CustomerDashboard: React.FC = () => {
     if (!user) return <Navigate to="/login" />;
     if (loading) return <div className="flex flex-col justify-center items-center min-h-[60vh] gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-brand-500" />
-        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Loading Dashboard</p>
+        <H5>Loading Dashboard</H5>
     </div>;
 
     return (

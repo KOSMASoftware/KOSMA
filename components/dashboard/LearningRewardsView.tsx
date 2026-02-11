@@ -4,7 +4,7 @@ import { useLearningRewards } from '../../hooks/useLearningRewards';
 import { DashboardTabs } from './DashboardTabs';
 import { Loader2, Trophy, Star, Medal, ArrowRight, Play, CheckCircle2, Clock, Info, List, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { H1, H2, H3, H4, H5, Paragraph, Label, Small } from '../ui/Typography';
+import { H1, H2, H3, H4, H5, Label, Small } from '../ui/Typography';
 
 const toHashRouterPath = (url: string) => {
     if (!url) return '/learning';
@@ -112,9 +112,9 @@ export const LearningRewardsView: React.FC = () => {
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
                             <H5 className="text-gray-400 mb-1">Total Progress</H5>
-                            <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+                            <H2>
                                 {global.courses_completed_count} <span className="text-gray-300 font-medium text-2xl">/</span> 6 <span className="text-lg text-gray-500 font-bold">Courses</span>
-                            </h2>
+                            </H2>
                         </div>
                         <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center border border-brand-100 shadow-sm">
                             <BadgeIcon type={displayBadge} className="w-6 h-6" />

@@ -96,7 +96,7 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
                         <Building className="w-6 h-6 text-brand-500" /> Billing Info
                     </H3>
                     {billingAddress ? (
-                        <div className="space-y-2 text-gray-600 font-medium mb-8">
+                        <div className="space-y-2 mb-8">
                             <Label className="text-gray-900 font-black block">{billingAddress.companyName || user.name}</Label>
                             <Label className="block text-gray-600">{billingAddress.street}</Label>
                             <Label className="block text-gray-600">{billingAddress.zip} {billingAddress.city}</Label>
