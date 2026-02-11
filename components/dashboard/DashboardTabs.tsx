@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CreditCard, Settings } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Settings, GraduationCap } from 'lucide-react';
 
 export const DashboardTabs: React.FC = () => {
     const location = useLocation();
@@ -27,6 +28,16 @@ export const DashboardTabs: React.FC = () => {
                 }`}
             >
                 <CreditCard className="w-4 h-4" /> Subscription
+            </Link>
+            <Link 
+                to="/dashboard/learning" 
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${
+                    isActive('/dashboard/learning') 
+                    ? 'border-brand-500 text-brand-600 translate-y-[1px]' 
+                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
+                }`}
+            >
+                <GraduationCap className="w-4 h-4" /> Learning & Rewards
             </Link>
             <Link 
                 to="/dashboard/settings" 

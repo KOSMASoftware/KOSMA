@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { useCustomerData } from '../hooks/useCustomerData';
 import { OverviewView } from '../components/dashboard/OverviewView';
 import { SubscriptionView } from '../components/dashboard/SubscriptionView';
 import { SettingsView } from '../components/dashboard/SettingsView';
+import { LearningRewardsView } from '../components/dashboard/LearningRewardsView';
 
 export const CustomerDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -23,6 +25,7 @@ export const CustomerDashboard: React.FC = () => {
             <Routes>
                 <Route index element={<OverviewView user={user} licenses={licenses} invoices={invoices} />} />
                 <Route path="subscription" element={<SubscriptionView user={user} licenses={licenses} invoices={invoices} refresh={refresh} />} />
+                <Route path="learning" element={<LearningRewardsView />} />
                 <Route path="settings" element={<SettingsView user={user} licenses={licenses} billingAddress={billingAddress} refresh={refresh} />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
