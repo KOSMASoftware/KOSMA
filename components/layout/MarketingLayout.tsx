@@ -6,7 +6,7 @@ import { LayoutDashboard, Download, Globe, ChevronDown, Menu, X } from 'lucide-r
 import { PulsingDotsBackground } from '../ui/pulsing-dots-background';
 import { Footer } from './Footer';
 import { Logo } from '../ui/Logo';
-import { H5, Small, Label } from '../ui/Typography';
+import { Small } from '../ui/Typography';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -29,7 +29,8 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
-  const linkClass = (path: string) => `transition-colors cursor-pointer font-bold ${isActive(path) ? 'text-brand-500' : 'hover:text-brand-500'}`;
+  // 16px (text-base) for Nav Links
+  const linkClass = (path: string) => `text-base font-bold transition-colors cursor-pointer ${isActive(path) ? 'text-brand-500' : 'hover:text-brand-500'}`;
 
   return (
     <PulsingDotsBackground>
@@ -43,16 +44,16 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
             
             {!hideNavLinks && (
               <div className="hidden lg:flex gap-8 text-gray-500">
-                <Link to="/pricing"><Label className={linkClass('/pricing')}>Pricing</Label></Link>
-                <Link to="/learning"><Label className={linkClass('/learning')}>Learning Campus</Label></Link>
-                <Link to="/help"><Label className={linkClass('/help')}>Knowledge Base</Label></Link>
-                <Link to="/support"><Label className={linkClass('/support')}>Support</Label></Link>
+                <Link to="/pricing" className={linkClass('/pricing')}>Pricing</Link>
+                <Link to="/learning" className={linkClass('/learning')}>Learning Campus</Link>
+                <Link to="/help" className={linkClass('/help')}>Knowledge Base</Link>
+                <Link to="/support" className={linkClass('/support')}>Support</Link>
               </div>
             )}
           </div>
           
           <div className="flex items-center gap-4">
-            {/* Language Picker (Visual Only) */}
+            {/* Language Picker (Meta Info: 12px) */}
             <div className="hidden md:flex items-center gap-1.5 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors border-r border-gray-200 pr-4 mr-1">
                 <Globe className="w-4 h-4" />
                 <Small className="uppercase font-bold text-xs">EN</Small>
@@ -62,16 +63,19 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
             {isAuthenticated ? (
               <>
                  <Small className="hidden md:inline font-bold">Hi, {user?.name}</Small>
-                 <Link to="/dashboard" className="bg-brand-500 text-white px-3 py-2 md:px-5 md:py-2 rounded-xl hover:bg-brand-600 transition-all flex items-center gap-2 shadow-lg shadow-brand-500/20">
-                   <LayoutDashboard className="w-4 h-4" /> <span className="hidden sm:inline text-white text-sm font-bold">Dashboard</span>
+                 <Link to="/dashboard" className="bg-brand-500 text-white px-5 py-2 rounded-xl hover:bg-brand-600 transition-all flex items-center gap-2 shadow-lg shadow-brand-500/20">
+                   <LayoutDashboard className="w-4 h-4" /> 
+                   <span className="hidden sm:inline text-white text-base font-bold">Dashboard</span>
                  </Link>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors hidden sm:block"><Label className="cursor-pointer font-bold text-sm">Login</Label></Link>
-                <Link to="/signup" className="hidden sm:block text-gray-900 hover:text-brand-500 transition-colors"><Label className="cursor-pointer font-bold text-sm">Get Started</Label></Link>
-                <Link to="/download" className="bg-brand-500 text-white px-3 py-2 md:px-5 md:py-2 rounded-xl hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2">
-                  <Download className="w-4 h-4" /> <span className="hidden sm:inline text-white text-sm font-bold">Download</span>
+                {/* Actions: 16px (text-base) */}
+                <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors hidden sm:block text-base font-bold">Login</Link>
+                <Link to="/signup" className="hidden sm:block text-gray-900 hover:text-brand-500 transition-colors text-base font-bold">Get Started</Link>
+                <Link to="/download" className="bg-brand-500 text-white px-5 py-2 rounded-xl hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2">
+                  <Download className="w-4 h-4" /> 
+                  <span className="hidden sm:inline text-white text-base font-bold">Download</span>
                 </Link>
               </>
             )}
@@ -108,8 +112,8 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
                      
                      {!isAuthenticated && (
                         <div className="mt-auto pb-8 flex flex-col gap-4 w-full">
-                            <Link to="/login" className="text-center py-4 font-bold text-gray-900 bg-gray-50 rounded-2xl">Login</Link>
-                            <Link to="/signup" className="text-center py-4 font-bold text-white bg-gray-900 rounded-2xl">Get Started</Link>
+                            <Link to="/login" className="text-center py-4 font-bold text-gray-900 bg-gray-50 rounded-2xl text-lg">Login</Link>
+                            <Link to="/signup" className="text-center py-4 font-bold text-white bg-gray-900 rounded-2xl text-lg">Get Started</Link>
                         </div>
                      )}
                  </div>
