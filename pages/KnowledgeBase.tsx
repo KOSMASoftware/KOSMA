@@ -184,7 +184,7 @@ const KBLanding = () => {
                        {searchResults.map(res => (
                           <Link to={`/help/article/${res.id}`} key={res.id} className="block p-4 hover:bg-gray-50 transition-colors">
                              <Label className="block text-gray-900 cursor-pointer">{res.title}</Label>
-                             <H5 className="text-gray-400 mt-1 cursor-pointer">{res.categoryTitle}</H5>
+                             <Small className="text-gray-400 mt-1 cursor-pointer">{res.categoryTitle}</Small>
                           </Link>
                        ))}
                     </div>
@@ -294,7 +294,7 @@ const KBCategory = ({ slug }: { slug: string }) => {
               <Icon className="w-8 h-8" style={{ color: config.color }} />
            </div>
            <div>
-              <H1>{config.title}</H1>
+              <H2>{config.title}</H2>
               <Paragraph className="text-gray-500 mt-1">{config.description}</Paragraph>
            </div>
         </div>
@@ -365,9 +365,9 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
              <FileText className="w-3 h-3 text-gray-500" /> 
              <H5 className="text-gray-500 mb-0">Definition</H5>
           </div>
-          <H1 className="mb-6 leading-tight">
+          <H2 className="mb-6 leading-tight">
              {article.title}
-          </H1>
+          </H2>
           <div className="bg-brand-50/30 p-6 rounded-2xl border border-brand-100/50">
              <Paragraph className="text-lg md:text-xl font-medium text-gray-600">
                 {article.content.definition}
@@ -419,7 +419,7 @@ const KBArticle = ({ articleId }: { articleId: string }) => {
                     <div className={`mt-0.5 ${style.iconColor}`}><Icon className="w-5 h-5" /></div>
                     <div>
                        <H5 className={`mb-1 opacity-80 ${style.text}`}>{sec.heading}</H5>
-                       <Paragraph className={`text-sm ${style.text}`}><SmartLink text={sec.body} /></Paragraph>
+                       <Paragraph className={`text-base ${style.text}`}><SmartLink text={sec.body} /></Paragraph>
                     </div>
                  </div>
                );

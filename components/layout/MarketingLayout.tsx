@@ -6,7 +6,7 @@ import { LayoutDashboard, Download, Globe, ChevronDown, Menu, X } from 'lucide-r
 import { PulsingDotsBackground } from '../ui/pulsing-dots-background';
 import { Footer } from './Footer';
 import { Logo } from '../ui/Logo';
-import { H5, Small } from '../ui/Typography';
+import { H5, Small, Label } from '../ui/Typography';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -36,26 +36,26 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
       <div className="min-h-screen flex flex-col font-sans">
         {/* HEADER */}
         <nav className="bg-white/80 backdrop-blur-sm py-4 px-4 md:px-12 flex items-center justify-between sticky top-0 z-50 shadow-sm border-b border-gray-100 min-h-[72px]">
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-4 md:gap-10">
             <Link to="/" className="hover:opacity-80 transition-opacity">
               <Logo className="h-8 w-auto text-brand-500" />
             </Link>
             
             {!hideNavLinks && (
-              <div className="hidden lg:flex gap-6 text-gray-500 text-sm">
-                <Link to="/pricing" className={linkClass('/pricing')}>Pricing</Link>
-                <Link to="/learning" className={linkClass('/learning')}>Learning Campus</Link>
-                <Link to="/help" className={linkClass('/help')}>Knowledge Base</Link>
-                <Link to="/support" className={linkClass('/support')}>Support</Link>
+              <div className="hidden lg:flex gap-8 text-gray-500">
+                <Link to="/pricing"><Label className={linkClass('/pricing')}>Pricing</Label></Link>
+                <Link to="/learning"><Label className={linkClass('/learning')}>Learning Campus</Label></Link>
+                <Link to="/help"><Label className={linkClass('/help')}>Knowledge Base</Label></Link>
+                <Link to="/support"><Label className={linkClass('/support')}>Support</Label></Link>
               </div>
             )}
           </div>
           
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-4">
             {/* Language Picker (Visual Only) */}
-            <div className="hidden md:flex items-center gap-1.5 text-gray-500 hover:text-gray-900 cursor-pointer transition-colors border-r border-gray-200 pr-4 mr-1">
+            <div className="hidden md:flex items-center gap-1.5 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors border-r border-gray-200 pr-4 mr-1">
                 <Globe className="w-4 h-4" />
-                <span className="uppercase font-bold text-xs">EN</span>
+                <Small className="uppercase font-bold text-xs">EN</Small>
                 <ChevronDown className="w-3 h-3 opacity-50" />
             </div>
 
@@ -68,8 +68,8 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors hidden sm:block text-sm font-bold">Login</Link>
-                <Link to="/signup" className="hidden sm:block text-gray-900 hover:text-brand-500 transition-colors text-sm font-bold">Get Started</Link>
+                <Link to="/login" className="text-gray-900 hover:text-brand-500 transition-colors hidden sm:block"><Label className="cursor-pointer font-bold text-sm">Login</Label></Link>
+                <Link to="/signup" className="hidden sm:block text-gray-900 hover:text-brand-500 transition-colors"><Label className="cursor-pointer font-bold text-sm">Get Started</Label></Link>
                 <Link to="/download" className="bg-brand-500 text-white px-3 py-2 md:px-5 md:py-2 rounded-xl hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2">
                   <Download className="w-4 h-4" /> <span className="hidden sm:inline text-white text-sm font-bold">Download</span>
                 </Link>

@@ -49,7 +49,7 @@ export const SupportPage: React.FC = () => {
           <div className={`mb-4 w-12 h-12 rounded-xl flex items-center justify-center ${activeCategory === category ? 'bg-brand-500 text-white' : 'bg-gray-50 text-gray-500'}`}>
               <Icon className="w-6 h-6" />
           </div>
-          <H4 className="text-sm">{title}</H4>
+          <H3 className="text-base md:text-lg">{title}</H3>
       </Card>
   );
 
@@ -101,10 +101,10 @@ export const SupportPage: React.FC = () => {
                                         className="w-full text-left px-6 py-5 flex justify-between items-center gap-4 group"
                                     >
                                         <div className="flex flex-col items-start gap-1">
-                                            {/* Using H4 for semantic structure, styled appropriately */}
-                                            <span className={`font-bold text-base transition-colors ${isOpen ? 'text-brand-600' : 'text-gray-900'}`}>
+                                            {/* Question: Label/Bold */}
+                                            <Label className={`text-base transition-colors ${isOpen ? 'text-brand-600' : 'text-gray-900'}`}>
                                                 {item.question}
-                                            </span>
+                                            </Label>
                                             {!activeCategory && (
                                                 <H5 className="text-gray-400">{item.category}</H5>
                                             )}
@@ -114,7 +114,7 @@ export const SupportPage: React.FC = () => {
                                     
                                     {isOpen && (
                                         <div className="px-6 pb-6 animate-in slide-in-from-top-1">
-                                            <Paragraph className="text-sm whitespace-pre-wrap">{item.answer}</Paragraph>
+                                            <Paragraph className="text-base whitespace-pre-wrap">{item.answer}</Paragraph>
                                         </div>
                                     )}
                                 </div>
