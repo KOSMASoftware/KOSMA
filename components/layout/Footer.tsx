@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCookieSettings } from '../../context/CookieContext';
 import { Logo } from '../ui/Logo';
+import { H5, Small } from '../ui/Typography';
 
 export const Footer: React.FC = () => {
   const { openModal } = useCookieSettings();
@@ -14,40 +15,40 @@ export const Footer: React.FC = () => {
           
           {/* Spalte 1: Product */}
           <div className="flex flex-col gap-3">
-            <h4 className="font-black text-gray-900 text-xs uppercase tracking-widest">Product</h4>
-            <ul className="space-y-2 text-xs text-gray-500 font-medium">
-              <li><Link to="/#budgeting" className="hover:text-brand-500 transition-colors">Budgeting</Link></li>
-              <li><Link to="/#financing" className="hover:text-brand-500 transition-colors">Financing</Link></li>
-              <li><Link to="/#cashflow" className="hover:text-brand-500 transition-colors">Cash Flow</Link></li>
-              <li><Link to="/#cost-control" className="hover:text-brand-500 transition-colors">Cost Control</Link></li>
+            <H5 className="text-gray-900">Product</H5>
+            <ul className="space-y-2">
+              <li><Link to="/#budgeting" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Budgeting</Small></Link></li>
+              <li><Link to="/#financing" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Financing</Small></Link></li>
+              <li><Link to="/#cashflow" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Cash Flow</Small></Link></li>
+              <li><Link to="/#cost-control" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Cost Control</Small></Link></li>
             </ul>
           </div>
 
           {/* Spalte 2: Support */}
           <div className="flex flex-col gap-3">
-            <h4 className="font-black text-gray-900 text-xs uppercase tracking-widest">Support</h4>
-            <ul className="space-y-2 text-xs text-gray-500 font-medium">
-              <li><Link to="/help" className="hover:text-brand-500 transition-colors">Knowledge Base</Link></li>
-              <li><Link to="/learning" className="hover:text-brand-500 transition-colors">Learning Campus</Link></li>
-              <li><Link to="/support" className="hover:text-brand-500 transition-colors">Support & FAQ</Link></li>
-              <li><Link to="/login?reset=true" className="hover:text-brand-500 transition-colors">Reset Password</Link></li>
+            <H5 className="text-gray-900">Support</H5>
+            <ul className="space-y-2">
+              <li><Link to="/help" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Knowledge Base</Small></Link></li>
+              <li><Link to="/learning" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Learning Campus</Small></Link></li>
+              <li><Link to="/support" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Support & FAQ</Small></Link></li>
+              <li><Link to="/login?reset=true" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Reset Password</Small></Link></li>
             </ul>
           </div>
 
           {/* Spalte 3: Legal */}
           <div className="flex flex-col gap-3">
-            <h4 className="font-black text-gray-900 text-xs uppercase tracking-widest">Legal</h4>
-            <ul className="space-y-2 text-xs text-gray-500 font-medium">
-              <li><Link to="/imprint" className="hover:text-brand-500 transition-colors">Imprint</Link></li>
-              <li><Link to="/privacy" className="hover:text-brand-500 transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-brand-500 transition-colors">Terms / GTC</Link></li>
-              <li><Link to="/eula" className="hover:text-brand-500 transition-colors">EULA</Link></li>
+            <H5 className="text-gray-900">Legal</H5>
+            <ul className="space-y-2">
+              <li><Link to="/imprint" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Imprint</Small></Link></li>
+              <li><Link to="/privacy" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Privacy Policy</Small></Link></li>
+              <li><Link to="/terms" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">Terms / GTC</Small></Link></li>
+              <li><Link to="/eula" className="hover:text-brand-500 transition-colors"><Small className="cursor-pointer font-bold text-xs">EULA</Small></Link></li>
               <li>
                   <button 
                     onClick={openModal} 
                     className="hover:text-brand-500 transition-colors text-left"
                   >
-                    Cookie Settings
+                    <Small className="cursor-pointer font-bold text-xs">Cookie Settings</Small>
                   </button>
               </li>
             </ul>
@@ -59,7 +60,7 @@ export const Footer: React.FC = () => {
            
            {/* Left: Support Logo */}
            <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">With the support of</span>
+                <H5 className="text-[9px]">With the support of</H5>
                 <img 
                     src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/MEDIA-Logo.svg/2560px-MEDIA-Logo.svg.png" 
                     alt="Creative Europe MEDIA" 
@@ -73,9 +74,9 @@ export const Footer: React.FC = () => {
                    <div className="text-brand-500 md:hidden"><Logo className="h-5 w-auto" /></div>
                    <div className="hidden md:block text-brand-500 opacity-20 hover:opacity-100 transition-opacity"><Logo className="h-5 w-auto" /></div>
                </div>
-               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+               <H5 className="text-[10px]">
                   &copy; {new Date().getFullYear()} Headstart Media GmbH
-               </p>
+               </H5>
            </div>
         </div>
       </div>

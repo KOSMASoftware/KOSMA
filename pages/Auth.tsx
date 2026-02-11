@@ -8,6 +8,7 @@ import { MarketingLayout } from '../components/layout/MarketingLayout';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { FormField } from '../components/ui/FormField';
+import { H1, Paragraph, Small, Label } from '../components/ui/Typography';
 
 // Wrapper that uses MarketingLayout but maintains the inner centering
 const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?: string }> = ({ children, title, subtitle }) => (
@@ -16,13 +17,13 @@ const AuthLayout: React.FC<{ children: React.ReactNode; title: string; subtitle?
       
       <div className="w-full max-w-[400px] z-10 py-12 relative">
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-[#111827] mb-2 leading-none tracking-tight">
+          <H1 className="mb-2">
             {title}
-          </h1>
+          </H1>
           {subtitle && (
-            <p className="text-gray-400 text-sm font-medium tracking-tight mt-2">
+            <Paragraph className="text-sm font-medium">
               {subtitle}
-            </p>
+            </Paragraph>
           )}
         </div>
         
@@ -170,12 +171,12 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
     return (
       <AuthLayout title="Success" subtitle={mode === 'update-password' ? 'Your password has been updated' : 'Check your email'}>
         <div className="text-center space-y-6">
-          <p className="text-gray-600">
+          <Paragraph>
              {mode === 'update-password' 
                ? 'You can now login with your new password.'
                : 'Instructions have been sent.'}
-          </p>
-          <Link to="/login" className="text-brand-500 font-bold hover:underline">Back to Login</Link>
+          </Paragraph>
+          <Link to="/login" className="text-brand-500 font-bold hover:underline"><Label className="text-brand-500 cursor-pointer">Back to Login</Label></Link>
         </div>
       </AuthLayout>
     );
@@ -188,9 +189,9 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
     >
       <div className="space-y-6">
         {error && (
-          <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm flex gap-3 animate-in fade-in zoom-in-95">
+          <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 flex gap-3 animate-in fade-in zoom-in-95">
             {isConfigError ? <ShieldAlert className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
-            <p>{error}</p>
+            <Small className="text-red-700 font-bold">{error}</Small>
           </div>
         )}
 
@@ -252,11 +253,13 @@ export const AuthPage: React.FC<{ mode: 'login' | 'signup' | 'update-password' }
 
         <div className="text-center space-y-4 pt-2">
           {mode === 'login' && (
-            <p className="text-xs font-medium text-gray-500">
+            <Small className="block">
               Don't have a KOSMA account? <Link to="/signup" className="text-brand-500 hover:underline font-bold">Sign up now</Link>
-            </p>
+            </Small>
           )}
-          <Link to="/login?reset=true" className="text-xs font-medium text-gray-400 hover:text-gray-600 block">Forgot password?</Link>
+          <Link to="/login?reset=true" className="hover:text-gray-600 block">
+            <Small className="text-gray-400 hover:text-gray-600 cursor-pointer">Forgot password?</Small>
+          </Link>
         </div>
       </div>
     </AuthLayout>

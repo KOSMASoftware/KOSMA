@@ -6,6 +6,7 @@ import { LayoutDashboard, Download, Globe, ChevronDown, Menu, X } from 'lucide-r
 import { PulsingDotsBackground } from '../ui/pulsing-dots-background';
 import { Footer } from './Footer';
 import { Logo } from '../ui/Logo';
+import { H5, Label } from '../ui/Typography';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -60,7 +61,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, hide
 
             {isAuthenticated ? (
               <>
-                 <span className="text-gray-400 hidden md:inline text-xs uppercase tracking-widest">Hi, {user?.name}</span>
+                 <H5 className="hidden md:inline text-xs">Hi, {user?.name}</H5>
                  <Link to="/dashboard" className="bg-brand-500 text-white px-3 py-2 md:px-5 md:py-2 rounded-xl hover:bg-brand-600 transition-all flex items-center gap-2 shadow-lg shadow-brand-500/20">
                    <LayoutDashboard className="w-4 h-4" /> <span className="hidden sm:inline">Dashboard</span>
                  </Link>

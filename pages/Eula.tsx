@@ -1,50 +1,52 @@
+
 import React from 'react';
 import { MarketingLayout } from '../components/layout/MarketingLayout';
+import { H1, H3, H5, Paragraph } from '../components/ui/Typography';
 
 export const EulaPage: React.FC = () => {
   return (
     <MarketingLayout>
       <div className="max-w-4xl mx-auto px-6 py-20 md:py-32">
-        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-2">End-User License Agreement</h1>
-        <p className="text-xl text-brand-500 font-bold mb-12">KOSMA Software</p>
+        <H1 className="mb-2">End-User License Agreement</H1>
+        <H3 className="text-brand-500 mb-12">KOSMA Software</H3>
         
-        <div className="text-gray-600 leading-relaxed space-y-8">
+        <div className="leading-relaxed space-y-8">
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-2">Last updated: 14 January 2026</p>
-            <p className="font-medium text-lg text-gray-900">
+            <H5 className="mb-2">Last updated: 14 January 2026</H5>
+            <Paragraph className="font-medium text-lg text-gray-900">
               This End-User License Agreement (“Agreement”) is a legally binding agreement between you (“User”) and Headstart Media GmbH, Birmensdorferstrasse 5, 8004 Zurich, Switzerland (“Licensor”), governing the use of the software KOSMA (“Software”).
-            </p>
+            </Paragraph>
           </div>
           
-          <p>
+          <Paragraph>
             By installing, copying, or using the Software, you agree to be bound by this Agreement. <br/>
             <strong>If you do not agree, do not install or use the Software.</strong>
-          </p>
+          </Paragraph>
 
           <div className="space-y-10 pt-4">
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">1. Scope of the Software</h3>
-                <p className="mb-2">KOSMA is a locally installed software application for financial planning, budgeting and financing management.</p>
-                <p>The Software is provided as a decision-support tool only and does not constitute financial, legal, accounting or investment advice.</p>
+                <H3 className="text-xl mb-3">1. Scope of the Software</H3>
+                <Paragraph className="mb-2">KOSMA is a locally installed software application for financial planning, budgeting and financing management.</Paragraph>
+                <Paragraph>The Software is provided as a decision-support tool only and does not constitute financial, legal, accounting or investment advice.</Paragraph>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">2. Grant of License</h3>
-                <p className="mb-2">The Licensor grants the User a non-exclusive, non-transferable, revocable license to install and use the Software for its intended purpose.</p>
-                <p className="mb-2">Unless otherwise agreed, the Software may be installed on a maximum of two devices per licensed user.</p>
-                <p>No ownership rights are transferred.</p>
+                <H3 className="text-xl mb-3">2. Grant of License</H3>
+                <Paragraph className="mb-2">The Licensor grants the User a non-exclusive, non-transferable, revocable license to install and use the Software for its intended purpose.</Paragraph>
+                <Paragraph className="mb-2">Unless otherwise agreed, the Software may be installed on a maximum of two devices per licensed user.</Paragraph>
+                <Paragraph>No ownership rights are transferred.</Paragraph>
             </section>
             
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">3. Trial Version</h3>
-                <p className="mb-2">A 14-day trial version may be provided free of charge.</p>
-                <p>The trial version is provided “as is”, without any warranty or support, and must not be used for production, commercial or mission-critical purposes.</p>
+                <H3 className="text-xl mb-3">3. Trial Version</H3>
+                <Paragraph className="mb-2">A 14-day trial version may be provided free of charge.</Paragraph>
+                <Paragraph>The trial version is provided “as is”, without any warranty or support, and must not be used for production, commercial or mission-critical purposes.</Paragraph>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">4. Restrictions</h3>
-                <p className="mb-2">The User may not:</p>
-                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500">
+                <H3 className="text-xl mb-3">4. Restrictions</H3>
+                <Paragraph className="mb-2">The User may not:</Paragraph>
+                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500 text-gray-600">
                     <li>reverse engineer, decompile or disassemble the Software, except where mandatory law permits</li>
                     <li>modify, rent, lease, sublicense or resell the Software</li>
                     <li>use the Software for unlawful purposes</li>
@@ -53,62 +55,62 @@ export const EulaPage: React.FC = () => {
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">5. No Warranty / Accuracy Disclaimer</h3>
-                <p className="mb-2">The Software is provided “as is” and “as available”, without warranties of any kind, express or implied.</p>
-                <p className="mb-2">In particular, the Licensor does not warrant that:</p>
-                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500">
+                <H3 className="text-xl mb-3">5. No Warranty / Accuracy Disclaimer</H3>
+                <Paragraph className="mb-2">The Software is provided “as is” and “as available”, without warranties of any kind, express or implied.</Paragraph>
+                <Paragraph className="mb-2">In particular, the Licensor does not warrant that:</Paragraph>
+                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500 text-gray-600">
                     <li>calculations, results, budgets or financial projections generated by the Software are accurate, complete or suitable for any specific purpose</li>
                     <li>the Software will meet regulatory, funding, accounting or compliance requirements</li>
                     <li>the Software will operate error-free or uninterrupted</li>
                 </ul>
-                <p className="mt-4 font-medium">The User is solely responsible for verifying all outputs, calculations and results before using them for financial, legal or business decisions.</p>
+                <Paragraph className="mt-4 font-medium">The User is solely responsible for verifying all outputs, calculations and results before using them for financial, legal or business decisions.</Paragraph>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">6. Exclusion of Liability for Financial Results</h3>
-                <p className="mb-2">The Licensor shall not be liable for any damages arising from:</p>
-                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500">
+                <H3 className="text-xl mb-3">6. Exclusion of Liability for Financial Results</H3>
+                <Paragraph className="mb-2">The Licensor shall not be liable for any damages arising from:</Paragraph>
+                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500 text-gray-600">
                     <li>incorrect, incomplete or misleading calculations</li>
                     <li>rejected funding applications</li>
                     <li>financial losses, lost profits or missed opportunities</li>
                     <li>decisions made based on outputs generated by the Software</li>
                 </ul>
-                <p className="mt-4 font-medium">The Software is a support tool only and does not replace professional judgment.</p>
+                <Paragraph className="mt-4 font-medium">The Software is a support tool only and does not replace professional judgment.</Paragraph>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">7. Limitation of Liability</h3>
-                <p className="mb-2">To the maximum extent permitted by applicable law:</p>
-                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500">
+                <H3 className="text-xl mb-3">7. Limitation of Liability</H3>
+                <Paragraph className="mb-2">To the maximum extent permitted by applicable law:</Paragraph>
+                <ul className="list-disc pl-5 space-y-1 marker:text-brand-500 text-gray-600">
                     <li>The Licensor is liable only for damages caused by intent or gross negligence</li>
                     <li>Liability for slight negligence is excluded</li>
                     <li>Mandatory liability for injury to life, body or health remains unaffected</li>
                 </ul>
-                <p className="mt-4">In any case, liability is limited to the license fees paid by the User in the preceding 12 months.</p>
+                <Paragraph className="mt-4">In any case, liability is limited to the license fees paid by the User in the preceding 12 months.</Paragraph>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">8. Intellectual Property</h3>
-                <p className="mb-2">All intellectual property rights in the Software remain with the Licensor.</p>
-                <p>Users may use outputs (e.g. budgets, diagrams, reports) generated with the Software for their own purposes, provided no third-party rights are infringed.</p>
+                <H3 className="text-xl mb-3">8. Intellectual Property</H3>
+                <Paragraph className="mb-2">All intellectual property rights in the Software remain with the Licensor.</Paragraph>
+                <Paragraph>Users may use outputs (e.g. budgets, diagrams, reports) generated with the Software for their own purposes, provided no third-party rights are infringed.</Paragraph>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">9. Termination</h3>
-                <p className="mb-2">This Agreement remains effective until terminated.</p>
-                <p className="mb-2">The Licensor may terminate this Agreement immediately if the User breaches its terms.</p>
-                <p>Upon termination, the User must cease all use of the Software and delete all copies.</p>
+                <H3 className="text-xl mb-3">9. Termination</H3>
+                <Paragraph className="mb-2">This Agreement remains effective until terminated.</Paragraph>
+                <Paragraph className="mb-2">The Licensor may terminate this Agreement immediately if the User breaches its terms.</Paragraph>
+                <Paragraph>Upon termination, the User must cease all use of the Software and delete all copies.</Paragraph>
             </section>
 
             <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">10. Governing Law and Jurisdiction</h3>
-                <p className="mb-2">This Agreement is governed by Swiss law, excluding conflict-of-law provisions.</p>
-                <p>Exclusive place of jurisdiction is Zurich, Switzerland.</p>
+                <H3 className="text-xl mb-3">10. Governing Law and Jurisdiction</H3>
+                <Paragraph className="mb-2">This Agreement is governed by Swiss law, excluding conflict-of-law provisions.</Paragraph>
+                <Paragraph>Exclusive place of jurisdiction is Zurich, Switzerland.</Paragraph>
             </section>
 
              <section>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">11. Severability</h3>
-                <p>If any provision of this Agreement is held invalid, the remaining provisions shall remain in full force and effect.</p>
+                <H3 className="text-xl mb-3">11. Severability</H3>
+                <Paragraph>If any provision of this Agreement is held invalid, the remaining provisions shall remain in full force and effect.</Paragraph>
             </section>
           </div>
         </div>
