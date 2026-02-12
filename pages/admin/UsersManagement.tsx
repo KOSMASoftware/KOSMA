@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Loader2, Search, Pencil, Trash, Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { PlanTier, SubscriptionStatus, License, User } from '../../types';
@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { FormField } from '../../components/ui/FormField';
 import { H5, Label, Small } from '../../components/ui/Typography';
+import { useSearchParams } from 'react-router-dom';
 
 // --- HELPERS (Local to this view) ---
 
@@ -65,13 +66,28 @@ const getPaymentBadge = (lic: License | undefined) => {
 
 export const UsersManagement: React.FC = () => {
     const { loading, users, licenses, refreshData } = useAdminData();
+    const [searchParams] = useSearchParams();
+    
+    // Filters
     const [search, setSearch] = useState('');
     const [tierFilter, setTierFilter] = useState<string>('all');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [engagementFilter, setEngagementFilter] = useState<string>('all');
     const [companyFilter, setCompanyFilter] = useState<string>('all');
+    
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Initialize Filters from Query Params
+    useEffect(() => {
+        const planParam = searchParams.get('plan');
+        const statusParam = searchParams.get('status');
+        const searchParam = searchParams.get('q');
+
+        if (planParam) setTierFilter(planParam);
+        if (statusParam) setStatusFilter(statusParam);
+        if (searchParam) setSearch(searchParam);
+    }, [searchParams]);
 
     const companies = useMemo(() => {
         const set = new Set(users.map(u => u.billingAddress?.companyName).filter(Boolean));
