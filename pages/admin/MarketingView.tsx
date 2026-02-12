@@ -87,7 +87,8 @@ export const MarketingView: React.FC = () => {
             if (error) throw error;
 
             if (data) {
-                setEmailEvents(prev => reset ? (data.events || []) : [...prev, ...(data.events || [])]);
+                // FIXED: Use data.items instead of data.events
+                setEmailEvents(prev => reset ? (data.items || []) : [...prev, ...(data.items || [])]);
                 setEventCursor(data.next_cursor || null);
             }
         } catch (err) {

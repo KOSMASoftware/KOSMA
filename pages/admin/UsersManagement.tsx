@@ -1,9 +1,8 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Loader2, Search, Pencil, Trash, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Search, Pencil, Trash, Lock, ChevronDown, Filter } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { PlanTier, SubscriptionStatus, License, User } from '../../types';
-import { useAdminData } from './hooks/useAdminData';
 import { AdminTabs } from './components/AdminTabs';
 import { EditLicenseModal } from './components/EditLicenseModal';
 import { Button } from '../../components/ui/Button';
@@ -65,108 +64,127 @@ const getPaymentBadge = (lic: License | undefined) => {
 };
 
 export const UsersManagement: React.FC = () => {
-    const { loading, users, licenses, refreshData } = useAdminData();
     const [searchParams] = useSearchParams();
     
-    // Filters
-    const [search, setSearch] = useState('');
-    const [tierFilter, setTierFilter] = useState<string>('all');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
-    const [engagementFilter, setEngagementFilter] = useState<string>('all');
-    const [companyFilter, setCompanyFilter] = useState<string>('all');
+    // Pagination & Data State
+    const [items, setItems] = useState<any[]>([]);
+    const [cursor, setCursor] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
     
-    const [editingUser, setEditingUser] = useState<User | null>(null);
+    // Filters
+    const [filters, setFilters] = useState({
+        q: searchParams.get('q') || '',
+        plan: searchParams.get('plan') || 'all',
+        status: searchParams.get('status') || 'all',
+        engagement: 'all',
+        company: ''
+    });
+    
+    const [editingItem, setEditingItem] = useState<any | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    // Initialize Filters from Query Params
+    // Initial Load & Filter Changes
     useEffect(() => {
-        const planParam = searchParams.get('plan');
-        const statusParam = searchParams.get('status');
-        const searchParam = searchParams.get('q');
+        loadUsers(true);
+    }, [filters]);
 
-        if (planParam) setTierFilter(planParam);
-        if (statusParam) setStatusFilter(statusParam);
-        if (searchParam) setSearch(searchParam);
-    }, [searchParams]);
+    const loadUsers = async (reset = false) => {
+        setLoading(true);
+        if (reset) {
+            setItems([]);
+            setCursor(null);
+        }
 
-    const companies = useMemo(() => {
-        const set = new Set(users.map(u => u.billingAddress?.companyName).filter(Boolean));
-        return Array.from(set).sort();
-    }, [users]);
-
-    const filteredUsers = useMemo(() => {
-        return users.filter(u => {
-            // 1. Hide Admins
-            if (u.role === 'admin') return false;
-
-            const lic = licenses.find(l => l.userId === u.id);
-            
-            // Search
-            const matchesSearch = u.email.toLowerCase().includes(search.toLowerCase()) || 
-                                  u.name.toLowerCase().includes(search.toLowerCase()) ||
-                                  (u.billingAddress?.companyName || '').toLowerCase().includes(search.toLowerCase());
-
-            // Tier
-            const matchesTier = tierFilter === 'all' || lic?.planTier === tierFilter;
-
-            // Status Logic with enhanced 'Active' check
-            const matchesStatus = statusFilter === 'all' || (() => {
-                if (statusFilter === 'active') {
-                    // Must be active AND have a Stripe Sub ID
-                    if (lic?.status !== 'active') return false;
-                    if (!lic?.stripeSubscriptionId?.startsWith('sub_')) return false;
-                    
-                    // Also check date validity
-                    if (!lic?.validUntil) return false;
-                    const validUntilDate = new Date(lic.validUntil);
-                    const now = new Date();
-                    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-                    return validUntilDate.getTime() >= todayUTC.getTime();
-                }
-
-                if (lic?.status !== statusFilter) return false;
-
-                // For 'trial', check dates
-                if (statusFilter === 'trial') {
-                    if (!lic?.validUntil) return false;
-                    const validUntilDate = new Date(lic.validUntil);
-                    const now = new Date();
-                    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-                    return validUntilDate.getTime() >= todayUTC.getTime();
-                }
-
-                return true;
-            })();
-
-            // Engagement Logic
-            const isEngaged = !!u.lastLoginAt;
-            const matchesEngagement = engagementFilter === 'all' ||
-                (engagementFilter === 'engaged' && isEngaged) ||
-                (engagementFilter === 'inactive' && !isEngaged);
-
-            // Company
-            const matchesCompany = companyFilter === 'all' || u.billingAddress?.companyName === companyFilter;
-
-            return matchesSearch && matchesTier && matchesStatus && matchesEngagement && matchesCompany;
-        });
-    }, [users, licenses, search, tierFilter, statusFilter, engagementFilter, companyFilter]);
-
-    const handleDelete = async (u: User) => {
-        if (u.stripeCustomerId) { alert("LOESCHEN NICHT ERLAUBT: Stripe-Konto aktiv."); return; }
-        if (!confirm(`Soll ${u.email} permanent gelöscht werden?`)) return;
-        setDeletingId(u.id);
         try {
-            await supabase.functions.invoke('admin-action', { body: { action: 'delete_user', userId: u.id } });
-            refreshData();
+            const { data, error } = await supabase.functions.invoke('admin-users-list', {
+                body: {
+                    q: filters.q || null,
+                    plan: filters.plan === 'all' ? null : filters.plan,
+                    status: filters.status === 'all' ? null : filters.status,
+                    engagement: filters.engagement === 'all' ? null : filters.engagement,
+                    company: filters.company || null,
+                    limit: 50,
+                    cursor: reset ? null : cursor
+                }
+            });
+
+            if (error) throw error;
+
+            if (data) {
+                setItems(prev => reset ? (data.items || []) : [...prev, ...(data.items || [])]);
+                setCursor(data.next_cursor || null);
+            }
+        } catch (err) {
+            console.error("Failed to load users", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (user: User) => {
+        if (user.stripeCustomerId) { alert("LOESCHEN NICHT ERLAUBT: Stripe-Konto aktiv."); return; }
+        if (!confirm(`Soll ${user.email} permanent gelöscht werden?`)) return;
+        setDeletingId(user.id);
+        try {
+            await supabase.functions.invoke('admin-action', { body: { action: 'delete_user', userId: user.id } });
+            // Reload list instead of full refresh
+            loadUsers(true);
         } catch (err: any) { alert(`Fehler: ${err.message}`); } finally { setDeletingId(null); }
     };
 
-    if (loading) return <div className="p-20 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-brand-500" /></div>;
+    // Helper to extract user and license objects from flattened or nested item
+    const getItemData = (item: any) => {
+        // Backend returns mixed data. We construct objects for the UI helpers.
+        const user: User = {
+            id: item.id || item.user_id,
+            email: item.email,
+            name: item.full_name || item.name || 'User',
+            role: item.role,
+            registeredAt: item.created_at,
+            stripeCustomerId: item.stripe_customer_id,
+            lastLoginAt: item.last_login_at,
+            billingAddress: item.billing_address
+        };
+
+        const licData = item.license || item;
+        
+        let validUntil = licData.validUntil || licData.valid_until;
+        // Priority logic logic usually handled by backend view/function, 
+        // but if raw data comes back, we might need to pick:
+        if (licData.stripe_subscription_id) validUntil = licData.current_period_end;
+        else if (licData.status === 'trial') validUntil = licData.trial_ends_at;
+        else if (licData.admin_valid_until_override) validUntil = licData.admin_valid_until_override;
+
+        const license: License = {
+            id: licData.license_id || licData.id || 'temp',
+            userId: user.id,
+            productName: 'KOSMA',
+            planTier: licData.plan_tier || PlanTier.FREE,
+            billingCycle: licData.billing_cycle || 'none',
+            status: licData.status || SubscriptionStatus.NONE,
+            validUntil: validUntil,
+            licenseKey: licData.license_key,
+            stripeSubscriptionId: licData.stripe_subscription_id,
+            stripeCustomerId: licData.stripe_customer_id,
+            adminValidUntilOverride: licData.admin_valid_until_override,
+            currentPeriodEnd: licData.current_period_end,
+            trialEndsAt: licData.trial_ends_at
+        };
+
+        return { user, license };
+    };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
-            {editingUser && <EditLicenseModal user={editingUser} license={licenses.find(l => l.userId === editingUser.id)} onClose={() => setEditingUser(null)} onUpdate={refreshData} />}
+            {editingItem && (
+                <EditLicenseModal 
+                    user={editingItem.user} 
+                    license={editingItem.license} 
+                    onClose={() => setEditingItem(null)} 
+                    onUpdate={() => loadUsers(true)} 
+                />
+            )}
             
             {/* Filter Bar */}
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-8">
@@ -179,9 +197,9 @@ export const UsersManagement: React.FC = () => {
                                     <Search className="h-4 w-4 text-gray-400" />
                                 </div>
                                 <Input 
-                                    placeholder="Name, Email, Firma..." 
-                                    value={search} 
-                                    onChange={e => setSearch(e.target.value)} 
+                                    placeholder="Name, Email..." 
+                                    value={filters.q} 
+                                    onChange={e => setFilters({...filters, q: e.target.value})}
                                     className="pl-9"
                                 />
                             </div>
@@ -191,7 +209,7 @@ export const UsersManagement: React.FC = () => {
                     {/* Filters - Compact */}
                     <div className="md:col-span-2">
                         <FormField label="Plan">
-                            <Select value={tierFilter} onChange={e => setTierFilter(e.target.value)}>
+                            <Select value={filters.plan} onChange={e => setFilters({...filters, plan: e.target.value})}>
                                 <option value="all">Alle</option>
                                 {Object.values(PlanTier).map(t => <option key={t} value={t}>{t}</option>)}
                             </Select>
@@ -200,7 +218,7 @@ export const UsersManagement: React.FC = () => {
 
                     <div className="md:col-span-2">
                         <FormField label="Status">
-                            <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                            <Select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})}>
                                 <option value="all">Alle</option>
                                 <option value="active">Bezahlt</option>
                                 <option value="trial">Trial</option>
@@ -212,7 +230,7 @@ export const UsersManagement: React.FC = () => {
 
                     <div className="md:col-span-2">
                         <FormField label="Engagement">
-                            <Select value={engagementFilter} onChange={e => setEngagementFilter(e.target.value)}>
+                            <Select value={filters.engagement} onChange={e => setFilters({...filters, engagement: e.target.value})}>
                                 <option value="all">Alle</option>
                                 <option value="engaged">Aktiv</option>
                                 <option value="inactive">Inaktiv</option>
@@ -221,19 +239,25 @@ export const UsersManagement: React.FC = () => {
                     </div>
 
                     <div className="md:col-span-2">
-                        <FormField label="Firma">
-                            <Select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}>
-                                <option value="all">Alle</option>
-                                {companies.map(c => <option key={c} value={c}>{c}</option>)}
-                            </Select>
+                        <FormField label="Firma (Text)">
+                            <Input 
+                                placeholder="Firma..." 
+                                value={filters.company} 
+                                onChange={e => setFilters({...filters, company: e.target.value})} 
+                            />
                         </FormField>
                     </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                    <Button onClick={() => loadUsers(true)} icon={<Filter className="w-4 h-4" />}>
+                        Filter anwenden
+                    </Button>
                 </div>
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl">
-                <div className="overflow-x-auto rounded-2xl">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
+                <div className="overflow-x-auto">
                     <table className="min-w-[900px] w-full text-left border-collapse">
                         <thead className="bg-gray-50/50 border-b border-gray-100">
                             <tr>
@@ -244,8 +268,8 @@ export const UsersManagement: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredUsers.map(user => {
-                                const lic = licenses.find(l => l.userId === user.id);
+                            {items.map(item => {
+                                const { user, license } = getItemData(item);
                                 const hasStripe = !!user.stripeCustomerId;
                                 
                                 return (
@@ -253,18 +277,19 @@ export const UsersManagement: React.FC = () => {
                                         <td className="px-6 py-3">
                                             <Label className="block text-gray-900">{user.name}</Label>
                                             <Small className="text-gray-400 font-mono mt-0.5 block">{user.email}</Small>
+                                            {user.billingAddress?.companyName && <Small className="text-gray-500 block font-bold">{user.billingAddress.companyName}</Small>}
                                         </td>
                                         <td className="px-6 py-3 align-middle">
                                             <div className="flex flex-col gap-1 items-start">
-                                                <Label className="text-xs text-gray-700">{lic?.planTier || 'Free'}</Label>
-                                                {getRemainingTimeBadge(lic)}
+                                                <Label className="text-xs text-gray-700">{license?.planTier || 'Free'}</Label>
+                                                {getRemainingTimeBadge(license)}
                                                 <Small className="text-gray-400 font-medium mt-0.5">
-                                                    Gültig bis: {lic?.validUntil ? new Date(lic.validUntil).toLocaleDateString('de-DE') : '—'}
+                                                    Gültig bis: {license?.validUntil ? new Date(license.validUntil).toLocaleDateString('de-DE') : '—'}
                                                 </Small>
                                             </div>
                                         </td>
                                         <td className="px-6 py-3 text-center align-middle">
-                                            {getPaymentBadge(lic)}
+                                            {getPaymentBadge(license)}
                                         </td>
                                         <td className="px-6 py-3 text-right align-middle sticky right-0 bg-white group-hover:bg-gray-50 transition-colors z-10 shadow-[-8px_0_12px_-12px_rgba(0,0,0,0.1)]">
                                             <div className="flex justify-end gap-2">
@@ -272,7 +297,7 @@ export const UsersManagement: React.FC = () => {
                                                 <Button 
                                                     variant="ghost" 
                                                     className="h-8 w-8 px-0 rounded-md border border-brand-200 bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all"
-                                                    onClick={() => setEditingUser(user)}
+                                                    onClick={() => setEditingItem({ user, license })}
                                                     title="Lizenz bearbeiten"
                                                 >
                                                     <Pencil className="w-4 h-4" />
@@ -298,12 +323,29 @@ export const UsersManagement: React.FC = () => {
                                     </tr>
                                 );
                             })}
+                            {items.length === 0 && !loading && (
+                                <tr>
+                                    <td colSpan={4} className="p-12 text-center text-gray-400 font-medium italic">
+                                        <Small>Keine Nutzer gefunden.</Small>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
-                {filteredUsers.length === 0 && (
-                    <div className="p-12 text-center text-gray-400 font-medium italic">
-                        <Small>Keine Nutzer gefunden.</Small>
+                
+                {/* Load More */}
+                {(cursor || loading) && (
+                    <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-center">
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => loadUsers(false)} 
+                            isLoading={loading}
+                            disabled={!cursor}
+                            icon={<ChevronDown className="w-4 h-4" />}
+                        >
+                            {loading ? 'Lade Daten...' : 'Mehr laden'}
+                        </Button>
                     </div>
                 )}
             </div>
