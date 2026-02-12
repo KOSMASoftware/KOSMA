@@ -11,7 +11,7 @@ import { AutomationsList } from './components/AutomationsList';
 import { SegmentsMonitor } from './components/SegmentsMonitor';
 import { JobRecipientsModal } from './components/JobRecipientsModal';
 import { Button } from '../../components/ui/Button';
-import { H2, H5, Label, Small, Paragraph } from '../../components/ui/Typography';
+import { H3, H5, Label, Small, Paragraph } from '../../components/ui/Typography';
 
 export const MarketingView: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'automations' | 'segments' | 'campaigns' | 'crm'>('automations');
@@ -111,7 +111,7 @@ export const MarketingView: React.FC = () => {
             {activeTab === 'campaigns' && (
                 <div>
                     <div className="flex justify-between items-center mb-8">
-                        <H2>Campaign Manager</H2>
+                        <H3>Campaign Manager</H3>
                         <button onClick={() => setIsCreateModalOpen(true)} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-black text-sm flex items-center gap-2 hover:bg-brand-500 transition-all shadow-lg"><Plus className="w-4 h-4" /> New Campaign</button>
                     </div>
 

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { Users, Loader2, RefreshCw } from 'lucide-react';
-import { H2, H3, H4, H5, Label, Small } from '../../../components/ui/Typography';
+import { H3, H5, Label, Small } from '../../../components/ui/Typography';
 
 const SEGMENT_GROUPS = [
     {
@@ -96,7 +96,7 @@ export const SegmentsMonitor: React.FC = () => {
             <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col relative">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <H2>{selectedSegment}</H2>
+                        <H3>{selectedSegment}</H3>
                         <H5 className="mt-1">Live Database Query</H5>
                     </div>
                     <button 

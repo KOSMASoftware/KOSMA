@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { AdminTabs } from './components/AdminTabs';
-import { H2, H3, H5, Small } from '../../components/ui/Typography';
+import { H3, H5, Small } from '../../components/ui/Typography';
 
 interface OverviewStats {
     total_users: number;
@@ -93,45 +93,45 @@ export const DashboardOverview: React.FC = () => {
                 {/* Row 1: High Level */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>Total Users</H5>
-                    <H2>{s.total_users}</H2>
+                    <H3>{s.total_users}</H3>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>Active Subscriptions</H5>
-                    <H2>{s.active_subscriptions}</H2>
+                    <H3>{s.active_subscriptions}</H3>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>Trial Active</H5>
-                    <H2 className="text-blue-600">{s.trial_active}</H2>
+                    <H3 className="text-blue-600">{s.trial_active}</H3>
                 </div>
 
                 {/* Row 2: License Tiers */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>Plan: Budget</H5>
-                    <H2 className="text-amber-500">{s.budget_licenses}</H2>
+                    <H3 className="text-amber-500">{s.budget_licenses}</H3>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>Plan: Cost Control</H5>
-                    <H2 className="text-purple-600">{s.cost_control_licenses}</H2>
+                    <H3 className="text-purple-600">{s.cost_control_licenses}</H3>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>Plan: Production</H5>
-                    <H2 className="text-green-600">{s.production_licenses}</H2>
+                    <H3 className="text-green-600">{s.production_licenses}</H3>
                 </div>
 
                 {/* Row 3: Misc & Health */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>No Plan (Free)</H5>
-                    <H2 className="text-gray-400">{s.no_plan}</H2>
+                    <H3 className="text-gray-400">{s.no_plan}</H3>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between min-h-[140px] hover:shadow-md transition-shadow">
                     <H5>Emails Sent (7d)</H5>
                     <div>
-                        <H2 className="text-brand-600">{s.emails_7d_sent}</H2>
+                        <H3 className="text-brand-600">{s.emails_7d_sent}</H3>
                         <Small className="mt-2">... of {s.emails_7d_total} total</Small>
                     </div>
                 </div>

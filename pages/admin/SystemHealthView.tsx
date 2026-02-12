@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { liveSystemService, SystemCheckResult } from '../../services/liveSystemService';
 import { Activity, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
 import { AdminTabs } from './components/AdminTabs';
-import { H1, H5, Label, Small } from '../../components/ui/Typography';
+import { H3, H5, Label, Small } from '../../components/ui/Typography';
 
 export const SystemHealthView: React.FC = () => {
     const [checks, setChecks] = useState<SystemCheckResult[]>([]);
@@ -25,7 +25,7 @@ export const SystemHealthView: React.FC = () => {
         <div className="animate-in fade-in slide-in-from-bottom-2">
             <AdminTabs />
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-                <div><H1 className="flex items-center gap-4"><Activity className="text-red-500 w-10 h-10" /> System Health</H1></div>
+                <div><H3 className="flex items-center gap-4"><Activity className="text-red-500 w-10 h-10" /> System Health</H3></div>
                 <button onClick={runChecks} disabled={loading} className="p-5 bg-gray-900 text-white rounded-[1.5rem] flex items-center gap-3 font-black text-sm uppercase tracking-widest hover:bg-brand-500 transition-all"><RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} /> Scan starten</button>
             </div>
             <div className="space-y-6">
