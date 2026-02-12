@@ -81,7 +81,7 @@ export const SettingsView: React.FC<{ user: User, licenses: License[], billingAd
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <H2 className="mb-8">Account Settings</H2>
+            <H3 className="mb-8">Account Settings</H3>
             <DashboardTabs />
             
             {notice && (

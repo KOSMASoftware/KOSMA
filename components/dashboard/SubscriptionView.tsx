@@ -47,7 +47,7 @@ export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoi
 
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <H2 className="mb-8">Your Subscription</H2>
+            <H3 className="mb-8">Your Subscription</H3>
             <DashboardTabs />
 
             {isPolling && (
@@ -65,9 +65,9 @@ export const SubscriptionView: React.FC<{ user: User, licenses: License[], invoi
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
                         <H5 className="text-brand-500 mb-2">Active Plan</H5>
-                        <div className="flex items-baseline gap-3">
-                            <H2>{activeLicense?.planTier || 'Free'}</H2>
-                            <span className="text-gray-400 font-bold">/{cycleLabel}</span>
+                        <div className="flex items-baseline gap-2">
+                            <H3>{activeLicense?.planTier || 'Free'}</H3>
+                            <Label className="text-gray-400">/{cycleLabel}</Label>
                         </div>
                         <div className="mt-6 flex flex-wrap gap-3">
                             <Small className={`flex items-center gap-2 border px-4 py-1.5 rounded-full font-bold ${

@@ -49,7 +49,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <H2>Welcome, {user.name}</H2>
+                    <H3>Welcome, {user.name}</H3>
                     <Label className="text-gray-500 mt-1 italic">Production Dashboard</Label>
                 </div>
             </div>
@@ -77,7 +77,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                         
                         <div>
                             <H5 className="text-gray-400 mb-1">Current Plan</H5>
-                            <H2>{activeLicense?.planTier || 'Free'}</H2>
+                            <H3>{activeLicense?.planTier || 'Free'}</H3>
                             {activeLicense?.validUntil && (
                                 <Small className="mt-1 block">
                                     Valid until {new Date(activeLicense.validUntil).toLocaleDateString()}
@@ -88,7 +88,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
 
                     <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between relative z-10">
                         <div>
-                            <H2 className="leading-none">{daysRemaining ?? '∞'}</H2>
+                            <H3 className="leading-none">{daysRemaining ?? '∞'}</H3>
                             <H5 className="mt-1">Days left</H5>
                         </div>
                         <Button 
@@ -125,7 +125,7 @@ export const OverviewView: React.FC<{ user: User, licenses: License[], invoices:
                                 
                                 <div>
                                     <H5 className="text-gray-400 mb-1">Current Rank</H5>
-                                    <H2>{badge}</H2>
+                                    <H3>{badge}</H3>
                                     <Small className="mt-1 block">
                                         {coursesToNext > 0 
                                             ? `${coursesToNext} courses to ${nextBadge}`

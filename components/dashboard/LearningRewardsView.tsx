@@ -99,7 +99,7 @@ export const LearningRewardsView: React.FC = () => {
     return (
         <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <H2>Learning & Rewards</H2>
+                <H3>Learning & Rewards</H3>
             </div>
             
             <DashboardTabs />
@@ -112,9 +112,10 @@ export const LearningRewardsView: React.FC = () => {
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
                             <H5 className="text-gray-400 mb-1">Total Progress</H5>
-                            <H2>
-                                {global.courses_completed_count} <span className="text-gray-300 font-medium text-2xl">/</span> 6 <span className="text-lg text-gray-500 font-bold">Courses</span>
-                            </H2>
+                            <div className="flex items-baseline gap-2">
+                                <H3>{global.courses_completed_count}</H3>
+                                <Label className="text-gray-400">/ 6 Courses</Label>
+                            </div>
                         </div>
                         <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center border border-brand-100 shadow-sm">
                             <BadgeIcon type={displayBadge} className="w-6 h-6" />
@@ -123,8 +124,8 @@ export const LearningRewardsView: React.FC = () => {
 
                     <div className="mt-8 relative z-10">
                         <div className="flex justify-between mb-2">
-                            <H5 className="text-brand-500">{displayBadge}</H5>
-                            <H5 className="text-gray-300">{nextBadgeDisplay}</H5>
+                            <Label className="text-brand-500 font-bold">{displayBadge}</Label>
+                            <Label className="text-gray-300 font-bold">{nextBadgeDisplay}</Label>
                         </div>
                         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden border border-gray-100 relative">
                             <div 
